@@ -1,0 +1,57 @@
+{% extends 'Cinturones/base.html' %} {% block content %}
+<div class="container py-5">
+  <div class="text-center mb-5">
+    <h1 class="fw-bold display-4 text-gradient">KBStats</h1>
+    <p class="lead">Panel general — resumen del sistema</p>
+  </div>
+
+  <div class="row g-4 justify-content-center">
+    <div class="col-md-4">
+      <div class="card shadow-lg border-0 stat-card">
+        <div class="card-body text-center p-4">
+          <h5 class="text-uppercase text-secondary mb-2">Total Partidas</h5>
+          <h2 class="fw-bold display-5">{{ total_partidas }}</h2>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="card shadow-lg border-0 stat-card">
+        <div class="card-body text-center p-4">
+          <h5 class="text-uppercase text-secondary mb-2">Jugadores Únicos</h5>
+          <h2 class="fw-bold display-5">{{ total_jugadores }}</h2>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="text-center mt-5">
+    <a
+      class="btn btn-warning btn-lg px-4 me-3"
+      href="{% url 'clasificacion_grupos' %}"
+    >
+      Ver clasificación
+    </a>
+
+    <a
+      class="btn btn-primary btn-lg px-4 me-3"
+      href="/buscar_partidos/?format=html"
+    >
+      Buscar partidas por jornada
+    </a>
+
+    <a
+      class="btn btn-outline-secondary btn-lg px-4 me-3"
+      href="/promedios_jugadores/?format=html"
+    >
+      Promedios por jugador
+    </a>
+
+    {% if request.user.is_superuser %}
+    <a class="btn btn-success btn-lg px-4" href="{% url 'add_partida' %}">
+      Añadir partida (admin)
+    </a>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

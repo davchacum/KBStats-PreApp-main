@@ -1,0 +1,23 @@
+{% extends 'Cinturones/base.html' %} {% block content %}
+<h1>Partidas - Jornada {{ jornada }}</h1>
+{% if partidas %}
+<div class="list-group">
+  {% for p in partidas %}
+  <a
+    href="/partida/{{ p.match_id }}/?format=html"
+    class="list-group-item list-group-item-action"
+  >
+    <div class="d-flex w-100 justify-content-between">
+      <h5 class="mb-1">{{ p.equipo_azul }} vs {{ p.equipo_rojo }}</h5>
+      <small>Duración: {{ p.duracion_segundos }}s</small>
+    </div>
+    <p class="mb-1">
+      Match ID: {{ p.match_id }} — Ganador: {{ p.ganador_equipo }}
+    </p>
+    <small>Stats jugadores: {{ p.stats_jugadores|length }} jugadores</small>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<p>No se encontraron partidas para la jornada indicada.</p>
+{% endif %} {% endblock %}

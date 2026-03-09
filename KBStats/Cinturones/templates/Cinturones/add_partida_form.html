@@ -1,0 +1,36 @@
+{% extends 'Cinturones/base.html' %} {% block content %}
+<h1>Añadir partida (admin)</h1>
+
+{% if messages %} {% for message in messages %}
+<div
+  class="alert {% if message.tags %}alert-{{ message.tags }}{% else %}alert-info{% endif %}"
+  role="alert"
+>
+  {{ message }}
+</div>
+{% endfor %} {% endif %}
+
+<form method="post" class="row g-3">
+  {% csrf_token %}
+  <div class="col-12">{{ form.api_key.label_tag }} {{ form.api_key }}</div>
+  <div class="col-md-6">{{ form.match_id.label_tag }} {{ form.match_id }}</div>
+  <div class="col-md-2">{{ form.jornada.label_tag }} {{ form.jornada }}</div>
+  <div class="col-md-2">
+    {{ form.numero_partida.label_tag }} {{ form.numero_partida }}
+  </div>
+  <div class="col-md-6">
+    {{ form.equipo_azul.label_tag }} {{ form.equipo_azul }}
+  </div>
+  <div class="col-md-6">
+    {{ form.equipo_rojo.label_tag }} {{ form.equipo_rojo }}
+  </div>
+  <div class="col-12">
+    <button type="submit" class="btn btn-primary">Guardar partida</button>
+  </div>
+</form>
+
+<p class="mt-3">
+  <small>Nota: sólo los superusuarios pueden acceder a esta pantalla.</small>
+</p>
+
+{% endblock %}

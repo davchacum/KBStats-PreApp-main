@@ -1,0 +1,128 @@
+{% extends 'Cinturones/base.html' %}
+
+{% block content %}
+<div class="container py-4">
+
+  <h1 class="page-title mb-3">
+    Promedios por Jugador{% if jornada %} — Jornada {{ jornada }}{% endif %}
+  </h1>
+
+  <div class="filter-card">
+    <form method="get" class="row g-3 align-items-end">
+      <div class="col-md-3">
+        <label class="form-label mb-1">Jugador</label>
+        <input
+          type="text"
+          name="jugador"
+          value="{{ filtro_jugador|default_if_none:'' }}"
+          class="form-control"
+          placeholder="Filtrar por jugador"
+        />
+      </div>
+
+      <div class="col-md-2">
+        <label for="jornada" class="form-label mb-1">Jornada</label>
+        <select name="jornada" id="jornada" class="form-select">
+          <option value="">Todas</option>
+          {% for j in jornadas_disponibles %}
+            <option value="{{ j }}" {% if filtro_jornada|stringformat:"s" == j|stringformat:"s" %}selected{% endif %}>{{ j }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-md-3">
+        <label for="sort" class="form-label mb-1">Ordenar por</label>
+        <select name="sort" id="sort" class="form-select">
+          <option value="">No ordenar</option>
+          <option value="kills" {% if sort == 'kills' %}selected{% endif %}>K</option>
+          <option value="muertes" {% if sort == 'muertes' %}selected{% endif %}>D</option>
+          <option value="asistencias" {% if sort == 'asistencias' %}selected{% endif %}>A</option>
+          <option value="kda" {% if sort == 'kda' %}selected{% endif %}>KDA</option>
+          <option value="kp" {% if sort == 'kp' %}selected{% endif %}>KP %</option>
+          <option value="cs" {% if sort == 'cs' %}selected{% endif %}>CS</option>
+          <option value="cs_min" {% if sort == 'cs_min' %}selected{% endif %}>CS/min</option>
+          <option value="dano" {% if sort == 'dano' %}selected{% endif %}>Dmg</option>
+          <option value="dano_min" {% if sort == 'dano_min' %}selected{% endif %}>Dmg/min</option>
+          <option value="dano_recibido" {% if sort == 'dano_recibido' %}selected{% endif %}>Dmg Rec</option>
+          <option value="porcentaje_dano_equipo" {% if sort == 'porcentaje_dano_equipo' %}selected{% endif %}>% Dmg</option>
+          <option value="oro_min" {% if sort == 'oro_min' %}selected{% endif %}>Oro/min</option>
+          <option value="vision_min" {% if sort == 'vision_min' %}selected{% endif %}>Visión/min</option>
+          <option value="double_kills" {% if sort == 'double_kills' %}selected{% endif %}>2 kills</option>
+          <option value="triple_kills" {% if sort == 'triple_kills' %}selected{% endif %}>3 kills</option>
+          <option value="quadra_kills" {% if sort == 'quadra_kills' %}selected{% endif %}>4 kills</option>
+          <option value="penta_kills" {% if sort == 'penta_kills' %}selected{% endif %}>5 kills</option>
+          <option value="games" {% if sort == 'games' %}selected{% endif %}>Games</option>
+        </select>
+      </div>
+
+      <div class="col-md-2">
+        <label for="order" class="form-label mb-1">Orden</label>
+        <select name="order" id="order" class="form-select">
+          <option value="desc" {% if order == 'desc' %}selected{% endif %}>Desc</option>
+          <option value="asc" {% if order == 'asc' %}selected{% endif %}>Asc</option>
+        </select>
+      </div>
+
+      <div class="col-md-2 d-grid">
+        <button class="btn btn-primary">Aplicar</button>
+      </div>
+    </form>
+  </div>
+
+  <table class="table table-dark-kb table-hover table-sm">
+    <thead>
+      <tr>
+        <th>Jugador</th>
+        <th>K</th>
+        <th>D</th>
+        <th>A</th>
+        <th>KDA</th>
+        <th>KP %</th>
+        <th>CS</th>
+        <th>CS/min</th>
+        <th>Oro/min</th>
+        <th>Dmg</th>
+        <th>Dmg/min</th>
+        <th>Dmg Rec</th>
+        <th>% Dmg</th>
+        <th>Visión/min</th>
+        <th>2 kills</th>
+        <th>3 kills</th>
+        <th>4 kills</th>
+        <th>5 kills</th>
+        <th>Games</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for j in jugadores %}
+      <tr>
+        <td>{{ j.jugador_nombre }}</td>
+        <td>{{ j.avg_kills|floatformat:2 }}</td>
+        <td>{{ j.avg_muertes|floatformat:2 }}</td>
+        <td>{{ j.avg_asistencias|floatformat:2 }}</td>
+        <td>{{ j.avg_kda|floatformat:2 }}</td>
+        <td>{{ j.avg_kp|floatformat:2 }}</td>
+        <td>{{ j.avg_cs|floatformat:2 }}</td>
+        <td>{{ j.avg_cs_min|floatformat:2 }}</td>
+        <td>{{ j.avg_oro_min|floatformat:2 }}</td>
+        <td>{{ j.avg_dano_infligido|floatformat:2 }}</td>
+        <td>{{ j.avg_dano_min|floatformat:2 }}</td>
+        <td>{{ j.avg_dano_recibido|floatformat:2 }}</td>
+        <td>{{ j.avg_porcentaje_dano_equipo|floatformat:2 }}</td>
+        <td>{{ j.avg_vision_min|floatformat:2 }}</td>
+        <td>{{ j.avg_double|floatformat:2 }}</td>
+        <td>{{ j.avg_triple|floatformat:2 }}</td>
+        <td>{{ j.avg_quadra|floatformat:2 }}</td>
+        <td>{{ j.avg_penta|floatformat:2 }}</td>
+        <td>{{ j.games_played }}</td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="19">No hay datos.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+</div>
+{% endblock %}

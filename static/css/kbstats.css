@@ -1,0 +1,264 @@
+body {
+  background: #050816 !important;
+  color: #f5f5f5 !important;
+}
+
+.text-gradient {
+  background: linear-gradient(90deg, #22d3ee, #6366f1);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.stat-card {
+  border-radius: 1rem;
+  background: radial-gradient(circle at top left, #1a2131, #0c1129);
+  border: 10px solid rgb(218, 210, 210) !important;
+  box-shadow: 0 0 0 rgba(212, 204, 204, 0);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+  color: #e5e7eb !important;
+}
+
+.stat-card:hover {
+  transform: translateY(-10px);
+  border-color: #22d3ee;
+  box-shadow:
+    0 0 25px rgba(34, 211, 238, 0.7),
+    0 0 40px rgba(79, 70, 229, 0.6),
+    0 0 70px rgba(129, 140, 248, 0.4) !important;
+}
+
+.btn-primary {
+  background: linear-gradient(90deg, #6366f1, #22d3ee);
+  border: none;
+}
+
+.btn-primary:hover {
+  filter: brightness(1.1);
+}
+
+.btn-outline-secondary {
+  border-color: #9ca3af;
+  color: #e5e7eb !important;
+}
+
+.btn-outline-secondary:hover {
+  background-color: #9ca3af;
+  color: #020617;
+}
+
+.btn-success {
+  background: linear-gradient(90deg, #22c55e, #4ade80);
+  border: none;
+}
+
+.btn-success:hover {
+  filter: brightness(1.08);
+}
+
+/* Buscar partidas - estilos propios */
+
+.card-jornada {
+  background: #0b1220;
+  border: 1px solid #1f2937;
+  border-radius: 0.75rem;
+}
+
+.card-jornada-header {
+  background: linear-gradient(90deg, #111827, #020617);
+  border-bottom: 1px solid #1f2937;
+  color: #e5e7eb !important;
+  font-size: 0.9rem;
+  letter-spacing: 0.05em;
+}
+
+.list-group-kb .list-group-item-kb {
+  background-color: #020617;
+  border-color: #111827;
+  color: #e5e7eb !important;
+  font-size: 0.9rem;
+  padding: 0.55rem 0.9rem;
+}
+
+.list-group-kb .list-group-item-kb:hover {
+  background-color: #0f505a;
+  border-color: #22d3ee;
+  color: #f9fafb !important;
+}
+
+.partida-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.partida-meta {
+  font-size: 0.8rem;
+}
+
+h1.page-title {
+  font-size: 1.6rem;
+}
+
+.text-gradient {
+  background: linear-gradient(90deg, #22d3ee, #6366f1);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.partida-info-card {
+  background: #0b1220;
+  border: 1px solid #1f2937;
+  padding: 1rem 1.5rem;
+  border-radius: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.info-label {
+  color: #9ca3af !important;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.info-value {
+  color: #f3f4f6 !important;
+  font-weight: 600;
+}
+
+/* TABLA DARK */
+.table-dark-kb {
+  --bs-table-bg: #1b273f;
+  --bs-table-color: #e5e7eb;
+  --bs-table-hover-bg: #414f6d;
+  --bs-table-border-color: #1f2937;
+  font-size: 0.87rem;
+  border-color: #1f2937;
+}
+
+/* Celdas (th/td) – pisar el selector de Bootstrap */
+.table-dark-kb > :not(caption) > * > * {
+  background-color: #0b1220 !important;
+  color: #e5e7eb;
+}
+
+/* Hover dark */
+.table-dark-kb.table-hover > tbody > tr:hover > * {
+  background-color: #111827 !important;
+}
+
+h3.section-title,
+h4.team-title {
+  background: linear-gradient(90deg, #22d3ee, #6366f1);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+h4.team-title {
+  margin-top: 2.5rem;
+  margin-bottom: 1rem;
+  font-size: 1.25rem;
+}
+
+body {
+  background: #050816;
+  color: #e5e7eb;
+}
+
+.page-title {
+  background: linear-gradient(90deg, #22d3ee, #6366f1);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.filter-card {
+  background: #0b1220;
+  border: 1px solid #1f2937;
+  border-radius: 0.75rem;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.form-control,
+.form-select {
+  background-color: #020617;
+  border-color: #1f2937;
+  color: #e5e7eb;
+}
+
+.form-control::placeholder {
+  color: #6b7280;
+}
+
+.form-control:focus,
+.form-select:focus {
+  background-color: #020617;
+  border-color: #22d3ee;
+  color: #e5e7eb;
+  box-shadow: 0 0 0 0.15rem rgba(34, 211, 238, 0.25);
+}
+
+.btn-primary {
+  background: linear-gradient(90deg, #6366f1, #22d3ee);
+  border: none;
+}
+
+.btn-primary:hover {
+  filter: brightness(1.08);
+}
+
+/* TABLA DARK KB */
+.table-dark-kb {
+  --bs-table-bg: #0b1220;
+  --bs-table-color: #e5e7eb;
+  --bs-table-border-color: #1f2937;
+  --bs-table-hover-bg: #111827;
+  font-size: 0.85rem;
+  border-color: #1f2937;
+}
+
+/* Celdas (th/td) */
+.table-dark-kb > :not(caption) > * > * {
+  background-color: #0b1220 !important;
+  color: #e5e7eb !important;
+  border-color: #1f2937 !important;
+}
+
+/* Hover */
+.table-dark-kb.table-hover > tbody > tr:hover > * {
+  background-color: #111827 !important;
+}
+
+.table-dark-kb thead tr {
+  background: linear-gradient(90deg, #111827, #020617);
+  color: #cbd5e1 !important;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+}
+
+/* Clasificacion: resaltar posiciones */
+.table-dark-kb.table-hover > tbody > tr.clasif-top > *,
+.table-dark-kb > tbody > tr.clasif-top > * {
+  background-color: #0d3d2a !important;
+  color: #dcfce7 !important;
+}
+
+.table-dark-kb.table-hover > tbody > tr.clasif-top:hover > * {
+  background-color: #0f5238 !important;
+  color: #dcfce7 !important;
+}
+
+.table-dark-kb.table-hover > tbody > tr.clasif-last > *,
+.table-dark-kb > tbody > tr.clasif-last > * {
+  background-color: #4c1d1d !important;
+  color: #fee2e2 !important;
+}
+
+.table-dark-kb.table-hover > tbody > tr.clasif-last:hover > * {
+  background-color: #6b2525 !important;
+  color: #fee2e2 !important;
+}

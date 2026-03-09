@@ -1,0 +1,137 @@
+{% extends 'Cinturones/base.html' %} {% block content %}
+<div class="container py-4">
+  <h1 class="page-title">Partida {{ partida.match_id }}</h1>
+
+  <!-- PANEL DE INFORMACIÓN -->
+  <div class="partida-info-card">
+    <p>
+      <span class="info-label">Jornada:</span>
+      <span class="info-value">{{ partida.jornada }}</span>
+    </p>
+    <p>
+      <span class="info-label">Número de partida:</span>
+      <span class="info-value">{{ partida.numero_partida }}</span>
+    </p>
+    <p>
+      <span class="info-label">Azul:</span>
+      <span class="info-value">{{ partida.equipo_azul }}</span>
+    </p>
+    <p>
+      <span class="info-label">Rojo:</span>
+      <span class="info-value">{{ partida.equipo_rojo }}</span>
+    </p>
+    <p>
+      <span class="info-label">Ganador:</span>
+      <span class="info-value">{{ partida.ganador_equipo }}</span>
+    </p>
+    <p>
+      <span class="info-label">Duración:</span>
+      <span class="info-value">{{ partida.duracion_segundos }} s</span>
+    </p>
+  </div>
+
+  <h3 class="section-title mb-3">Stats Jugadores</h3>
+
+  <!-- EQUIPO AZUL -->
+  <h4 class="team-title">Equipo Azul — {{ equipo_azul }}</h4>
+  <table class="table table-dark-kb table-striped table-hover">
+    <thead>
+      <tr>
+        <th>Jugador</th>
+        <th>Campeón</th>
+        <th>K</th>
+        <th>D</th>
+        <th>A</th>
+        <th>KDA</th>
+        <th>KP %</th>
+        <th>CS</th>
+        <th>Dmg/min</th>
+        <th>Oro/min</th>
+        <th>Daño Inf.</th>
+        <th>% Team Dmg</th>
+        <th>Daño Rec.</th>
+        <th>Visión</th>
+        <th>2K</th>
+        <th>3K</th>
+        <th>4K</th>
+        <th>5K</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in stats_azul %}
+      <tr>
+        <td>{{ s.jugador_nombre }}</td>
+        <td>{{ s.campeon }}</td>
+        <td>{{ s.kills }}</td>
+        <td>{{ s.muertes }}</td>
+        <td>{{ s.asistencias }}</td>
+        <td>{{ s.kda }}</td>
+        <td>{{ s.kp_porcentaje }}</td>
+        <td>{{ s.cs }}</td>
+        <td>{{ s.dano_min }}</td>
+        <td>{{ s.oro_min }}</td>
+        <td>{{ s.dano_infligido }}</td>
+        <td>{{ s.porcentaje_dano_equipo }}</td>
+        <td>{{ s.dano_recibido }}</td>
+        <td>{{ s.vision_min }}</td>
+        <td>{{ s.double_kills }}</td>
+        <td>{{ s.triple_kills }}</td>
+        <td>{{ s.quadra_kills }}</td>
+        <td>{{ s.penta_kills }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- EQUIPO ROJO -->
+  <h4 class="team-title">Equipo Rojo — {{ equipo_rojo }}</h4>
+  <table class="table table-dark-kb table-striped table-hover">
+    <thead>
+      <tr>
+        <th>Jugador</th>
+        <th>Campeón</th>
+        <th>K</th>
+        <th>D</th>
+        <th>A</th>
+        <th>KDA</th>
+        <th>KP %</th>
+        <th>CS</th>
+        <th>Dmg/min</th>
+        <th>Oro/min</th>
+        <th>Daño Inf.</th>
+        <th>% Team Dmg</th>
+        <th>Daño Rec.</th>
+        <th>Visión</th>
+        <th>2K</th>
+        <th>3K</th>
+        <th>4K</th>
+        <th>5K</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in stats_rojo %}
+      <tr>
+        <td>{{ s.jugador_nombre }}</td>
+        <td>{{ s.campeon }}</td>
+        <td>{{ s.kills }}</td>
+        <td>{{ s.muertes }}</td>
+        <td>{{ s.asistencias }}</td>
+        <td>{{ s.kda }}</td>
+        <td>{{ s.kp_porcentaje }}</td>
+        <td>{{ s.cs }}</td>
+        <td>{{ s.dano_min }}</td>
+        <td>{{ s.oro_min }}</td>
+        <td>{{ s.dano_infligido }}</td>
+        <td>{{ s.porcentaje_dano_equipo }}</td>
+        <td>{{ s.dano_recibido }}</td>
+        <td>{{ s.vision_min }}</td>
+        <td>{{ s.double_kills }}</td>
+        <td>{{ s.triple_kills }}</td>
+        <td>{{ s.quadra_kills }}</td>
+        <td>{{ s.penta_kills }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
