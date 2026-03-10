@@ -111,9 +111,9 @@ def clasificacion_grupos(request):
 			if eq_a['victorias'] != eq_b['victorias']:
 				return -1 if eq_a['victorias'] > eq_b['victorias'] else 1
 
-			# 2) Más partidos jugados primero.
-			if eq_a['jugados'] != eq_b['jugados']:
-				return -1 if eq_a['jugados'] > eq_b['jugados'] else 1
+			# 2) Con mismas victorias, menos derrotas (menos partidos jugados) primero.
+			if eq_a['derrotas'] != eq_b['derrotas']:
+				return -1 if eq_a['derrotas'] < eq_b['derrotas'] else 1
 
 			# 3) Desempate por enfrentamiento directo (head-to-head).
 			a_vs_b = h2h_wins[nombre_grupo].get(eq_a['equipo'], {}).get(eq_b['equipo'], 0)
@@ -121,9 +121,7 @@ def clasificacion_grupos(request):
 			if a_vs_b != b_vs_a:
 				return -1 if a_vs_b > b_vs_a else 1
 
-			# 4) Si persiste el empate, menos derrotas y luego nombre.
-			if eq_a['derrotas'] != eq_b['derrotas']:
-				return -1 if eq_a['derrotas'] < eq_b['derrotas'] else 1
+			# 4) Si persiste el empate, ordenar por nombre.
 			if eq_a['equipo'] < eq_b['equipo']:
 				return -1
 			if eq_a['equipo'] > eq_b['equipo']:
