@@ -39,8 +39,8 @@ if not SECRET_KEY:
     )
 
 # SECURITY WARNING: don't run with debug turned on in production!
-# Allow overriding via environment variable; default to True for local development.
-DEBUG = os.environ.get('DEBUG', 'True') == 'True'
+# Allow overriding via environment variable; default to False.
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
 # Riot API key: read from environment variable `RIOT_API_KEY`.
 # Do NOT commit your real API key into source control.
