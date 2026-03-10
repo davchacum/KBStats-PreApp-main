@@ -67,6 +67,29 @@ def clasificacion_grupos(request):
 		}
 		for grupo in grupos
 	}
+	# Duraciones para desempates sin enfrentamiento directo.
+	# Se guarda por separado para victorias y derrotas.
+	duraciones = {
+		grupo['nombre']: {
+			equipo: {
+				'victorias_seg_total': 0,
+				'victorias_count': 0,
+				'derrotas_seg_total': 0,
+				'derrotas_count': 0,
+			}
+			for equipo in grupo['equipos']
+		}
+		for grupo in grupos
+	}
+	# Duración acumulada de enfrentamientos directos por pareja de equipos.
+	# h2h_duracion_total[grupo][equipo][rival] = segundos totales jugados entre ambos.
+	h2h_duracion_total = {
+		grupo['nombre']: {
+			equipo: {}
+			for equipo in grupo['equipos']
+		}
+		for grupo in grupos
+	}
 
 	partidas = (Partida.objects
 		.select_related('equipo_azul', 'equipo_rojo', 'ganador_equipo')
@@ -90,21 +113,51 @@ def clasificacion_grupos(request):
 		stats_azul['jugados'] += 1
 		stats_rojo['jugados'] += 1
 
+		if grupo_azul == grupo_rojo:
+			duracion = partida.duracion_segundos or 0
+			h2h_duracion_total[grupo_azul][nombre_azul][nombre_rojo] = (
+				h2h_duracion_total[grupo_azul][nombre_azul].get(nombre_rojo, 0) + duracion
+			)
+			h2h_duracion_total[grupo_rojo][nombre_rojo][nombre_azul] = (
+				h2h_duracion_total[grupo_rojo][nombre_rojo].get(nombre_azul, 0) + duracion
+			)
+
 		nombre_ganador = partida.ganador_equipo.nombre if partida.ganador_equipo else None
 		if nombre_ganador == nombre_azul:
 			stats_azul['victorias'] += 1
 			stats_rojo['derrotas'] += 1
+			duraciones[grupo_azul][nombre_azul]['victorias_seg_total'] += (partida.duracion_segundos or 0)
+			duraciones[grupo_azul][nombre_azul]['victorias_count'] += 1
+			duraciones[grupo_rojo][nombre_rojo]['derrotas_seg_total'] += (partida.duracion_segundos or 0)
+			duraciones[grupo_rojo][nombre_rojo]['derrotas_count'] += 1
 			if grupo_azul == grupo_rojo:
 				h2h_wins[grupo_azul][nombre_azul][nombre_rojo] = h2h_wins[grupo_azul][nombre_azul].get(nombre_rojo, 0) + 1
 		elif nombre_ganador == nombre_rojo:
 			stats_rojo['victorias'] += 1
 			stats_azul['derrotas'] += 1
+			duraciones[grupo_rojo][nombre_rojo]['victorias_seg_total'] += (partida.duracion_segundos or 0)
+			duraciones[grupo_rojo][nombre_rojo]['victorias_count'] += 1
+			duraciones[grupo_azul][nombre_azul]['derrotas_seg_total'] += (partida.duracion_segundos or 0)
+			duraciones[grupo_azul][nombre_azul]['derrotas_count'] += 1
 			if grupo_rojo == grupo_azul:
 				h2h_wins[grupo_rojo][nombre_rojo][nombre_azul] = h2h_wins[grupo_rojo][nombre_rojo].get(nombre_azul, 0) + 1
 
 	clasificaciones_render = []
 	for grupo in grupos:
 		nombre_grupo = grupo['nombre']
+		equipos_grupo = list(clasificaciones[nombre_grupo]['equipos'].values())
+
+		# Detectar bloques de triple empate por (victorias, derrotas).
+		triple_empate_por_equipo = {}
+		ties = {}
+		for eq in equipos_grupo:
+			key = (eq['victorias'], eq['derrotas'])
+			ties.setdefault(key, []).append(eq['equipo'])
+		for _, nombres in ties.items():
+			if len(nombres) == 3:
+				bloque = set(nombres)
+				for nombre in nombres:
+					triple_empate_por_equipo[nombre] = bloque
 
 		def comparar_equipos(eq_a, eq_b):
 			# 1) Más victorias primero.
@@ -115,23 +168,47 @@ def clasificacion_grupos(request):
 			if eq_a['derrotas'] != eq_b['derrotas']:
 				return -1 if eq_a['derrotas'] < eq_b['derrotas'] else 1
 
-			# 3) Desempate por enfrentamiento directo (head-to-head).
+			# 3) En triple empate, comparar duración acumulada contra el tercer equipo.
+			bloque_a = triple_empate_por_equipo.get(eq_a['equipo'])
+			if bloque_a and eq_b['equipo'] in bloque_a:
+				terceros = [t for t in bloque_a if t not in (eq_a['equipo'], eq_b['equipo'])]
+				if terceros:
+					tercero = terceros[0]
+					total_a = h2h_duracion_total[nombre_grupo].get(eq_a['equipo'], {}).get(tercero, 0)
+					total_b = h2h_duracion_total[nombre_grupo].get(eq_b['equipo'], {}).get(tercero, 0)
+					if total_a and total_b and total_a != total_b:
+						return -1 if total_a < total_b else 1
+
+			# 4) Desempate por enfrentamiento directo (head-to-head).
 			a_vs_b = h2h_wins[nombre_grupo].get(eq_a['equipo'], {}).get(eq_b['equipo'], 0)
 			b_vs_a = h2h_wins[nombre_grupo].get(eq_b['equipo'], {}).get(eq_a['equipo'], 0)
 			if a_vs_b != b_vs_a:
 				return -1 if a_vs_b > b_vs_a else 1
 
-			# 4) Si persiste el empate, ordenar por nombre.
+			# 5) Si no hay enfrentamiento directo, desempatar por duración media.
+			# En victorias gana quien tarda menos; en derrotas gana quien aguanta más.
+			if a_vs_b == 0 and b_vs_a == 0:
+				dur_a = duraciones[nombre_grupo][eq_a['equipo']]
+				dur_b = duraciones[nombre_grupo][eq_b['equipo']]
+
+				avg_win_a = (dur_a['victorias_seg_total'] / dur_a['victorias_count']) if dur_a['victorias_count'] else None
+				avg_win_b = (dur_b['victorias_seg_total'] / dur_b['victorias_count']) if dur_b['victorias_count'] else None
+				if avg_win_a is not None and avg_win_b is not None and avg_win_a != avg_win_b:
+					return -1 if avg_win_a < avg_win_b else 1
+
+				avg_loss_a = (dur_a['derrotas_seg_total'] / dur_a['derrotas_count']) if dur_a['derrotas_count'] else None
+				avg_loss_b = (dur_b['derrotas_seg_total'] / dur_b['derrotas_count']) if dur_b['derrotas_count'] else None
+				if avg_loss_a is not None and avg_loss_b is not None and avg_loss_a != avg_loss_b:
+					return -1 if avg_loss_a > avg_loss_b else 1
+
+			# 6) Si persiste el empate, ordenar por nombre.
 			if eq_a['equipo'] < eq_b['equipo']:
 				return -1
 			if eq_a['equipo'] > eq_b['equipo']:
 				return 1
 			return 0
 
-		equipos_ordenados = sorted(
-			clasificaciones[nombre_grupo]['equipos'].values(),
-			key=cmp_to_key(comparar_equipos)
-		)
+		equipos_ordenados = sorted(equipos_grupo, key=cmp_to_key(comparar_equipos))
 		clasificaciones_render.append({
 			'grupo': nombre_grupo,
 			'equipos': equipos_ordenados,
