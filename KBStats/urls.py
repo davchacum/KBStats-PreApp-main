@@ -14,14 +14,14 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
-from django.contrib import admin
+# from django.contrib import admin  # DESACTIVADO POR SEGURIDAD
 from django.urls import path
-from .Cinturones.views import index, buscar_partidos_form, buscar_partidos_por_jornada, detalle_partida, promedios_jugadores, add_partida, clasificacion_grupos
+from .Cinturones.views import index, buscar_partidos_form, buscar_partidos_por_jornada, detalle_partida, promedios_jugadores, clasificacion_grupos  # , add_partida  # DESACTIVADO
 
 urlpatterns = [
-    # ruta de añadir partida debe ir antes de `admin.site.urls` para evitar conflicto
-    path('admin/add_partida/', add_partida, name='add_partida'),
-    path('admin/', admin.site.urls),
+    # FUNCIONALIDADES DE ADMIN DESACTIVADAS POR SEGURIDAD
+    # path('admin/add_partida/', add_partida, name='add_partida'),
+    # path('admin/', admin.site.urls),
     path('', index, name='index'),
     path('clasificacion/', clasificacion_grupos, name='clasificacion_grupos'),
     path('buscar_partidos/', buscar_partidos_form, name='buscar_partidos_form'),

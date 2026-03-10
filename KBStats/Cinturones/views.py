@@ -5,13 +5,13 @@ from django.conf import settings
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render, redirect
 from django.db.models import Avg, Count
-from django.contrib.auth.decorators import user_passes_test
-from django.contrib import messages
+# from django.contrib.auth.decorators import user_passes_test  # DESACTIVADO
+# from django.contrib import messages  # DESACTIVADO
 import requests
 
 from .models import Partida, StatsJugador
-from .forms import AddPartidaForm
-from .utils import extract_match_data, save_to_django
+# from .forms import AddPartidaForm  # DESACTIVADO
+# from .utils import extract_match_data, save_to_django  # DESACTIVADO
 
 
 def _leer_grupos_desde_seed():
@@ -40,7 +40,7 @@ def clasificacion_grupos(request):
 	grupos = _leer_grupos_desde_seed()
 
 	if not grupos:
-		messages.warning(request, 'No se encontró información de grupos en seed_grupos.csv.')
+		# messages.warning(request, 'No se encontró información de grupos en seed_grupos.csv.')  # DESACTIVADO
 		return render(request, 'Cinturones/clasificacion_grupos.html', {'clasificaciones': []})
 
 	# Índice rápido para saber en qué grupo está cada equipo.
@@ -504,40 +504,41 @@ def promedios_jugadores(request):
 	return JsonResponse({'jugadores': resultados, 'jornadas_disponibles': list(jornadas_disponibles)})
 
 
-@user_passes_test(lambda u: u.is_superuser)
-def add_partida(request):
-	"""Vista para que un administrador introduzca un match_id y datos complementarios y guarde la partida."""
-	if request.method == 'POST':
-		form = AddPartidaForm(request.POST)
-		if form.is_valid():
-			api_key = os.environ.get('RIOT_API_KEY') or getattr(settings, 'RIOT_API_KEY', None)
-			match_id = form.cleaned_data['match_id']
-			jornada = form.cleaned_data['jornada']
-			numero_partida = form.cleaned_data['numero_partida']
-			equipo_azul = form.cleaned_data['equipo_azul']
-			equipo_rojo = form.cleaned_data['equipo_rojo']
-
-			if not api_key:
-				messages.error(request, 'Se requiere API key para obtener datos de Riot.')
-				return render(request, 'Cinturones/add_partida_form.html', {'form': form})
-
-			api_url = f"https://europe.api.riotgames.com/lol/match/v5/matches/{match_id}?api_key={api_key}"
-			try:
-				resp = requests.get(api_url)
-				resp.raise_for_status()
-			except Exception as e:
-				messages.error(request, f'Error al obtener datos de la API')
-				return render(request, 'Cinturones/add_partida_form.html', {'form': form})
-
-			data = extract_match_data(resp.text, equipo_azul, equipo_rojo)
-			if not data:
-				messages.error(request, 'No se pudieron extraer datos de la partida.')
-				return render(request, 'Cinturones/add_partida_form.html', {'form': form})
-
-			save_to_django(data, jornada, numero_partida, equipo_azul, equipo_rojo)
-			messages.success(request, f'Partida {match_id} guardada correctamente.')
-			return redirect('add_partida')
-	else:
-		form = AddPartidaForm()
-
-	return render(request, 'Cinturones/add_partida_form.html', {'form': form})
+# FUNCIÓN DESACTIVADA POR SEGURIDAD - No se permite añadir partidas desde la web
+# @user_passes_test(lambda u: u.is_superuser)
+# def add_partida(request):
+# 	"""Vista para que un administrador introduzca un match_id y datos complementarios y guarde la partida."""
+# 	if request.method == 'POST':
+# 		form = AddPartidaForm(request.POST)
+# 		if form.is_valid():
+# 			api_key = os.environ.get('RIOT_API_KEY') or getattr(settings, 'RIOT_API_KEY', None)
+# 			match_id = form.cleaned_data['match_id']
+# 			jornada = form.cleaned_data['jornada']
+# 			numero_partida = form.cleaned_data['numero_partida']
+# 			equipo_azul = form.cleaned_data['equipo_azul']
+# 			equipo_rojo = form.cleaned_data['equipo_rojo']
+# 
+# 			if not api_key:
+# 				messages.error(request, 'Se requiere API key para obtener datos de Riot.')
+# 				return render(request, 'Cinturones/add_partida_form.html', {'form': form})
+# 
+# 			api_url = f"https://europe.api.riotgames.com/lol/match/v5/matches/{match_id}?api_key={api_key}"
+# 			try:
+# 				resp = requests.get(api_url)
+# 				resp.raise_for_status()
+# 			except Exception as e:
+# 				messages.error(request, f'Error al obtener datos de la API')
+# 				return render(request, 'Cinturones/add_partida_form.html', {'form': form})
+# 
+# 			data = extract_match_data(resp.text, equipo_azul, equipo_rojo)
+# 			if not data:
+# 				messages.error(request, 'No se pudieron extraer datos de la partida.')
+# 				return render(request, 'Cinturones/add_partida_form.html', {'form': form})
+# 
+# 			save_to_django(data, jornada, numero_partida, equipo_azul, equipo_rojo)
+# 			messages.success(request, f'Partida {match_id} guardada correctamente.')
+# 			return redirect('add_partida')
+# 	else:
+# 		form = AddPartidaForm()
+# 
+# 	return render(request, 'Cinturones/add_partida_form.html', {'form': form})

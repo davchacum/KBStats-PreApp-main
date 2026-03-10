@@ -50,13 +50,13 @@ ALLOWED_HOSTS = ['kbstats-preapp-main.onrender.com', 'www.kbstats.es', 'kbstats.
 
 
 # Application definition
-
+# APPS DE ADMIN/AUTH DESACTIVADAS POR SEGURIDAD - Aplicación totalmente estática
 INSTALLED_APPS = [
-    'django.contrib.admin',
-    'django.contrib.auth',
+    # 'django.contrib.admin',  # DESACTIVADO
+    # 'django.contrib.auth',  # DESACTIVADO
     'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
+    # 'django.contrib.sessions',  # DESACTIVADO
+    # 'django.contrib.messages',  # DESACTIVADO
     'django.contrib.staticfiles',
     'KBStats.Cinturones',
 ]
@@ -64,11 +64,11 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
+    # 'django.contrib.sessions.middleware.SessionMiddleware',  # DESACTIVADO
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
+    # 'django.contrib.auth.middleware.AuthenticationMiddleware',  # DESACTIVADO
+    # 'django.contrib.messages.middleware.MessageMiddleware',  # DESACTIVADO
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
@@ -82,8 +82,8 @@ TEMPLATES = [
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
+                # 'django.contrib.auth.context_processors.auth',  # DESACTIVADO
+                # 'django.contrib.messages.context_processors.messages',  # DESACTIVADO
             ],
         },
     },
@@ -105,21 +105,21 @@ DATABASES = {
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
-
-AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
-]
+# DESACTIVADO - No se necesita autenticación
+# AUTH_PASSWORD_VALIDATORS = [
+#     {
+#         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+#     },
+#     {
+#         'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+#     },
+#     {
+#         'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+#     },
+#     {
+#         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+#     },
+# ]
 
 
 # Internationalization
