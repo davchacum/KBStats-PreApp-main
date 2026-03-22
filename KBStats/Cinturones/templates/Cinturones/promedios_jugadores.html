@@ -25,7 +25,7 @@
         <select name="jornada" id="jornada" class="form-select">
           <option value="">Todas</option>
           {% for j in jornadas_disponibles %}
-            <option value="{{ j }}" {% if filtro_jornada|stringformat:"s" == j|stringformat:"s" %}selected{% endif %}>{{ j }}</option>
+            <option value="{{ j }}" {% if jornada|stringformat:"s" == j|stringformat:"s" %}selected{% endif %}>{{ j }}</option>
           {% endfor %}
         </select>
       </div>
