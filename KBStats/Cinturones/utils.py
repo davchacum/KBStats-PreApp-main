@@ -102,12 +102,10 @@ def extract_match_data(json_data: str, equipo_azul_nombre: str, equipo_rojo_nomb
             total_damage_dealt_to_champions = p.get('totalDamageDealtToChampions', 0)
             dano_min = total_damage_dealt_to_champions / game_length_minutes if game_length_minutes > 0 else 0
             team_damage_percentage = p.get('challenges', {}).get('teamDamagePercentage', 0)
-            #Si el jugador es Tusko J0ncitos#GLOVO entonces se debe cambiar a Tusk0 Jones#PRYCA
-            #Si el jugador es Sr Leem0n#EUW entonces se debe cambiar a Sr Leem0n#11235
-            if nombre_tag == 'Tusko J0ncitos#GLOVO':
-                nombre_tag = 'Tusk0 Jones#PRYCA'
-            elif nombre_tag == 'Sr Leem0n#EUW':
-                nombre_tag = 'Sr Leem0n#11235'
+            if nombre_tag == 'Sr Leem0n#11235':
+                nombre_tag = 'CarryDoctor#112'
+            elif nombre_tag == 'MaikyG#EUW2':
+                nombre_tag = 'Lo siento#EUW2'
                 
             porcentaje_dano_equipo = round(team_damage_percentage * 100, 2)
             player_stats_list.append({
