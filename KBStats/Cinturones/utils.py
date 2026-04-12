@@ -104,9 +104,17 @@ def extract_match_data(json_data: str, equipo_azul_nombre: str, equipo_rojo_nomb
             team_damage_percentage = p.get('challenges', {}).get('teamDamagePercentage', 0)
             if nombre_tag == 'Sr Leem0n#11235':
                 nombre_tag = 'CarryDoctor#112'
-            elif nombre_tag == 'MaikyG#EUW2':
-                nombre_tag = 'Lo siento#EUW2'
-                
+            elif nombre_tag == 'Lo siento#EUW2':
+                nombre_tag = 'MaikyG#EUW2'
+            if nombre_tag == 'Desu Zaa#KIDDO':
+                nombre_tag = 'Hikigaayaa#YUKNO'
+            if nombre_tag == '身勝手の極意#T1F':
+                nombre_tag = 'LegendLegacyy#EUW'
+            if nombre_tag == 'Fumatusi#2103':
+                nombre_tag = 'Cuco#ESPÑA'
+            if nombre_tag == 'DBX#101':
+                nombre_tag = 'Torrente#ESPÑA'
+                            
             porcentaje_dano_equipo = round(team_damage_percentage * 100, 2)
             player_stats_list.append({
                 "nombre_jugador": nombre_tag,

@@ -4,7 +4,7 @@ from functools import cmp_to_key
 from django.conf import settings
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render, redirect
-from django.db.models import Avg, Count
+from django.db.models import Avg, Count, Sum
 # from django.contrib.auth.decorators import user_passes_test  # DESACTIVADO
 # from django.contrib import messages  # DESACTIVADO
 import requests
@@ -491,11 +491,16 @@ def promedios_jugadores(request):
 	if jugador_q:
 		qs = qs.filter(jugador__nombre__icontains=jugador_q)
 
+	def calcular_kda(kills, muertes, asistencias):
+		if muertes == 0:
+			return kills + asistencias
+		return (kills + asistencias) / muertes
+
 	agregados = qs.values('jugador__id', 'jugador__nombre').annotate(
-		avg_kills=Avg('kills'),
-		avg_muertes=Avg('muertes'),
-		avg_asistencias=Avg('asistencias'),
-		avg_kda=Avg('kda'),
+		avg_kills=Sum('kills'),
+		avg_muertes=Sum('muertes'),
+		avg_asistencias=Sum('asistencias'),
+		avg_kda=calcular_kda(Sum('kills'), Sum('muertes'), Sum('asistencias')),
 		avg_kp=Avg('kp_porcentaje'),
 		avg_oro_min=Avg('oro_min'),
 		avg_dano_infligido=Avg('dano_infligido'),
@@ -546,9 +551,9 @@ def promedios_jugadores(request):
 		resultados.append({
 			'jugador_id': a['jugador__id'],
 			'jugador_nombre': a['jugador__nombre'],
-			'avg_kills': float(a['avg_kills'] or 0.0),
-			'avg_muertes': float(a['avg_muertes'] or 0.0),
-			'avg_asistencias': float(a['avg_asistencias'] or 0.0),
+			'avg_kills': int(a['avg_kills'] or 0.0),
+			'avg_muertes': int(a['avg_muertes'] or 0.0),
+			'avg_asistencias': int(a['avg_asistencias'] or 0.0),
 			'avg_kda': float(a['avg_kda'] or 0.0),
 			'avg_kp': float(a['avg_kp'] or 0.0),
 			'avg_oro_min': float(a['avg_oro_min'] or 0.0),
