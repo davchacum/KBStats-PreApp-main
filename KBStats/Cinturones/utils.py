@@ -100,6 +100,7 @@ def extract_match_data(json_data: str, equipo_azul_nombre: str, equipo_rojo_nomb
             nombre_tag = f"{riot_id_name}#{riot_id_tag}" if riot_id_name and riot_id_tag else 'N/A'
 
             total_damage_dealt_to_champions = p.get('totalDamageDealtToChampions', 0)
+            game_time = game_length_minutes
             dano_min = total_damage_dealt_to_champions / game_length_minutes if game_length_minutes > 0 else 0
             team_damage_percentage = p.get('challenges', {}).get('teamDamagePercentage', 0)
             if nombre_tag == 'Sr Leem0n#11235':
@@ -138,6 +139,7 @@ def extract_match_data(json_data: str, equipo_azul_nombre: str, equipo_rojo_nomb
                 "triple_kills": p.get('tripleKills', 0),
                 "quadra_kills": p.get('quadraKills', 0),
                 "penta_kills": p.get('pentaKills', 0),
+                "game_time": game_time,
             })
 
         return {"partida": partida_data, "stats_jugadores": player_stats_list}
@@ -234,6 +236,7 @@ def save_to_django(match_data: Dict[str, Any], jornada: str, numero_partida: str
                 'triple_kills': p_stats.get('triple_kills', 0),
                 'quadra_kills': p_stats.get('quadra_kills', 0),
                 'penta_kills': p_stats.get('penta_kills', 0),
+                'game_time': p_stats.get('game_time', 0.0),
             }
 
             StatsJugador.objects.update_or_create(

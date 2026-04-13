@@ -52,6 +52,7 @@
           <option value="quadra_kills" {% if sort == 'quadra_kills' %}selected{% endif %}>4 kills</option>
           <option value="penta_kills" {% if sort == 'penta_kills' %}selected{% endif %}>5 kills</option>
           <option value="games" {% if sort == 'games' %}selected{% endif %}>Games</option>
+          <option value="game_time" {% if sort == 'game_time' %}selected{% endif %}>Tiempo medio</option>
         </select>
       </div>
 
@@ -91,6 +92,7 @@
         <th>4 kills</th>
         <th>5 kills</th>
         <th>Games</th>
+        <th>Tiempo medio</th>
       </tr>
     </thead>
     <tbody>
@@ -115,6 +117,7 @@
         <td>{{ j.avg_quadra|floatformat:2 }}</td>
         <td>{{ j.avg_penta|floatformat:2 }}</td>
         <td>{{ j.games_played }}</td>
+        <td>{{ j.avg_game_time|floatformat:2 }}</td>
       </tr>
       {% empty %}
       <tr>

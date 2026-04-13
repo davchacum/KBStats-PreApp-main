@@ -267,6 +267,7 @@ def buscar_partidos_por_jornada(request):
 				'triple_kills': s.triple_kills,
 				'quadra_kills': s.quadra_kills,
 				'penta_kills': s.penta_kills,
+				'game_time': float(s.game_time or 0.0),
 			})
 
 		resultado.append({
@@ -514,6 +515,7 @@ def promedios_jugadores(request):
 		avg_triple=Avg('triple_kills'),
 		avg_quadra=Avg('quadra_kills'),
 		avg_penta=Avg('penta_kills'),
+        avg_game_time=Avg('game_time'),
 		games_played=Count('partida__id'),
 	)
 	# Orden dinámico sobre los aliases generados
@@ -536,6 +538,7 @@ def promedios_jugadores(request):
 		'triple_kills': 'avg_triple',
 		'quadra_kills': 'avg_quadra',
 		'penta_kills': 'avg_penta',
+        'game_time': 'avg_game_time',
 		'games': 'games_played',
 	}
 	if sort in sort_map:
@@ -568,6 +571,7 @@ def promedios_jugadores(request):
 			'avg_triple': float(a['avg_triple'] or 0.0),
 			'avg_quadra': float(a['avg_quadra'] or 0.0),
 			'avg_penta': float(a['avg_penta'] or 0.0),
+            'avg_game_time': float(a['avg_game_time'] or 0.0),
 			'games_played': a['games_played'],
 		})
 
