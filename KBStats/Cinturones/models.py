@@ -78,6 +78,7 @@ class StatsJugador(models.Model):
 	quadra_kills = models.IntegerField(default=0)
 	penta_kills = models.IntegerField(default=0)
 	game_time = models.FloatField(default=0.0)
+	dano_oro = models.FloatField(default=0.0)
 	created_at = models.DateTimeField(auto_now_add=True)
 
 	class Meta:

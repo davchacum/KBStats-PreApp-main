@@ -115,6 +115,8 @@ def extract_match_data(json_data: str, equipo_azul_nombre: str, equipo_rojo_nomb
                 nombre_tag = 'Cuco#ESPÑA'
             if nombre_tag == 'DBX#101':
                 nombre_tag = 'Torrente#ESPÑA'
+
+            oro_min = round(oro_obtenido / game_length_minutes, 2) if game_length_minutes > 0 else 0
                             
             porcentaje_dano_equipo = round(team_damage_percentage * 100, 2)
             player_stats_list.append({
@@ -127,7 +129,7 @@ def extract_match_data(json_data: str, equipo_azul_nombre: str, equipo_rojo_nomb
                 "asistencias": assists,
                 "kda": round(kda_val, 2),
                 "kp_porcentaje": kill_participation,
-                "oro_min": round(oro_obtenido / game_length_minutes, 2) if game_length_minutes > 0 else 0,
+                "oro_min": oro_min,
                 "dano_infligido": total_damage_dealt_to_champions,
                 "porcentaje_dano_equipo": porcentaje_dano_equipo,
                 "dano_min": round(dano_min, 2),
@@ -140,6 +142,7 @@ def extract_match_data(json_data: str, equipo_azul_nombre: str, equipo_rojo_nomb
                 "quadra_kills": p.get('quadraKills', 0),
                 "penta_kills": p.get('pentaKills', 0),
                 "game_time": game_time,
+                "dano_oro": round(dano_min / oro_min, 2) if oro_min > 0 else 0,
             })
 
         return {"partida": partida_data, "stats_jugadores": player_stats_list}
@@ -237,6 +240,7 @@ def save_to_django(match_data: Dict[str, Any], jornada: str, numero_partida: str
                 'quadra_kills': p_stats.get('quadra_kills', 0),
                 'penta_kills': p_stats.get('penta_kills', 0),
                 'game_time': p_stats.get('game_time', 0.0),
+                'dano_oro': p_stats.get('dano_oro', 0.0),
             }
 
             StatsJugador.objects.update_or_create(

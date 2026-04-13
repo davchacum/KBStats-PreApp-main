@@ -46,6 +46,7 @@
           <option value="dano_recibido" {% if sort == 'dano_recibido' %}selected{% endif %}>Dmg Rec</option>
           <option value="porcentaje_dano_equipo" {% if sort == 'porcentaje_dano_equipo' %}selected{% endif %}>% Dmg</option>
           <option value="oro_min" {% if sort == 'oro_min' %}selected{% endif %}>Oro/min</option>
+          <option value="dano_oro" {% if sort == 'dano_oro' %}selected{% endif %}>DMG/ORO</option>
           <option value="vision_min" {% if sort == 'vision_min' %}selected{% endif %}>Visión/min</option>
           <option value="double_kills" {% if sort == 'double_kills' %}selected{% endif %}>2 kills</option>
           <option value="triple_kills" {% if sort == 'triple_kills' %}selected{% endif %}>3 kills</option>
@@ -73,6 +74,7 @@
   <table class="table table-dark-kb table-hover table-sm">
     <thead>
       <tr>
+        <th>#</th>
         <th>Jugador</th>
         <th>K</th>
         <th>D</th>
@@ -86,6 +88,7 @@
         <th>Dmg/min</th>
         <th>Dmg Rec</th>
         <th>% Dmg</th>
+        <th>DMG/ORO</th>
         <th>Visión/min</th>
         <th>2 kills</th>
         <th>3 kills</th>
@@ -98,10 +101,11 @@
     <tbody>
       {% for j in jugadores %}
       <tr>
+        <td>{{ forloop.counter }}</td>
         <td>{{ j.jugador_nombre }}</td>
-        <td>{{ j.avg_kills|floatformat:2 }}</td>
-        <td>{{ j.avg_muertes|floatformat:2 }}</td>
-        <td>{{ j.avg_asistencias|floatformat:2 }}</td>
+        <td>{{ j.avg_kills }}</td>
+        <td>{{ j.avg_muertes }}</td>
+        <td>{{ j.avg_asistencias }}</td>
         <td>{{ j.avg_kda|floatformat:2 }}</td>
         <td>{{ j.avg_kp|floatformat:2 }}</td>
         <td>{{ j.avg_cs|floatformat:2 }}</td>
@@ -111,17 +115,18 @@
         <td>{{ j.avg_dano_min|floatformat:2 }}</td>
         <td>{{ j.avg_dano_recibido|floatformat:2 }}</td>
         <td>{{ j.avg_porcentaje_dano_equipo|floatformat:2 }}</td>
+        <td>{{ j.avg_dano_oro|floatformat:2 }}</td>
         <td>{{ j.avg_vision_min|floatformat:2 }}</td>
-        <td>{{ j.avg_double|floatformat:2 }}</td>
-        <td>{{ j.avg_triple|floatformat:2 }}</td>
-        <td>{{ j.avg_quadra|floatformat:2 }}</td>
-        <td>{{ j.avg_penta|floatformat:2 }}</td>
+        <td>{{ j.avg_double }}</td>
+        <td>{{ j.avg_triple }}</td>
+        <td>{{ j.avg_quadra }}</td>
+        <td>{{ j.avg_penta }}</td>
         <td>{{ j.games_played }}</td>
         <td>{{ j.avg_game_time|floatformat:2 }}</td>
       </tr>
       {% empty %}
       <tr>
-        <td colspan="19">No hay datos.</td>
+        <td colspan="22">No hay datos.</td>
       </tr>
       {% endfor %}
     </tbody>

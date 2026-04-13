@@ -494,8 +494,8 @@ def promedios_jugadores(request):
 
 	def calcular_kda(kills, muertes, asistencias):
 		if muertes == 0:
-			return kills + asistencias
-		return (kills + asistencias) / muertes
+			return (kills + asistencias) * 1.0
+		return ((kills + asistencias) * 1.0) / muertes
 
 	agregados = qs.values('jugador__id', 'jugador__nombre').annotate(
 		avg_kills=Sum('kills'),
@@ -504,6 +504,7 @@ def promedios_jugadores(request):
 		avg_kda=calcular_kda(Sum('kills'), Sum('muertes'), Sum('asistencias')),
 		avg_kp=Avg('kp_porcentaje'),
 		avg_oro_min=Avg('oro_min'),
+		avg_dano_oro=Avg('dano_oro'),
 		avg_dano_infligido=Avg('dano_infligido'),
 		avg_porcentaje_dano_equipo=Avg('porcentaje_dano_equipo'),
 		avg_dano_min=Avg('dano_min'),
@@ -511,10 +512,10 @@ def promedios_jugadores(request):
 		avg_cs=Avg('cs'),
 		avg_cs_min=Avg('cs_min'),
 		avg_vision_min=Avg('vision_min'),
-		avg_double=Avg('double_kills'),
-		avg_triple=Avg('triple_kills'),
-		avg_quadra=Avg('quadra_kills'),
-		avg_penta=Avg('penta_kills'),
+		avg_double=Sum('double_kills'),
+		avg_triple=Sum('triple_kills'),
+		avg_quadra=Sum('quadra_kills'),
+		avg_penta=Sum('penta_kills'),
         avg_game_time=Avg('game_time'),
 		games_played=Count('partida__id'),
 	)
@@ -527,6 +528,7 @@ def promedios_jugadores(request):
 		'kda': 'avg_kda',
 		'kp': 'avg_kp',
 		'oro_min': 'avg_oro_min',
+		'dano_oro': 'avg_dano_oro',
 		'dano': 'avg_dano_infligido',
 		'dano_min': 'avg_dano_min',
 		'dano_recibido': 'avg_dano_recibido',
@@ -560,6 +562,7 @@ def promedios_jugadores(request):
 			'avg_kda': float(a['avg_kda'] or 0.0),
 			'avg_kp': float(a['avg_kp'] or 0.0),
 			'avg_oro_min': float(a['avg_oro_min'] or 0.0),
+			'avg_dano_oro': float(a['avg_dano_oro'] or 0.0),
 			'avg_dano_infligido': float(a['avg_dano_infligido'] or 0.0),
 			'avg_porcentaje_dano_equipo': float(a['avg_porcentaje_dano_equipo'] or 0.0),
 			'avg_dano_min': float(a['avg_dano_min'] or 0.0),
@@ -567,11 +570,11 @@ def promedios_jugadores(request):
 			'avg_cs': float(a['avg_cs'] or 0.0),
 			'avg_cs_min': float(a['avg_cs_min'] or 0.0),
 			'avg_vision_min': float(a['avg_vision_min'] or 0.0),
-			'avg_double': float(a['avg_double'] or 0.0),
-			'avg_triple': float(a['avg_triple'] or 0.0),
-			'avg_quadra': float(a['avg_quadra'] or 0.0),
-			'avg_penta': float(a['avg_penta'] or 0.0),
-            'avg_game_time': float(a['avg_game_time'] or 0.0),
+			'avg_double': int(a['avg_double'] or 0.0),
+			'avg_triple': int(a['avg_triple'] or 0.0),
+			'avg_quadra': int(a['avg_quadra'] or 0.0),
+			'avg_penta': int(a['avg_penta'] or 0.0),
+			'avg_game_time': float(a['avg_game_time'] or 0.0),
 			'games_played': a['games_played'],
 		})
 
