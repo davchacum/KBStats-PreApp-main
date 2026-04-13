@@ -41,12 +41,11 @@
           <option value="kp" {% if sort == 'kp' %}selected{% endif %}>KP %</option>
           <option value="cs" {% if sort == 'cs' %}selected{% endif %}>CS</option>
           <option value="cs_min" {% if sort == 'cs_min' %}selected{% endif %}>CS/min</option>
-          <option value="dano" {% if sort == 'dano' %}selected{% endif %}>Dmg</option>
           <option value="dano_min" {% if sort == 'dano_min' %}selected{% endif %}>Dmg/min</option>
           <option value="dano_recibido" {% if sort == 'dano_recibido' %}selected{% endif %}>Dmg Rec</option>
           <option value="porcentaje_dano_equipo" {% if sort == 'porcentaje_dano_equipo' %}selected{% endif %}>% Dmg</option>
           <option value="oro_min" {% if sort == 'oro_min' %}selected{% endif %}>Oro/min</option>
-          <option value="dano_oro" {% if sort == 'dano_oro' %}selected{% endif %}>DMG/ORO</option>
+          <option value="dano_oro" {% if sort == 'dano_oro' %}selected{% endif %}>Dmg/Oro</option>
           <option value="vision_min" {% if sort == 'vision_min' %}selected{% endif %}>Visión/min</option>
           <option value="double_kills" {% if sort == 'double_kills' %}selected{% endif %}>2 kills</option>
           <option value="triple_kills" {% if sort == 'triple_kills' %}selected{% endif %}>3 kills</option>
@@ -84,12 +83,11 @@
         <th>CS</th>
         <th>CS/min</th>
         <th>Oro/min</th>
-        <th>Dmg</th>
         <th>Dmg/min</th>
         <th>Dmg Rec</th>
         <th>% Dmg</th>
-        <th>DMG/ORO</th>
-        <th>Visión/min</th>
+        <th>Dmg/Oro</th>
+        <th>Visión</th>
         <th>2 kills</th>
         <th>3 kills</th>
         <th>4 kills</th>
@@ -111,7 +109,6 @@
         <td>{{ j.avg_cs|floatformat:2 }}</td>
         <td>{{ j.avg_cs_min|floatformat:2 }}</td>
         <td>{{ j.avg_oro_min|floatformat:2 }}</td>
-        <td>{{ j.avg_dano_infligido|floatformat:2 }}</td>
         <td>{{ j.avg_dano_min|floatformat:2 }}</td>
         <td>{{ j.avg_dano_recibido|floatformat:2 }}</td>
         <td>{{ j.avg_porcentaje_dano_equipo|floatformat:2 }}</td>
