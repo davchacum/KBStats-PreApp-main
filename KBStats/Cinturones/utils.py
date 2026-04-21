@@ -115,6 +115,13 @@ def extract_match_data(json_data: str, equipo_azul_nombre: str, equipo_rojo_nomb
                 nombre_tag = 'Cuco#ESPÑA'
             if nombre_tag == 'DBX#101':
                 nombre_tag = 'Torrente#ESPÑA'
+            if nombre_tag == 'CULIT0 SEDIENT0#QL0':
+                nombre_tag = 'De Tora Si Soy#Kbron'
+            if nombre_tag == 'sara x pauton#papis':
+                nombre_tag = 'angelowo#frost'
+            if nombre_tag == 'Awika Pump YaaaY#AWKPM':
+                nombre_tag = 'SτyłΣR#Pingu'
+            
 
             oro_min = round(oro_obtenido / game_length_minutes, 2) if game_length_minutes > 0 else 0
                             
