@@ -640,7 +640,7 @@ def tier_list(request):
 			('Visión',     [('Visión/min',30,False)]),
 		],
 	}
-	max_pct = 28
+	max_pct = 33
 	roles_display = []
 	for role, cats in DISPLAY_WEIGHTS.items():
 		categories = []
@@ -700,13 +700,14 @@ def tier_list(request):
 		if jid not in rol_principal:
 			rol_principal[jid] = r['rol'] or ''
 
-	# ── Misma agregación que promedios_jugadores ───────────────────────────
+	# ── Agregación solo por rol principal de cada jugador ─────────────────
 	def calcular_kda(kills, muertes, asistencias):
 		if muertes == 0:
 			return (kills + asistencias) * 1.0
 		return ((kills + asistencias) * 1.0) / muertes
 
-	agregados = qs.values('jugador__id', 'jugador__nombre').annotate(
+	# Group by (jugador, rol) — in Python we keep only the main-role row per player
+	agregados = qs.values('jugador__id', 'jugador__nombre', 'rol').annotate(
 		avg_kills=Sum('kills'),
 		avg_muertes=Sum('muertes'),
 		avg_asistencias=Sum('asistencias'),
@@ -731,7 +732,11 @@ def tier_list(request):
 	# ── Construir lista de jugadores con su rol ────────────────────────────
 	jugadores = []
 	for a in agregados:
-		rol = rol_principal.get(a['jugador__id'], '')
+		jid = a['jugador__id']
+		rol = a['rol'] or ''
+		# Skip rows that are not the player's main role
+		if rol != rol_principal.get(jid, ''):
+			continue
 		jugadores.append({
 			'jugador_id': a['jugador__id'],
 			'jugador_nombre': a['jugador__nombre'],
