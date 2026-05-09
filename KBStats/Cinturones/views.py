@@ -606,42 +606,41 @@ def tier_list(request):
 	# ── Estructura de ponderaciones (para el modal visual) ─────────────────
 	DISPLAY_WEIGHTS = {
 		'TOP': [
-			('Combate',    [('K',7,False),('D',9,True),('A',5,False),('KP %',5,False)]),
-			('Farmeo',     [('CS/min',14,False),('CS',7,False),('Oro/min',13,False)]),
-			('Daño',       [('Dmg/min',12,False),('Dmg/Oro',7,False),('% Dmg',5,False),('Dmg Rec',5,True)]),
-			('Visión',     [('Visión/min',6,False)]),
-			('Multi-kill', [('2 kills',3,False),('3 kills',2,False)]),
+			('Combate',    [('KDA',16,False),('KP %',10,False)]),
+			('Farmeo',     [('CS/min',20,False),('Oro/min',12,False)]),
+			('Daño',       [('Dmg/min',16,False),('Dmg/Oro',8,False),('% Dmg',6,False)]),
+			('Visión',     [('Visión/min',8,False)]),
+			('Multi-kill', [('2 kills',2,False),('3 kills',2,False)]),
 		],
 		'JGL': [
-			('Combate',    [('K',9,False),('D',8,True),('A',6,False),('KP %',16,False)]),
-			('Farmeo',     [('CS/min',9,False),('CS',6,False),('Oro/min',12,False)]),
-			('Daño',       [('Dmg/min',7,False),('Dmg/Oro',5,False),('% Dmg',2,False)]),
+			('Combate',    [('KDA',18,False),('KP %',20,False)]),
+			('Farmeo',     [('CS/min',15,False),('Oro/min',10,False)]),
+			('Daño',       [('Dmg/min',9,False),('Dmg/Oro',6,False),('% Dmg',3,False)]),
 			('Visión',     [('Visión/min',8,False)]),
-			('Multi-kill', [('2 kills',4,False),('3 kills',4,False),('4 kills',2,False),('5 kills',2,False)]),
+			('Multi-kill', [('2 kills',4,False),('3 kills',4,False),('4 kills',2,False),('5 kills',1,False)]),
 		],
 		'MID': [
-			('Combate',    [('K',8,False),('D',8,True),('A',6,False),('KP %',9,False)]),
-			('Farmeo',     [('CS/min',12,False),('CS',5,False),('Oro/min',10,False)]),
-			('Daño',       [('Dmg/min',15,False),('Dmg/Oro',8,False),('% Dmg',6,False)]),
-			('Visión',     [('Visión/min',6,False)]),
+			('Combate',    [('KDA',17,False),('KP %',14,False)]),
+			('Farmeo',     [('CS/min',14,False),('Oro/min',10,False)]),
+			('Daño',       [('Dmg/min',17,False),('Dmg/Oro',9,False),('% Dmg',7,False)]),
+			('Visión',     [('Visión/min',5,False)]),
 			('Multi-kill', [('2 kills',2,False),('3 kills',2,False),('4 kills',2,False),('5 kills',1,False)]),
 		],
 		'ADC': [
-			('Combate',    [('K',9,False),('D',10,True),('A',5,False),('KP %',5,False)]),
-			('Farmeo',     [('CS/min',14,False),('CS',6,False),('Oro/min',11,False)]),
-			('Daño',       [('Dmg/min',17,False),('Dmg/Oro',9,False),('% Dmg',7,False)]),
-			('Visión',     [('Visión/min',4,False)]),
-			('Multi-kill', [('2 kills',2,False),('3 kills',1,False)]),
+			('Combate',    [('KDA',19,False),('KP %',9,False)]),
+			('Farmeo',     [('CS/min',20,False),('Oro/min',9,False)]),
+			('Daño',       [('Dmg/min',17,False),('Dmg/Oro',10,False),('% Dmg',8,False)]),
+			('Visión',     [('Visión/min',3,False)]),
+			('Multi-kill', [('2 kills',2,False),('3 kills',1,False),('4 kills',1,False),('5 kills',1,False)]),
 		],
 		'SUP': [
-			('Combate',    [('K',4,False),('D',8,True),('A',14,False),('KP %',19,False)]),
-			('Daño',       [('Dmg/min',8,False),('Dmg Rec',9,True),('% Dmg',3,False)]),
-			('Economía',   [('Oro/min',8,False)]),
-			('Visión',     [('Visión/min',26,False)]),
-			('Multi-kill', [('2 kills',1,False)]),
+			('Combate',    [('KDA',20,False),('KP %',33,False)]),
+			('Daño',       [('Dmg/min',6,False),('% Dmg',4,False)]),
+			('Economía',   [('Oro/min',7,False)]),
+			('Visión',     [('Visión/min',30,False)]),
 		],
 	}
-	max_pct = 26
+	max_pct = 28
 	roles_display = []
 	for role, cats in DISPLAY_WEIGHTS.items():
 		categories = []
@@ -654,11 +653,11 @@ def tier_list(request):
 
 	# ── Ponderaciones numéricas para scoring ───────────────────────────────
 	SCORE_WEIGHTS = {
-		'TOP': {'k':.07,'d':.09,'a':.05,'kp':.05,'cs_min':.14,'cs':.07,'oro_min':.13,'dmg_min':.12,'dmg_oro':.07,'pct_dmg':.05,'dmg_rec':.05,'vision_min':.06,'double':.03,'triple':.02},
-		'JGL': {'k':.09,'d':.08,'a':.06,'kp':.16,'cs_min':.09,'oro_min':.12,'cs':.06,'vision_min':.08,'dmg_min':.07,'dmg_oro':.05,'pct_dmg':.02,'double':.04,'triple':.04,'quadra':.02,'penta':.02},
-		'MID': {'k':.08,'d':.08,'a':.06,'kp':.09,'dmg_min':.15,'dmg_oro':.08,'pct_dmg':.06,'cs_min':.12,'oro_min':.10,'cs':.05,'vision_min':.06,'double':.02,'triple':.02,'quadra':.02,'penta':.01},
-		'ADC': {'k':.09,'d':.10,'a':.05,'kp':.05,'dmg_min':.17,'dmg_oro':.09,'pct_dmg':.07,'cs_min':.14,'oro_min':.11,'cs':.06,'vision_min':.04,'double':.02,'triple':.01},
-		'SUP': {'k':.04,'d':.08,'a':.14,'kp':.19,'vision_min':.26,'dmg_rec':.09,'dmg_min':.08,'pct_dmg':.03,'oro_min':.08,'double':.01},
+		'TOP': {'kda':.16,'kp':.10,'cs_min':.20,'oro_min':.12,'dmg_min':.16,'dmg_oro':.08,'pct_dmg':.06,'vision_min':.08,'double':.02,'triple':.02},
+		'JGL': {'kda':.18,'kp':.20,'cs_min':.15,'oro_min':.10,'vision_min':.08,'dmg_min':.09,'dmg_oro':.06,'pct_dmg':.03,'double':.04,'triple':.04,'quadra':.02,'penta':.01},
+		'MID': {'kda':.17,'kp':.14,'dmg_min':.17,'dmg_oro':.09,'pct_dmg':.07,'cs_min':.14,'oro_min':.10,'vision_min':.05,'double':.02,'triple':.02,'quadra':.02,'penta':.01},
+		'ADC': {'kda':.19,'kp':.09,'dmg_min':.17,'dmg_oro':.10,'pct_dmg':.08,'cs_min':.20,'oro_min':.09,'vision_min':.03,'double':.02,'triple':.01,'quadra':.01,'penta':.01},
+		'SUP': {'kda':.20,'kp':.33,'vision_min':.30,'dmg_min':.06,'pct_dmg':.04,'oro_min':.07},
 	}
 	# clave scoring → campo en resultados
 	FIELD_MAP = {
@@ -669,8 +668,6 @@ def tier_list(request):
 		'vision_min':'avg_vision_min','double':'avg_double','triple':'avg_triple',
 		'quadra':'avg_quadra','penta':'avg_penta',
 	}
-	INVERSE_STATS = {'d', 'dmg_rec'}
-
 	def _normalize(values):
 		mn, mx = min(values), max(values)
 		if mx == mn:
@@ -778,14 +775,14 @@ def tier_list(request):
 				continue
 			vals = [p[fkey] for p in group]
 			norm = _normalize(vals)
-			normalised[skey] = [1 - v if skey in INVERSE_STATS else v for v in norm]
+			normalised[skey] = norm
 		for idx, j in enumerate(group):
 			score = sum(normalised[sk][idx] * weights[sk] for sk in normalised) * 100
 			j['raw_score'] = round(score, 1)
 
 	# ── Factor multiplicador por partidas (global, no por rol) ───────────
 	# Min partidas → ×1.00 · max partidas → ×1.20 (sin penalización)
-	GAMES_MIN_FACTOR = 0.95  # pocas partidas → ×0.95, máximas → ×1.00
+	GAMES_MIN_FACTOR = 0.90  # pocas partidas → ×0.90, máximas → ×1.00
 	all_games = [j['games_played'] for j in jugadores if 'raw_score' in j]
 	g_max = max(all_games) if all_games else 1
 	for j in jugadores:
