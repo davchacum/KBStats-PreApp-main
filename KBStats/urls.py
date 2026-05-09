@@ -16,7 +16,7 @@ Including another URLconf
 """
 # from django.contrib import admin  # DESACTIVADO POR SEGURIDAD
 from django.urls import path
-from .Cinturones.views import index, buscar_partidos_form, buscar_partidos_por_jornada, detalle_partida, promedios_jugadores, clasificacion_grupos  # , add_partida  # DESACTIVADO
+from .Cinturones.views import index, buscar_partidos_form, buscar_partidos_por_jornada, detalle_partida, promedios_jugadores, clasificacion_grupos, exportar_csv_jugadores, tier_list  # , add_partida  # DESACTIVADO
 
 urlpatterns = [
     # FUNCIONALIDADES DE ADMIN DESACTIVADAS POR SEGURIDAD
@@ -27,6 +27,8 @@ urlpatterns = [
     path('buscar_partidos/', buscar_partidos_form, name='buscar_partidos_form'),
     path('partida/<str:match_id>/', detalle_partida, name='detalle_partida'),
     path('promedios_jugadores/', promedios_jugadores, name='promedios_jugadores'),
+    path('promedios_jugadores/exportar/csv/', exportar_csv_jugadores, name='exportar_csv_jugadores'),
+    path('tierlist/', tier_list, name='tier_list'),
     path('promedios_jugadores/<str:jugador_nombre>/', promedios_jugadores, name='promedios_jugadores_detalle'),
     path('promedios_jugadores/<str:jugador_nombre>/<str:campeon>/', promedios_jugadores, name='promedios_jugadores_detalle_campeon'),
 ]

@@ -21,6 +21,18 @@
       </div>
 
       <div class="col-md-2">
+        <label for="rol" class="form-label mb-1">Rol</label>
+        <select name="rol" id="rol" class="form-select">
+          <option value="">Todos</option>
+          <option value="TOP"    {% if filtro_rol == 'TOP' %}selected{% endif %}>Top</option>
+          <option value="JGL"    {% if filtro_rol == 'JGL' %}selected{% endif %}>Jungle</option>
+          <option value="MID"    {% if filtro_rol == 'MID' %}selected{% endif %}>Mid</option>
+          <option value="ADC"    {% if filtro_rol == 'ADC' %}selected{% endif %}>ADC</option>
+          <option value="SUP"    {% if filtro_rol == 'SUP' %}selected{% endif %}>Support</option>
+        </select>
+      </div>
+
+      <div class="col-md-2">
         <label for="jornada" class="form-label mb-1">Jornada</label>
         <select name="jornada" id="jornada" class="form-select">
           <option value="">Todas</option>
@@ -67,6 +79,9 @@
       <div class="col-md-2 d-grid">
         <button class="btn btn-primary">Aplicar</button>
       </div>
+      <div class="col-md-auto d-grid">
+        <a href="{% url 'exportar_csv_jugadores' %}" class="btn btn-outline-success">Exportar CSV</a>
+      </div>
     </form>
   </div>
 
@@ -75,6 +90,7 @@
       <tr>
         <th>#</th>
         <th>Jugador</th>
+        <th>Rol</th>
         <th>K</th>
         <th>D</th>
         <th>A</th>
@@ -101,6 +117,7 @@
       <tr>
         <td>{{ forloop.counter }}</td>
         <td>{{ j.jugador_nombre }}</td>
+        <td>{{ j.rol_principal }}</td>
         <td>{{ j.avg_kills }}</td>
         <td>{{ j.avg_muertes }}</td>
         <td>{{ j.avg_asistencias }}</td>
@@ -123,7 +140,7 @@
       </tr>
       {% empty %}
       <tr>
-        <td colspan="22">No hay datos.</td>
+        <td colspan="23">No hay datos.</td>
       </tr>
       {% endfor %}
     </tbody>

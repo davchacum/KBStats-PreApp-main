@@ -1,0 +1,293 @@
+{% extends 'Cinturones/base.html' %}
+
+{% block extra_css %}
+<style>
+/* ── Tier grid ── */
+.tier-grid {
+  width: 100%; border-collapse: collapse;
+  border: 0.5px solid #1f2937; border-radius: 0.5rem;
+  overflow: hidden; font-size: 0.83rem;
+}
+.tier-grid th {
+  background: #060d1a; color: #6b7280;
+  font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em;
+  text-transform: uppercase; padding: 0.5rem 0.75rem;
+  border-bottom: 0.5px solid #1f2937; border-right: 0.5px solid #1f2937;
+  text-align: center;
+}
+.tier-grid th:first-child { width: 3.2rem; }
+.tier-grid td {
+  vertical-align: top; padding: 0.5rem 0.6rem;
+  border-bottom: 0.5px solid #1f2937; border-right: 0.5px solid #1f2937;
+  background: #080f1d;
+}
+.tier-grid tr:last-child td { border-bottom: none; }
+.tier-grid td:last-child, .tier-grid th:last-child { border-right: none; }
+
+/* role column header accent */
+.th-TOP { color: #fb923c !important; }
+.th-JGL { color: #4ade80 !important; }
+.th-MID { color: #818cf8 !important; }
+.th-ADC { color: #f87171 !important; }
+.th-SUP { color: #c084fc !important; }
+
+.tier-badge {
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 1.05rem; height: 100%;
+  min-height: 2.8rem; padding: 0.4rem 0;
+}
+.tier-sp { background: #7c3aed; color: #fff; }
+.tier-s  { background: #dc2626; color: #fff; }
+.tier-a  { background: #d97706; color: #fff; }
+.tier-b  { background: #16a34a; color: #fff; }
+.tier-c  { background: #0891b2; color: #fff; }
+.tier-d  { background: #374151; color: #9ca3af; }
+
+/* ── Player chip ── */
+.player-chip {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 0.4rem; background: #0b1220; border: 0.5px solid #1f2937;
+  border-radius: 0.3rem; padding: 0.25rem 0.5rem;
+  margin-bottom: 0.3rem; font-size: 0.8rem;
+}
+.player-chip:last-child { margin-bottom: 0; }
+.chip-name { color: #e5e7eb; font-weight: 600; }
+.chip-score {
+  color: #22d3ee; font-variant-numeric: tabular-nums;
+  font-size: 0.72rem; flex-shrink: 0;
+}
+.chip-games {
+  color: #4b5563; font-size: 0.68rem; flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+.tier-empty { color: #1f2937; font-size: 1rem; text-align: center; display: block; padding: 0.25rem 0; }
+
+/* ── Modal ── */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(5,8,22,.93);
+  z-index: 1000; display: flex; align-items: flex-start; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity .2s;
+  overflow-y: auto; padding: 2rem 1rem;
+}
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal-box {
+  background: #0b1220; border: 0.5px solid #1f2937; border-radius: 0.75rem;
+  width: min(1140px,100%); padding: 1.75rem 2rem; position: relative;
+}
+.modal-close {
+  position: absolute; top: 1rem; right: 1rem; background: transparent;
+  border: 0.5px solid #1f2937; color: #9ca3af; border-radius: 0.3rem;
+  padding: 0.2rem 0.7rem; cursor: pointer; font-size: 0.8rem;
+}
+.modal-close:hover { border-color: #6b7280; color: #e5e7eb; }
+
+/* roles grid */
+.roles-grid { display: grid; grid-template-columns: repeat(5,1fr); gap: 0.85rem; }
+@media(max-width:950px) { .roles-grid { grid-template-columns: repeat(3,1fr); } }
+@media(max-width:600px) { .roles-grid { grid-template-columns: repeat(2,1fr); } }
+.role-card { border-radius: 0.5rem; border: 0.5px solid #1f2937; overflow: hidden; }
+.role-card-header {
+  padding: 0.55rem 0.85rem; font-weight: 800; font-size: 0.85rem;
+  letter-spacing: 0.12em;
+}
+.role-card-body { padding: 0.6rem 0.85rem 0.85rem; }
+.rh-TOP { background: #1c1107; color: #fb923c; border-bottom: 0.5px solid #fb923c33; }
+.rh-JGL { background: #071a0e; color: #4ade80; border-bottom: 0.5px solid #4ade8033; }
+.rh-MID { background: #080d20; color: #818cf8; border-bottom: 0.5px solid #818cf833; }
+.rh-ADC { background: #1a0808; color: #f87171; border-bottom: 0.5px solid #f8717133; }
+.rh-SUP { background: #130c20; color: #c084fc; border-bottom: 0.5px solid #c084fc33; }
+
+.m-cat-title {
+  font-size: 0.75rem; text-transform: uppercase; letter-spacing: .1em;
+  margin: 0.65rem 0 0.3rem; display: flex; align-items: center; gap: 0.3rem;
+}
+.m-cat-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+.cat-Combate  { color: #f59e0b; } .dot-Combate  { background: #f59e0b; }
+.cat-Farmeo   { color: #10b981; } .dot-Farmeo   { background: #10b981; }
+.cat-Daño     { color: #ef4444; } .dot-Daño     { background: #ef4444; }
+.cat-Visión   { color: #6366f1; } .dot-Visión   { background: #6366f1; }
+.cat-Multi-kill { color: #8b5cf6; } .dot-Multi-kill { background: #8b5cf6; }
+.cat-Economía { color: #06b6d4; } .dot-Economía { background: #06b6d4; }
+
+.m-stat-row { display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.22rem; }
+.m-stat-name { font-size: 0.82rem; color: #9ca3af; width: 5.5rem; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.m-bar-wrap { flex: 1; background: #0b1220; border-radius: 2px; height: 6px; }
+.mbar-TOP { height: 5px; border-radius: 2px; background: #fb923c; }
+.mbar-JGL { height: 5px; border-radius: 2px; background: #4ade80; }
+.mbar-MID { height: 5px; border-radius: 2px; background: #818cf8; }
+.mbar-ADC { height: 5px; border-radius: 2px; background: #f87171; }
+.mbar-SUP { height: 5px; border-radius: 2px; background: #c084fc; }
+.m-pct { font-size: 0.8rem; color: #e5e7eb; font-variant-numeric: tabular-nums; width: 2.5rem; text-align: right; flex-shrink: 0; }
+.m-inv { font-size: 0.6rem; color: #f87171; flex-shrink: 0; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+  <!-- ── Header ── -->
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-bottom:1.25rem;">
+    <h1 class="page-title mb-0">Tier List</h1>
+    <button id="btnOpenModal"
+      style="background:transparent;border:0.5px solid #22d3ee44;color:#22d3ee;border-radius:0.35rem;padding:0.35rem 1rem;font-size:0.82rem;font-weight:600;cursor:pointer;">
+      ⚖ Ver ponderaciones
+    </button>
+  </div>
+
+  <!-- ── Filter card ── -->
+  <div class="filter-card">
+    <form method="get" class="row g-3 align-items-end">
+      <div class="col-md-2">
+        <label for="jornada" class="form-label mb-1">Jornada</label>
+        <select name="jornada" id="jornada" class="form-select">
+          <option value="">Todas</option>
+          {% for j in jornadas_disponibles %}
+            <option value="{{ j }}" {% if jornada|stringformat:"s" == j|stringformat:"s" %}selected{% endif %}>{{ j }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2 d-grid">
+        <button class="btn btn-primary">Aplicar</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ── Tier grid ── -->
+  {% if tiers %}
+  <table class="tier-grid">
+    <thead>
+      <tr>
+        <th></th>
+        <th class="th-TOP">TOP</th>
+        <th class="th-JGL">JGL</th>
+        <th class="th-MID">MID</th>
+        <th class="th-ADC">ADC</th>
+        <th class="th-SUP">SUP</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for tier_data in tiers %}
+      <tr>
+        <td style="padding:0;">
+          <div class="tier-badge {% if tier_data.tier == 'S+' %}tier-sp{% elif tier_data.tier == 'S' %}tier-s{% elif tier_data.tier == 'A' %}tier-a{% elif tier_data.tier == 'B' %}tier-b{% elif tier_data.tier == 'C' %}tier-c{% else %}tier-d{% endif %}">
+            {{ tier_data.tier }}
+          </div>
+        </td>
+        {% for role_col in tier_data.roles %}
+        <td>
+          {% if role_col.jugadores %}
+            {% for j in role_col.jugadores %}
+            <div class="player-chip">
+              <span class="chip-name">{{ j.jugador_nombre }}</span>
+              <span class="chip-score">{{ j.score }}</span>
+              <span class="chip-games">{{ j.games_played }}P</span>
+            </div>
+            {% endfor %}
+          {% else %}
+            <span class="tier-empty">—</span>
+          {% endif %}
+        </td>
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+    <p style="color:#6b7280;font-size:0.85rem;">No hay datos disponibles.</p>
+  {% endif %}
+
+</div>
+
+<!-- ══ MODAL ponderaciones ══ -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-box">
+    <button class="modal-close" id="modalClose">✕ Cerrar</button>
+    <div style="font-size:1.1rem;font-weight:700;color:#e5e7eb;margin-bottom:0.2rem;">Ponderaciones por rol</div>
+    <div style="color:#6b7280;font-size:0.8rem;margin-bottom:1.5rem;">
+      Las estadísticas marcadas con <span style="color:#f87171;">↓</span> se invierten (menos es mejor).
+    </div>
+
+    <div class="roles-grid">
+      {% for role_data in roles %}
+      <div class="role-card">
+        <div class="role-card-header rh-{{ role_data.role }}">{{ role_data.role }}</div>
+        <div class="role-card-body">
+          {% for cat in role_data.categories %}
+          <div class="m-cat-title cat-{{ cat.name }}">
+            <span class="m-cat-dot dot-{{ cat.name }}"></span>
+            {{ cat.name }}
+          </div>
+          {% for stat in cat.stats %}
+          <div class="m-stat-row">
+            <span class="m-stat-name" title="{{ stat.label }}">{{ stat.label }}</span>
+            <div class="m-bar-wrap">
+              <div class="mbar-{{ role_data.role }}" style="width:{{ stat.pct_scaled }}%"></div>
+            </div>
+            <span class="m-pct">{{ stat.pct }}%</span>
+            {% if stat.inverse %}<span class="m-inv">↓</span>{% endif %}
+          </div>
+          {% endfor %}
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Bonus partidas -->
+    <div style="margin-top:1.5rem;border-top:0.5px solid #1f2937;padding-top:1.25rem;">
+      <div style="font-size:0.78rem;font-weight:700;color:#e5e7eb;text-transform:uppercase;letter-spacing:.1em;margin-bottom:0.75rem;display:flex;align-items:center;gap:0.5rem;">
+        <span style="background:#16a34a22;border:0.5px solid #16a34a55;color:#4ade80;border-radius:0.25rem;padding:0.1rem 0.5rem;font-size:0.7rem;">BONUS</span>
+        Ponderación por partidas jugadas
+      </div>
+      <div style="display:flex;align-items:flex-start;gap:2rem;flex-wrap:wrap;">
+        <div style="flex:1;min-width:260px;">
+          <p style="color:#9ca3af;font-size:0.8rem;margin-bottom:0.75rem;">
+            Mantener un buen rendimiento a lo largo de muchas partidas tiene más mérito que hacerlo en pocas.
+            Se aplica un <strong style="color:#e5e7eb;">factor multiplicador</strong> escalonado según las partidas jugadas:
+          </p>
+          <div style="display:flex;flex-direction:column;gap:0.4rem;">
+            <div style="display:flex;align-items:center;gap:0.75rem;">
+              <span style="color:#6b7280;font-size:0.78rem;width:10rem;flex-shrink:0;">Mínimas partidas</span>
+              <div style="flex:1;background:#0b1220;border-radius:2px;height:6px;"><div style="width:0%;height:6px;border-radius:2px;background:#4ade80;"></div></div>
+              <span style="color:#4ade80;font-size:0.78rem;width:3.5rem;text-align:right;">×0.95</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:0.75rem;">
+              <span style="color:#6b7280;font-size:0.78rem;width:10rem;flex-shrink:0;">Partidas intermedias</span>
+              <div style="flex:1;background:#0b1220;border-radius:2px;height:6px;"><div style="width:50%;height:6px;border-radius:2px;background:#4ade80;"></div></div>
+              <span style="color:#4ade80;font-size:0.78rem;width:3.5rem;text-align:right;">×0.975</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:0.75rem;">
+              <span style="color:#6b7280;font-size:0.78rem;width:10rem;flex-shrink:0;">Máximas partidas</span>
+              <div style="flex:1;background:#0b1220;border-radius:2px;height:6px;"><div style="width:100%;height:6px;border-radius:2px;background:#4ade80;"></div></div>
+              <span style="color:#4ade80;font-size:0.78rem;width:3.5rem;text-align:right;">×1.00</span>
+            </div>
+          </div>
+        </div>
+        <div style="background:#080f1d;border:0.5px solid #1f2937;border-radius:0.4rem;padding:0.75rem 1rem;min-width:220px;">
+          <div style="color:#6b7280;font-size:0.7rem;text-transform:uppercase;letter-spacing:.08em;margin-bottom:0.5rem;">Fórmula</div>
+          <code style="color:#22d3ee;font-size:0.82rem;display:block;margin-bottom:0.4rem;">
+            score = score_base × factor
+          </code>
+          <code style="color:#9ca3af;font-size:0.75rem;display:block;margin-bottom:0.4rem;">
+            factor = 0.95 + 0.05 × (P / P_max)
+          </code>
+          <div style="color:#4b5563;font-size:0.7rem;margin-top:0.5rem;">
+            P = partidas del jugador<br>
+            P_max = máximo de partidas jugadas en el grupo<br>
+            Score final limitado a 100.
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const overlay = document.getElementById('modalOverlay');
+document.getElementById('btnOpenModal').addEventListener('click', () => overlay.classList.add('open'));
+document.getElementById('modalClose').addEventListener('click', () => overlay.classList.remove('open'));
+overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') overlay.classList.remove('open'); });
+</script>
+{% endblock %}

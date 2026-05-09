@@ -1,13 +1,11 @@
-import os
 import csv
 from functools import cmp_to_key
 from django.conf import settings
-from django.http import JsonResponse
-from django.shortcuts import get_object_or_404, render, redirect
+from django.http import HttpResponse, JsonResponse
+from django.shortcuts import get_object_or_404, render
 from django.db.models import Avg, Count, Sum
 # from django.contrib.auth.decorators import user_passes_test  # DESACTIVADO
 # from django.contrib import messages  # DESACTIVADO
-import requests
 
 from .models import Partida, StatsJugador
 # from .forms import AddPartidaForm  # DESACTIVADO
@@ -483,6 +481,7 @@ def promedios_jugadores(request):
 							 .order_by('jornada'))
 	jornada = request.GET.get('jornada')
 	jugador_q = request.GET.get('jugador')
+	rol_q = request.GET.get('rol')
 	sort = request.GET.get('sort')
 	order = request.GET.get('order', 'desc')
 
@@ -491,6 +490,16 @@ def promedios_jugadores(request):
 		qs = qs.filter(partida__jornada=jornada)
 	if jugador_q:
 		qs = qs.filter(jugador__nombre__icontains=jugador_q)
+	if rol_q:
+		qs = qs.filter(rol=rol_q)
+
+	# Rol más jugado por jugador: ordenamos por count desc y nos quedamos el primero por jugador
+	roles_qs = qs.values('jugador__id', 'rol').annotate(rol_count=Count('rol')).order_by('jugador__id', '-rol_count')
+	rol_principal = {}
+	for r in roles_qs:
+		jid = r['jugador__id']
+		if jid not in rol_principal:
+			rol_principal[jid] = r['rol'] or ''
 
 	def calcular_kda(kills, muertes, asistencias):
 		if muertes == 0:
@@ -576,6 +585,7 @@ def promedios_jugadores(request):
 			'avg_penta': int(a['avg_penta'] or 0.0),
 			'avg_game_time': float(a['avg_game_time'] or 0.0),
 			'games_played': a['games_played'],
+			'rol_principal': rol_principal.get(a['jugador__id'], ''),
 		})
 
 	wants_html = request.GET.get('format') == 'html' or 'text/html' in request.META.get('HTTP_ACCEPT', '')
@@ -584,11 +594,314 @@ def promedios_jugadores(request):
 			'jugadores': resultados,
 			'jornada': jornada,
 			'filtro_jugador': jugador_q,
+			'filtro_rol': rol_q,
 			'sort': sort,
 			'order': order,
 			'jornadas_disponibles': list(jornadas_disponibles),
 		})
 	return JsonResponse({'jugadores': resultados, 'jornadas_disponibles': list(jornadas_disponibles)})
+
+
+def tier_list(request):
+	# ── Estructura de ponderaciones (para el modal visual) ─────────────────
+	DISPLAY_WEIGHTS = {
+		'TOP': [
+			('Combate',    [('K',7,False),('D',9,True),('A',5,False),('KP %',5,False)]),
+			('Farmeo',     [('CS/min',14,False),('CS',7,False),('Oro/min',13,False)]),
+			('Daño',       [('Dmg/min',12,False),('Dmg/Oro',7,False),('% Dmg',5,False),('Dmg Rec',5,True)]),
+			('Visión',     [('Visión/min',6,False)]),
+			('Multi-kill', [('2 kills',3,False),('3 kills',2,False)]),
+		],
+		'JGL': [
+			('Combate',    [('K',9,False),('D',8,True),('A',6,False),('KP %',16,False)]),
+			('Farmeo',     [('CS/min',9,False),('CS',6,False),('Oro/min',12,False)]),
+			('Daño',       [('Dmg/min',7,False),('Dmg/Oro',5,False),('% Dmg',2,False)]),
+			('Visión',     [('Visión/min',8,False)]),
+			('Multi-kill', [('2 kills',4,False),('3 kills',4,False),('4 kills',2,False),('5 kills',2,False)]),
+		],
+		'MID': [
+			('Combate',    [('K',8,False),('D',8,True),('A',6,False),('KP %',9,False)]),
+			('Farmeo',     [('CS/min',12,False),('CS',5,False),('Oro/min',10,False)]),
+			('Daño',       [('Dmg/min',15,False),('Dmg/Oro',8,False),('% Dmg',6,False)]),
+			('Visión',     [('Visión/min',6,False)]),
+			('Multi-kill', [('2 kills',2,False),('3 kills',2,False),('4 kills',2,False),('5 kills',1,False)]),
+		],
+		'ADC': [
+			('Combate',    [('K',9,False),('D',10,True),('A',5,False),('KP %',5,False)]),
+			('Farmeo',     [('CS/min',14,False),('CS',6,False),('Oro/min',11,False)]),
+			('Daño',       [('Dmg/min',17,False),('Dmg/Oro',9,False),('% Dmg',7,False)]),
+			('Visión',     [('Visión/min',4,False)]),
+			('Multi-kill', [('2 kills',2,False),('3 kills',1,False)]),
+		],
+		'SUP': [
+			('Combate',    [('K',4,False),('D',8,True),('A',14,False),('KP %',19,False)]),
+			('Daño',       [('Dmg/min',8,False),('Dmg Rec',9,True),('% Dmg',3,False)]),
+			('Economía',   [('Oro/min',8,False)]),
+			('Visión',     [('Visión/min',26,False)]),
+			('Multi-kill', [('2 kills',1,False)]),
+		],
+	}
+	max_pct = 26
+	roles_display = []
+	for role, cats in DISPLAY_WEIGHTS.items():
+		categories = []
+		for cat_name, stats in cats:
+			categories.append({
+				'name': cat_name,
+				'stats': [{'label': s[0], 'pct': s[1], 'pct_scaled': round(s[1] / max_pct * 100), 'inverse': s[2]} for s in stats],
+			})
+		roles_display.append({'role': role, 'categories': categories})
+
+	# ── Ponderaciones numéricas para scoring ───────────────────────────────
+	SCORE_WEIGHTS = {
+		'TOP': {'k':.07,'d':.09,'a':.05,'kp':.05,'cs_min':.14,'cs':.07,'oro_min':.13,'dmg_min':.12,'dmg_oro':.07,'pct_dmg':.05,'dmg_rec':.05,'vision_min':.06,'double':.03,'triple':.02},
+		'JGL': {'k':.09,'d':.08,'a':.06,'kp':.16,'cs_min':.09,'oro_min':.12,'cs':.06,'vision_min':.08,'dmg_min':.07,'dmg_oro':.05,'pct_dmg':.02,'double':.04,'triple':.04,'quadra':.02,'penta':.02},
+		'MID': {'k':.08,'d':.08,'a':.06,'kp':.09,'dmg_min':.15,'dmg_oro':.08,'pct_dmg':.06,'cs_min':.12,'oro_min':.10,'cs':.05,'vision_min':.06,'double':.02,'triple':.02,'quadra':.02,'penta':.01},
+		'ADC': {'k':.09,'d':.10,'a':.05,'kp':.05,'dmg_min':.17,'dmg_oro':.09,'pct_dmg':.07,'cs_min':.14,'oro_min':.11,'cs':.06,'vision_min':.04,'double':.02,'triple':.01},
+		'SUP': {'k':.04,'d':.08,'a':.14,'kp':.19,'vision_min':.26,'dmg_rec':.09,'dmg_min':.08,'pct_dmg':.03,'oro_min':.08,'double':.01},
+	}
+	# clave scoring → campo en resultados
+	FIELD_MAP = {
+		'k':'avg_kills','d':'avg_muertes','a':'avg_asistencias','kda':'avg_kda',
+		'kp':'avg_kp','oro_min':'avg_oro_min','dmg_oro':'avg_dano_oro',
+		'pct_dmg':'avg_porcentaje_dano_equipo','dmg_min':'avg_dano_min',
+		'dmg_rec':'avg_dano_recibido','cs':'avg_cs','cs_min':'avg_cs_min',
+		'vision_min':'avg_vision_min','double':'avg_double','triple':'avg_triple',
+		'quadra':'avg_quadra','penta':'avg_penta',
+	}
+	INVERSE_STATS = {'d', 'dmg_rec'}
+
+	def _normalize(values):
+		mn, mx = min(values), max(values)
+		if mx == mn:
+			return [0.5] * len(values)
+		return [(v - mn) / (mx - mn) for v in values]
+
+	def _assign_tier(score):
+		if score >= 90: return 'S+'
+		if score >= 80: return 'S'
+		if score >= 70: return 'A'
+		if score >= 60: return 'B'
+		if score >= 50: return 'C'
+		return 'D'
+
+	# ── Filtros ────────────────────────────────────────────────────────────
+	jornadas_disponibles = (Partida.objects
+		.exclude(jornada__isnull=True).exclude(jornada__exact='')
+		.values_list('jornada', flat=True).distinct().order_by('jornada'))
+	jornada = request.GET.get('jornada')
+
+	qs = StatsJugador.objects.all()
+	if jornada:
+		qs = qs.filter(partida__jornada=jornada)
+
+	# ── Rol principal por jugador ──────────────────────────────────────────
+	roles_qs = qs.values('jugador__id', 'rol').annotate(rol_count=Count('rol')).order_by('jugador__id', '-rol_count')
+	rol_principal = {}
+	for r in roles_qs:
+		jid = r['jugador__id']
+		if jid not in rol_principal:
+			rol_principal[jid] = r['rol'] or ''
+
+	# ── Misma agregación que promedios_jugadores ───────────────────────────
+	def calcular_kda(kills, muertes, asistencias):
+		if muertes == 0:
+			return (kills + asistencias) * 1.0
+		return ((kills + asistencias) * 1.0) / muertes
+
+	agregados = qs.values('jugador__id', 'jugador__nombre').annotate(
+		avg_kills=Sum('kills'),
+		avg_muertes=Sum('muertes'),
+		avg_asistencias=Sum('asistencias'),
+		avg_kda=calcular_kda(Sum('kills'), Sum('muertes'), Sum('asistencias')),
+		avg_kp=Avg('kp_porcentaje'),
+		avg_oro_min=Avg('oro_min'),
+		avg_dano_oro=Avg('dano_oro'),
+		avg_porcentaje_dano_equipo=Avg('porcentaje_dano_equipo'),
+		avg_dano_min=Avg('dano_min'),
+		avg_dano_recibido=Avg('dano_recibido'),
+		avg_cs=Avg('cs'),
+		avg_cs_min=Avg('cs_min'),
+		avg_vision_min=Avg('vision_min'),
+		avg_double=Sum('double_kills'),
+		avg_triple=Sum('triple_kills'),
+		avg_quadra=Sum('quadra_kills'),
+		avg_penta=Sum('penta_kills'),
+		avg_game_time=Avg('game_time'),
+		games_played=Count('partida__id'),
+	).order_by('jugador__nombre')
+
+	# ── Construir lista de jugadores con su rol ────────────────────────────
+	jugadores = []
+	for a in agregados:
+		rol = rol_principal.get(a['jugador__id'], '')
+		jugadores.append({
+			'jugador_id': a['jugador__id'],
+			'jugador_nombre': a['jugador__nombre'],
+			'rol': rol,
+			'avg_kills': float(a['avg_kills'] or 0),
+			'avg_muertes': float(a['avg_muertes'] or 0),
+			'avg_asistencias': float(a['avg_asistencias'] or 0),
+			'avg_kda': float(a['avg_kda'] or 0),
+			'avg_kp': float(a['avg_kp'] or 0),
+			'avg_oro_min': float(a['avg_oro_min'] or 0),
+			'avg_dano_oro': float(a['avg_dano_oro'] or 0),
+			'avg_porcentaje_dano_equipo': float(a['avg_porcentaje_dano_equipo'] or 0),
+			'avg_dano_min': float(a['avg_dano_min'] or 0),
+			'avg_dano_recibido': float(a['avg_dano_recibido'] or 0),
+			'avg_cs': float(a['avg_cs'] or 0),
+			'avg_cs_min': float(a['avg_cs_min'] or 0),
+			'avg_vision_min': float(a['avg_vision_min'] or 0),
+			'avg_double': float(a['avg_double'] or 0),
+			'avg_triple': float(a['avg_triple'] or 0),
+			'avg_quadra': float(a['avg_quadra'] or 0),
+			'avg_penta': float(a['avg_penta'] or 0),
+			'avg_game_time': float(a['avg_game_time'] or 0),
+			'games_played': a['games_played'],
+		})
+
+	# ── Scoring por grupo de rol ───────────────────────────────────────────
+	by_role = {}
+	for j in jugadores:
+		by_role.setdefault(j['rol'], []).append(j)
+
+	for rol, group in by_role.items():
+		weights = SCORE_WEIGHTS.get(rol)
+		if not weights:
+			for j in group:
+				j['score'] = 0.0
+				j['tier'] = 'D'
+			continue
+		normalised = {}
+		for skey, fkey in FIELD_MAP.items():
+			if skey not in weights:
+				continue
+			vals = [p[fkey] for p in group]
+			norm = _normalize(vals)
+			normalised[skey] = [1 - v if skey in INVERSE_STATS else v for v in norm]
+		for idx, j in enumerate(group):
+			score = sum(normalised[sk][idx] * weights[sk] for sk in normalised) * 100
+			j['raw_score'] = round(score, 1)
+
+	# ── Factor multiplicador por partidas (global, no por rol) ───────────
+	# Min partidas → ×1.00 · max partidas → ×1.20 (sin penalización)
+	GAMES_MIN_FACTOR = 0.95  # pocas partidas → ×0.95, máximas → ×1.00
+	all_games = [j['games_played'] for j in jugadores if 'raw_score' in j]
+	g_max = max(all_games) if all_games else 1
+	for j in jugadores:
+		if 'raw_score' not in j:
+			j['score'] = 0.0
+			j['tier'] = 'D'
+			continue
+		games_norm = j['games_played'] / g_max if g_max > 0 else 1.0
+		factor = GAMES_MIN_FACTOR + (1.0 - GAMES_MIN_FACTOR) * games_norm
+		score = min(100.0, j['raw_score'] * factor)
+		j['score'] = round(score, 1)
+		j['tier'] = _assign_tier(score)
+
+	# ── Agrupar por tier y rol para el template ───────────────────────────
+	TIER_ORDER = ['S+', 'S', 'A', 'B', 'C', 'D']
+	ROL_ORDER  = ['TOP', 'JGL', 'MID', 'ADC', 'SUP']
+	tiers = {t: {r: [] for r in ROL_ORDER} for t in TIER_ORDER}
+	for j in jugadores:
+		rol = j['rol'] if j['rol'] in ROL_ORDER else 'TOP'
+		tiers[j['tier']][rol].append(j)
+	for t in TIER_ORDER:
+		for r in ROL_ORDER:
+			tiers[t][r].sort(key=lambda x: -x['score'])
+	tiers_list = [
+		{'tier': t, 'roles': [{'rol': r, 'jugadores': tiers[t][r]} for r in ROL_ORDER]}
+		for t in TIER_ORDER
+	]
+
+	return render(request, 'Cinturones/tier_list.html', {
+		'roles': roles_display,
+		'tiers': tiers_list,
+		'jornada': jornada,
+		'jornadas_disponibles': list(jornadas_disponibles),
+	})
+
+
+def exportar_csv_jugadores(request):
+	"""Exporta los promedios de jugadores como CSV. Acepta ?jornada= para filtrar."""
+	jornada = request.GET.get('jornada')
+	qs = StatsJugador.objects.all()
+	if jornada:
+		qs = qs.filter(partida__jornada=jornada)
+
+	roles_qs = qs.values('jugador__id', 'rol').annotate(rol_count=Count('rol')).order_by('jugador__id', '-rol_count')
+	rol_principal = {}
+	for r in roles_qs:
+		jid = r['jugador__id']
+		if jid not in rol_principal:
+			rol_principal[jid] = r['rol'] or ''
+
+	def calcular_kda(kills, muertes, asistencias):
+		if muertes == 0:
+			return (kills + asistencias) * 1.0
+		return ((kills + asistencias) * 1.0) / muertes
+
+	agregados = qs.values('jugador__id', 'jugador__nombre').annotate(
+		avg_kills=Sum('kills'),
+		avg_muertes=Sum('muertes'),
+		avg_asistencias=Sum('asistencias'),
+		avg_kp=Avg('kp_porcentaje'),
+		avg_oro_min=Avg('oro_min'),
+		avg_dano_oro=Avg('dano_oro'),
+		avg_dano_infligido=Avg('dano_infligido'),
+		avg_porcentaje_dano_equipo=Avg('porcentaje_dano_equipo'),
+		avg_dano_min=Avg('dano_min'),
+		avg_dano_recibido=Avg('dano_recibido'),
+		avg_cs=Avg('cs'),
+		avg_cs_min=Avg('cs_min'),
+		avg_vision_min=Avg('vision_min'),
+		avg_double=Sum('double_kills'),
+		avg_triple=Sum('triple_kills'),
+		avg_quadra=Sum('quadra_kills'),
+		avg_penta=Sum('penta_kills'),
+		avg_game_time=Avg('game_time'),
+		games_played=Count('partida__id'),
+	).order_by('jugador__nombre')
+
+	response = HttpResponse(content_type='text/csv; charset=utf-8')
+	response['Content-Disposition'] = 'attachment; filename="promedios_jugadores.csv"'
+	response.write('﻿')  # BOM para Excel
+
+	writer = csv.writer(response)
+	writer.writerow([
+		'Jugador', 'Rol', 'K', 'D', 'A', 'KDA', 'KP %',
+		'CS', 'CS/min', 'Oro/min', 'Dmg/min', 'Dmg Rec', '% Dmg', 'Dmg/Oro',
+		'Visión/min', '2 kills', '3 kills', '4 kills', '5 kills',
+		'Games', 'Tiempo medio',
+	])
+	for a in agregados:
+		kills = a['avg_kills'] or 0
+		muertes = a['avg_muertes'] or 0
+		asistencias = a['avg_asistencias'] or 0
+		writer.writerow([
+			a['jugador__nombre'],
+			rol_principal.get(a['jugador__id'], ''),
+			kills,
+			muertes,
+			asistencias,
+			round(calcular_kda(kills, muertes, asistencias), 2),
+			round(float(a['avg_kp'] or 0), 2),
+			round(float(a['avg_cs'] or 0), 2),
+			round(float(a['avg_cs_min'] or 0), 2),
+			round(float(a['avg_oro_min'] or 0), 2),
+			round(float(a['avg_dano_min'] or 0), 2),
+			round(float(a['avg_dano_recibido'] or 0), 2),
+			round(float(a['avg_porcentaje_dano_equipo'] or 0), 2),
+			round(float(a['avg_dano_oro'] or 0), 2),
+			round(float(a['avg_vision_min'] or 0), 2),
+			int(a['avg_double'] or 0),
+			int(a['avg_triple'] or 0),
+			int(a['avg_quadra'] or 0),
+			int(a['avg_penta'] or 0),
+			a['games_played'],
+			round(float(a['avg_game_time'] or 0), 2),
+		])
+	return response
 
 
 # FUNCIÓN DESACTIVADA POR SEGURIDAD - No se permite añadir partidas desde la web
