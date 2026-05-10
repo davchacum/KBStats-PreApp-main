@@ -47,24 +47,6 @@
   }
   .panel-check input { accent-color: #22d3ee; width: 14px; height: 14px; cursor: pointer; }
 
-  #btn-panel {
-    position: fixed;
-    bottom: 1.5rem;
-    right: 1.5rem;
-    z-index: 1030;
-    width: 44px; height: 44px;
-    border-radius: 50%;
-    background: #0e7490;
-    border: none;
-    color: #fff;
-    font-size: 1.1rem;
-    cursor: pointer;
-    box-shadow: 0 4px 12px rgba(0,0,0,.4);
-    transition: background .15s;
-    display: flex; align-items: center; justify-content: center;
-  }
-  #btn-panel:hover { background: #0891b2; }
-
   /* ── Tabla scrollable ──────────────────────────────────────────────────── */
   .table-scroll { overflow-x: auto; }
   .table-scroll table { white-space: nowrap; }
@@ -164,6 +146,9 @@
       </div>
       <div class="col-md-auto d-grid">
         <a href="{% url 'exportar_csv_jugadores' %}" class="btn btn-outline-success">Exportar CSV</a>
+      </div>
+      <div class="col-md-auto d-grid">
+        <button type="button" class="btn btn-outline-info" onclick="openPanel()">⊞ Columnas</button>
       </div>
     </form>
   </div>
@@ -266,11 +251,6 @@
   </div>
 
   <div class="panel-group">
-    <div class="panel-group-label">Base</div>
-    <label class="panel-check"><input type="checkbox" data-group="col-base" checked> Jugador / Rol / Games</label>
-  </div>
-
-  <div class="panel-group">
     <div class="panel-group-label">Combate</div>
     <label class="panel-check"><input type="checkbox" data-group="col-combate" checked> K / D / A / KDA / KP%</label>
   </div>
@@ -315,11 +295,6 @@
     <button onclick="setAll(false)" class="btn btn-sm btn-outline-secondary" style="flex:1;font-size:0.75rem;">Ninguna</button>
   </div>
 </div>
-
-<!-- Botón flotante -->
-<button id="btn-panel" onclick="openPanel()" title="Mostrar / ocultar columnas">
-  ⊞
-</button>
 
 <script>
 (function () {
@@ -374,6 +349,8 @@
       cb.checked = on;
       applyGroup(cb.dataset.group, on);
     });
+    // col-base siempre visible
+    applyGroup('col-base', true);
     savePrefs();
   };
 

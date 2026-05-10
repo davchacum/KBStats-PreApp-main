@@ -8,6 +8,7 @@ from django.db.models import Avg, Count, Sum
 # from django.contrib import messages  # DESACTIVADO
 
 from .models import Partida, StatsJugador
+from .utils import calculate_jungler_proximity
 # from .forms import AddPartidaForm  # DESACTIVADO
 # from .utils import extract_match_data, save_to_django  # DESACTIVADO
 
@@ -456,6 +457,18 @@ def detalle_partida(request, match_id=None):
 		stats_azul = sorted(stats_azul, key=lambda x: roles_order.get((x.get('rol') or '').lower(), 99))
 		stats_rojo = sorted(stats_rojo, key=lambda x: roles_order.get((x.get('rol') or '').lower(), 99))
 
+		# Proximidad del jungler
+		team_roles: dict[int, dict] = {100: {}, 200: {}}
+		for s in stats:
+			role = (s.get('rol') or '').lower()
+			team_id = 100 if s.get('nombre_equipo') == equipo_azul_nombre else 200
+			if role in ('top', 'jgl', 'mid', 'adc', 'sup'):
+				team_roles[team_id][role] = s['jugador_nombre']
+
+		proximity = {}
+		if partida.position_data and any(team_roles.values()):
+			proximity = calculate_jungler_proximity(partida.position_data, team_roles)
+
 		return render(
 			request,
 			'Cinturones/partida_detail.html',
@@ -466,6 +479,7 @@ def detalle_partida(request, match_id=None):
 				'ganador_equipo': partida.ganador_equipo.nombre if partida.ganador_equipo else None,
 				'stats_azul': stats_azul,
 				'stats_rojo': stats_rojo,
+				'proximity': proximity,
 			},
 		)
 

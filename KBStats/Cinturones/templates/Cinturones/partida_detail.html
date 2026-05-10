@@ -74,6 +74,20 @@
     padding: 2rem;
     text-align: center;
   }
+  .prox-bar-track {
+    height: 7px;
+    background: #1f2937;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .prox-bar-fill {
+    height: 100%;
+    width: 0%;
+    border-radius: 4px;
+    transition: width .3s;
+  }
+  .prox-blue { background: #60a5fa; }
+  .prox-red  { background: #f87171; }
 </style>
 {% endblock %}
 
@@ -236,6 +250,90 @@
       {% endfor %}
     </tbody>
   </table>
+
+  <!-- ── JUNGLER PROXIMITY ─────────────────────────────────────────────── -->
+  {% if proximity %}
+  <div class="heatmap-section" style="margin-top:2rem;">
+    <h3 class="section-title mb-3">Jungler Proximity</h3>
+
+    <!-- Selector de fase -->
+    <div style="display:flex;gap:0.5rem;margin-bottom:1.25rem;" id="prox-phase-btns">
+      <button class="phase-btn active" data-phase="all">Toda</button>
+      <button class="phase-btn" data-phase="early">Early (0-15)</button>
+      <button class="phase-btn" data-phase="mid">Mid (15-30)</button>
+      <button class="phase-btn" data-phase="late">Late (30+)</button>
+    </div>
+
+    <div style="display:flex;gap:2rem;flex-wrap:wrap;">
+
+      {% if proximity.blue %}
+      <div style="flex:1;min-width:260px;">
+        <div style="color:#60a5fa;font-weight:600;font-size:0.95rem;margin-bottom:0.9rem;">
+          {{ proximity.blue.name }}
+          <span style="color:#6b7280;font-size:0.78rem;font-weight:400;margin-left:0.4rem;">Equipo Azul</span>
+        </div>
+        {% for phase, zones in proximity.blue.items %}{% if phase != 'name' %}
+        <div class="prox-phase-data{% if phase != 'all' %} d-none{% endif %}" data-phase="{{ phase }}">
+          {% for zone, pct in zones.items %}
+          <div style="margin-bottom:0.55rem;">
+            <div style="display:flex;justify-content:space-between;font-size:0.78rem;color:#9ca3af;margin-bottom:0.2rem;">
+              <span>{% if zone == 'top' %}Top{% elif zone == 'mid' %}Mid{% elif zone == 'adc' %}ADC{% elif zone == 'sup' %}SUP{% endif %}</span>
+              <span style="color:#e5e7eb;font-weight:600;">{{ pct }}%</span>
+            </div>
+            <div class="prox-bar-track">
+              <div class="prox-bar-fill prox-blue" data-pct="{{ pct }}"></div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}{% endfor %}
+      </div>
+      {% endif %}
+
+      {% if proximity.red %}
+      <div style="flex:1;min-width:260px;">
+        <div style="color:#f87171;font-weight:600;font-size:0.95rem;margin-bottom:0.9rem;">
+          {{ proximity.red.name }}
+          <span style="color:#6b7280;font-size:0.78rem;font-weight:400;margin-left:0.4rem;">Equipo Rojo</span>
+        </div>
+        {% for phase, zones in proximity.red.items %}{% if phase != 'name' %}
+        <div class="prox-phase-data{% if phase != 'all' %} d-none{% endif %}" data-phase="{{ phase }}">
+          {% for zone, pct in zones.items %}
+          <div style="margin-bottom:0.55rem;">
+            <div style="display:flex;justify-content:space-between;font-size:0.78rem;color:#9ca3af;margin-bottom:0.2rem;">
+              <span>{% if zone == 'top' %}Top{% elif zone == 'mid' %}Mid{% elif zone == 'adc' %}ADC{% elif zone == 'sup' %}SUP{% endif %}</span>
+              <span style="color:#e5e7eb;font-weight:600;">{{ pct }}%</span>
+            </div>
+            <div class="prox-bar-track">
+              <div class="prox-bar-fill prox-red" data-pct="{{ pct }}"></div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}{% endfor %}
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+  <script>
+    // Inicializar anchos de barras desde data-pct
+    document.querySelectorAll('.prox-bar-fill').forEach(el => {
+      el.style.width = (el.dataset.pct || 0) + '%';
+    });
+
+    document.getElementById('prox-phase-btns').addEventListener('click', function(e) {
+      const btn = e.target.closest('.phase-btn');
+      if (!btn) return;
+      const phase = btn.dataset.phase;
+      this.querySelectorAll('.phase-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('.prox-phase-data').forEach(el => {
+        el.classList.toggle('d-none', el.dataset.phase !== phase);
+      });
+    });
+  </script>
+  {% endif %}
 
   <!-- ── MAPA DE CALOR ───────────────────────────────────────────────────── -->
   <div class="heatmap-section">

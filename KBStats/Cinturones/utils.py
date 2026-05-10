@@ -1,6 +1,5 @@
 import json
 from typing import Dict, Any
-import requests
 
 from django.db import transaction
 from .models import Equipo, Jugador, Partida, StatsJugador
@@ -286,6 +285,107 @@ def save_to_django(match_data: Dict[str, Any], jornada: str, numero_partida: str
                 jugador=jugador_obj,
                 defaults=stats_defaults,
             )
+
+
+
+def calculate_jungler_proximity(position_data: dict, team_roles: dict) -> dict:
+    """
+    Calcula la proximidad del jungler a cada compañero de carril (top/mid/adc/sup)
+    midiendo distancia euclídea en coordenadas LoL frame a frame.
+
+    team_roles : {100: {'top': 'Alias', 'jgl': 'Alias', 'mid': ..., 'adc': ..., 'sup': ...},
+                  200: {...}}
+
+    Retorna:
+    {
+      'blue': {'name': str, 'all': {top,mid,adc,sup}, 'early': {...}, 'mid': {...}, 'late': {...}},
+      'red' : {...},
+    }
+    """
+    EARLY_MS          = 900_000
+    MID_MS            = 1_800_000
+    PROXIMITY_THRESH  = 3500   # unidades LoL (~1.5 pantallas)
+    LANES             = ('top', 'mid', 'adc', 'sup')
+
+    players = position_data.get('players', {})
+
+    # Construir alias→pid: aplicar _apply_name_alias al nombre raw del position_data
+    aliased_to_pid: dict[str, str] = {}
+    for pid, pdata in players.items():
+        raw = pdata.get('name', '')
+        aliased = _apply_name_alias(raw)
+        aliased_to_pid[aliased.lower()] = pid
+        aliased_to_pid[aliased.split('#')[0].lower()] = pid
+
+    def find_pid(name: str) -> str | None:
+        return (aliased_to_pid.get(name.lower())
+                or aliased_to_pid.get(name.split('#')[0].lower()))
+
+    def pos_at_time(pid: str, t: int):
+        """Posición del jugador en el instante más cercano a t."""
+        pts = players.get(pid, {}).get('positions', [])
+        if not pts:
+            return None
+        best, best_dt = pts[0], float('inf')
+        for p in pts:
+            pt = p[2] if len(p) >= 3 else 0
+            dt = abs(pt - t)
+            if dt < best_dt:
+                best, best_dt = p, dt
+            if pt > t + 120_000:   # 2 min de margen, parar pronto
+                break
+        return best[:2]
+
+    def compute_pcts(jgl_pid: str, lane_pids: dict, t_min=0, t_max=float('inf')) -> dict:
+        counts = {role: 0 for role in LANES}
+        total  = 0
+        for pos in players[jgl_pid]['positions']:
+            t = pos[2] if len(pos) >= 3 else 0
+            if t < t_min or t >= t_max:
+                continue
+            jx, jy = pos[0], pos[1]
+            min_dist, closest = float('inf'), None
+            for role in LANES:
+                lpid = lane_pids.get(role)
+                if not lpid:
+                    continue
+                lp = pos_at_time(lpid, t)
+                if not lp:
+                    continue
+                d = ((jx - lp[0]) ** 2 + (jy - lp[1]) ** 2) ** 0.5
+                if d < min_dist:
+                    min_dist, closest = d, role
+            if closest and min_dist < PROXIMITY_THRESH:
+                counts[closest] += 1
+            total += 1
+
+        lane_total = sum(counts.values())
+        if not lane_total:
+            return {k: 0.0 for k in LANES}
+        return {k: round(counts[k] / lane_total * 100, 1) for k in LANES}
+
+    team_keys = {100: 'blue', 200: 'red'}
+    result = {}
+
+    for team_id, roles in team_roles.items():
+        jgl_name = roles.get('jgl')
+        if not jgl_name:
+            continue
+        jgl_pid = find_pid(jgl_name)
+        if not jgl_pid:
+            continue
+
+        lane_pids = {role: find_pid(roles[role]) for role in LANES if roles.get(role)}
+
+        result[team_keys[team_id]] = {
+            'name':  jgl_name,
+            'all':   compute_pcts(jgl_pid, lane_pids),
+            'early': compute_pcts(jgl_pid, lane_pids, 0,        EARLY_MS),
+            'mid':   compute_pcts(jgl_pid, lane_pids, EARLY_MS, MID_MS),
+            'late':  compute_pcts(jgl_pid, lane_pids, MID_MS),
+        }
+
+    return result
 
 
 def extract_positions_from_timeline(timeline_json: str, match_json: str) -> dict | None:
