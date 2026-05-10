@@ -5,8 +5,8 @@
 <style>
   .heatmap-wrap {
     position: relative;
-    width: 512px;
-    height: 512px;
+    width: 700px;
+    height: 700px;
     border: 1px solid #1f2937;
     border-radius: 0.5rem;
     overflow: hidden;
@@ -17,7 +17,7 @@
     position: absolute;
     inset: 0;
     background-image: url("{% static 'images/f5da4bd98cb87704342fa1c6e4b6ab416aca990e-705x701.png' %}");
-    background-size: 512px 512px;
+    background-size: 700px 700px;
     background-repeat: no-repeat;
     opacity: 0.5;
     z-index: 0;
@@ -26,7 +26,20 @@
     display: flex;
     flex-direction: column;
     gap: 1rem;
-    min-width: 200px;
+    min-width: 280px;
+  }
+  .player-team-col {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    flex: 1;
+  }
+  .player-team-label {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    font-weight: 600;
+    margin-bottom: 0.2rem;
   }
   .player-btn {
     display: flex;
@@ -41,6 +54,14 @@
     font-size: 0.82rem;
     transition: background 0.15s, border-color 0.15s;
     text-align: left;
+    width: 100%;
+    min-width: 0;
+  }
+  .player-btn .btn-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
   }
   .player-btn:hover { background: #1f2937; }
   .player-btn.active { border-color: #22d3ee; color: #22d3ee; background: #0b2030; }
@@ -349,7 +370,7 @@
 <script>
 (function () {
   const MATCH_ID   = "{{ partida.match_id }}";
-  const MAP_SIZE   = 512;
+  const MAP_SIZE   = 700;
   const LOL_MAX    = 14820;
 const TEAM_COLORS = { 100: '#60a5fa', 200: '#f87171' };
   const HEAT_CFG_BLUE = {
@@ -511,25 +532,44 @@ const TEAM_COLORS = { 100: '#60a5fa', 200: '#f87171' };
 
     const allBtn = document.createElement('button');
     allBtn.className = 'player-btn active-all';
+    allBtn.style.width = '100%';
     allBtn.dataset.pid = 'all';
-    allBtn.innerHTML = '<span class="dot" style="background:#4ade80"></span>Todos los jugadores';
+    allBtn.innerHTML = '<span class="dot" style="background:#4ade80;flex-shrink:0"></span><span class="btn-name">Todos los jugadores</span>';
     allBtn.addEventListener('click', () => togglePlayer('all'));
     ctrl.appendChild(allBtn);
 
-    const pidOrder = Object.keys(allData.players).sort((a, b) => {
-      const pa = allData.players[a], pb = allData.players[b];
-      return pa.team - pb.team || parseInt(a) - parseInt(b);
+    // Two-column grid: blue team | red team
+    const teamsRow = document.createElement('div');
+    teamsRow.style.cssText = 'display:flex;gap:0.5rem;width:100%;';
+
+    [100, 200].forEach(team => {
+      const col = document.createElement('div');
+      col.className = 'player-team-col';
+
+      const lbl = document.createElement('div');
+      lbl.className = 'player-team-label';
+      lbl.style.color = TEAM_COLORS[team];
+      lbl.textContent = team === 100 ? '{{ equipo_azul }}' : '{{ equipo_rojo }}';
+      col.appendChild(lbl);
+
+      const pidOrder = Object.keys(allData.players)
+        .filter(pid => allData.players[pid].team === team)
+        .sort((a, b) => parseInt(a) - parseInt(b));
+
+      pidOrder.forEach(pid => {
+        const p   = allData.players[pid];
+        const btn = document.createElement('button');
+        btn.className = 'player-btn';
+        btn.dataset.pid = pid;
+        btn.innerHTML = `<span class="dot" style="background:${TEAM_COLORS[team]};flex-shrink:0"></span><span class="btn-name">${p.name.split('#')[0]}</span>`;
+        btn.addEventListener('click', () => togglePlayer(pid));
+        col.appendChild(btn);
+      });
+
+      teamsRow.appendChild(col);
     });
-    pidOrder.forEach(pid => {
-      const p     = allData.players[pid];
-      const color = TEAM_COLORS[p.team] || '#9ca3af';
-      const btn   = document.createElement('button');
-      btn.className = 'player-btn';
-      btn.dataset.pid = pid;
-      btn.innerHTML = `<span class="dot" style="background:${color}"></span>${p.name}`;
-      btn.addEventListener('click', () => togglePlayer(pid));
-      ctrl.appendChild(btn);
-    });
+
+    ctrl.appendChild(teamsRow);
 
     layout.appendChild(ctrl);
     container.appendChild(layout);
