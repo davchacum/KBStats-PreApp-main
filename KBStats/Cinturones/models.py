@@ -42,6 +42,7 @@ class Partida(models.Model):
 	elders_rojo = models.IntegerField(default=0)
 	atakhan_azul = models.IntegerField(default=0)
 	atakhan_rojo = models.IntegerField(default=0)
+	position_data = models.JSONField(null=True, blank=True)
 	created_at = models.DateTimeField(auto_now_add=True)
 
 	class Meta:
@@ -79,6 +80,23 @@ class StatsJugador(models.Model):
 	penta_kills = models.IntegerField(default=0)
 	game_time = models.FloatField(default=0.0)
 	dano_oro = models.FloatField(default=0.0)
+	# Visión desglosada
+	wpm = models.FloatField(default=0.0)    # wards colocados / min
+	cwpm = models.FloatField(default=0.0)   # control wards comprados / min
+	wcpm = models.FloatField(default=0.0)   # wards destruidos / min
+	# Shares de equipo
+	gold_pct = models.FloatField(default=0.0)     # % oro del equipo
+	death_share = models.FloatField(default=0.0)  # % muertes del equipo
+	# Resultado
+	victoria = models.BooleanField(default=False)
+	# Early game (min 15) — null cuando no hay datos de timeline
+	gd15  = models.IntegerField(null=True, blank=True)
+	csd15 = models.IntegerField(null=True, blank=True)
+	xpd15 = models.IntegerField(null=True, blank=True)
+	cs15  = models.IntegerField(null=True, blank=True)
+	ka15  = models.IntegerField(null=True, blank=True)
+	fb    = models.BooleanField(null=True, blank=True)   # participó en First Blood
+	fbv   = models.BooleanField(null=True, blank=True)   # fue víctima del First Blood
 	created_at = models.DateTimeField(auto_now_add=True)
 
 	class Meta:

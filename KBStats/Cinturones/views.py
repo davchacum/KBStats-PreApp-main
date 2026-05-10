@@ -425,6 +425,13 @@ def detalle_partida(request, match_id=None):
 			'penta_kills': s.penta_kills,
 			'rol': s.rol,
 			'nombre_equipo': s.equipo_nombre,
+			'gd15':  s.gd15,
+			'csd15': s.csd15,
+			'xpd15': s.xpd15,
+			'cs15':  s.cs15,
+			'ka15':  s.ka15,
+			'fb':    s.fb,
+			'fbv':   s.fbv,
 		})
 
 	data = {
@@ -463,6 +470,14 @@ def detalle_partida(request, match_id=None):
 		)
 
 	return JsonResponse(data)
+
+
+def heatmap_data(request, match_id):
+	"""Devuelve los datos de posición almacenados para una partida como JSON."""
+	partida = get_object_or_404(Partida, match_id=match_id)
+	if not partida.position_data:
+		return JsonResponse({'error': 'No hay datos de posición para esta partida. Reimporta la partida con seed_partidas.'}, status=404)
+	return JsonResponse(partida.position_data)
 
 
 def promedios_jugadores(request):
@@ -521,11 +536,24 @@ def promedios_jugadores(request):
 		avg_cs=Avg('cs'),
 		avg_cs_min=Avg('cs_min'),
 		avg_vision_min=Avg('vision_min'),
+		avg_wpm=Avg('wpm'),
+		avg_cwpm=Avg('cwpm'),
+		avg_wcpm=Avg('wcpm'),
+		avg_gold_pct=Avg('gold_pct'),
+		avg_death_share=Avg('death_share'),
+		win_rate=Avg('victoria'),
+		avg_gd15=Avg('gd15'),
+		avg_csd15=Avg('csd15'),
+		avg_xpd15=Avg('xpd15'),
+		avg_cs15=Avg('cs15'),
+		avg_ka15=Avg('ka15'),
+		fb_rate=Avg('fb'),
+		fbv_rate=Avg('fbv'),
 		avg_double=Sum('double_kills'),
 		avg_triple=Sum('triple_kills'),
 		avg_quadra=Sum('quadra_kills'),
 		avg_penta=Sum('penta_kills'),
-        avg_game_time=Avg('game_time'),
+		avg_game_time=Avg('game_time'),
 		games_played=Count('partida__id'),
 	)
 	# Orden dinámico sobre los aliases generados
@@ -545,6 +573,18 @@ def promedios_jugadores(request):
 		'cs': 'avg_cs',
 		'cs_min': 'avg_cs_min',
 		'vision_min': 'avg_vision_min',
+		'wpm': 'avg_wpm',
+		'cwpm': 'avg_cwpm',
+		'wcpm': 'avg_wcpm',
+		'gold_pct': 'avg_gold_pct',
+		'death_share': 'avg_death_share',
+		'win_rate':   'win_rate',
+		'gd15':       'avg_gd15',
+		'csd15':      'avg_csd15',
+		'xpd15':      'avg_xpd15',
+		'cs15':       'avg_cs15',
+		'ka15':       'avg_ka15',
+		'fb_rate':    'fb_rate',
 		'double_kills': 'avg_double',
 		'triple_kills': 'avg_triple',
 		'quadra_kills': 'avg_quadra',
@@ -579,6 +619,19 @@ def promedios_jugadores(request):
 			'avg_cs': float(a['avg_cs'] or 0.0),
 			'avg_cs_min': float(a['avg_cs_min'] or 0.0),
 			'avg_vision_min': float(a['avg_vision_min'] or 0.0),
+			'avg_wpm': float(a['avg_wpm'] or 0.0),
+			'avg_cwpm': float(a['avg_cwpm'] or 0.0),
+			'avg_wcpm': float(a['avg_wcpm'] or 0.0),
+			'avg_gold_pct': float(a['avg_gold_pct'] or 0.0),
+			'avg_death_share': float(a['avg_death_share'] or 0.0),
+			'win_rate': round(float(a['win_rate'] or 0.0) * 100, 1),
+			'avg_gd15':  round(float(a['avg_gd15']  or 0.0), 0) if a['avg_gd15']  is not None else None,
+			'avg_csd15': round(float(a['avg_csd15'] or 0.0), 1) if a['avg_csd15'] is not None else None,
+			'avg_xpd15': round(float(a['avg_xpd15'] or 0.0), 0) if a['avg_xpd15'] is not None else None,
+			'avg_cs15':  round(float(a['avg_cs15']  or 0.0), 1) if a['avg_cs15']  is not None else None,
+			'avg_ka15':  round(float(a['avg_ka15']  or 0.0), 1) if a['avg_ka15']  is not None else None,
+			'fb_rate':   round(float(a['fb_rate']   or 0.0) * 100, 1) if a['fb_rate']  is not None else None,
+			'fbv_rate':  round(float(a['fbv_rate']  or 0.0) * 100, 1) if a['fbv_rate'] is not None else None,
 			'avg_double': int(a['avg_double'] or 0.0),
 			'avg_triple': int(a['avg_triple'] or 0.0),
 			'avg_quadra': int(a['avg_quadra'] or 0.0),
@@ -637,7 +690,7 @@ def tier_list(request):
 			('Combate',    [('KDA',20,False),('KP %',33,False)]),
 			('Daño',       [('Dmg/min',6,False),('% Dmg',4,False)]),
 			('Economía',   [('Oro/min',7,False)]),
-			('Visión',     [('Visión/min',30,False)]),
+			('Visión',     [('Wards/min',8,False),('CW/min',12,False),('WC/min',10,False)]),
 		],
 	}
 	max_pct = 33
@@ -657,7 +710,7 @@ def tier_list(request):
 		'JGL': {'kda':.18,'kp':.20,'cs_min':.15,'oro_min':.10,'vision_min':.08,'dmg_min':.09,'dmg_oro':.06,'pct_dmg':.03,'double':.04,'triple':.04,'quadra':.02,'penta':.01},
 		'MID': {'kda':.17,'kp':.14,'dmg_min':.17,'dmg_oro':.09,'pct_dmg':.07,'cs_min':.14,'oro_min':.10,'vision_min':.05,'double':.02,'triple':.02,'quadra':.02,'penta':.01},
 		'ADC': {'kda':.19,'kp':.09,'dmg_min':.17,'dmg_oro':.10,'pct_dmg':.08,'cs_min':.20,'oro_min':.09,'vision_min':.03,'double':.02,'triple':.01,'quadra':.01,'penta':.01},
-		'SUP': {'kda':.20,'kp':.33,'vision_min':.30,'dmg_min':.06,'pct_dmg':.04,'oro_min':.07},
+		'SUP': {'kda':.20,'kp':.33,'wpm':.08,'cwpm':.12,'wcpm':.10,'dmg_min':.06,'pct_dmg':.04,'oro_min':.07},
 	}
 	# clave scoring → campo en resultados
 	FIELD_MAP = {
@@ -665,7 +718,9 @@ def tier_list(request):
 		'kp':'avg_kp','oro_min':'avg_oro_min','dmg_oro':'avg_dano_oro',
 		'pct_dmg':'avg_porcentaje_dano_equipo','dmg_min':'avg_dano_min',
 		'dmg_rec':'avg_dano_recibido','cs':'avg_cs','cs_min':'avg_cs_min',
-		'vision_min':'avg_vision_min','double':'avg_double','triple':'avg_triple',
+		'vision_min':'avg_vision_min',
+		'wpm':'avg_wpm','cwpm':'avg_cwpm','wcpm':'avg_wcpm',
+		'double':'avg_double','triple':'avg_triple',
 		'quadra':'avg_quadra','penta':'avg_penta',
 	}
 	def _normalize(values):
@@ -721,6 +776,9 @@ def tier_list(request):
 		avg_cs=Avg('cs'),
 		avg_cs_min=Avg('cs_min'),
 		avg_vision_min=Avg('vision_min'),
+		avg_wpm=Avg('wpm'),
+		avg_cwpm=Avg('cwpm'),
+		avg_wcpm=Avg('wcpm'),
 		avg_double=Sum('double_kills'),
 		avg_triple=Sum('triple_kills'),
 		avg_quadra=Sum('quadra_kills'),
@@ -754,6 +812,9 @@ def tier_list(request):
 			'avg_cs': float(a['avg_cs'] or 0),
 			'avg_cs_min': float(a['avg_cs_min'] or 0),
 			'avg_vision_min': float(a['avg_vision_min'] or 0),
+			'avg_wpm': float(a['avg_wpm'] or 0),
+			'avg_cwpm': float(a['avg_cwpm'] or 0),
+			'avg_wcpm': float(a['avg_wcpm'] or 0),
 			'avg_double': float(a['avg_double'] or 0),
 			'avg_triple': float(a['avg_triple'] or 0),
 			'avg_quadra': float(a['avg_quadra'] or 0),

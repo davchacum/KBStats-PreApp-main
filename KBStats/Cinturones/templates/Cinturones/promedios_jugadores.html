@@ -1,7 +1,78 @@
 {% extends 'Cinturones/base.html' %}
 
+{% block extra_css %}
+<style>
+  /* ── Panel lateral ─────────────────────────────────────────────────────── */
+  #col-panel {
+    position: fixed;
+    top: 0; right: -280px;
+    width: 260px;
+    height: 100vh;
+    background: #0b1220;
+    border-left: 1px solid #1f2937;
+    z-index: 1050;
+    overflow-y: auto;
+    transition: right 0.25s ease;
+    padding: 1.25rem 1rem;
+    box-shadow: -4px 0 20px rgba(0,0,0,.5);
+  }
+  #col-panel.open { right: 0; }
+
+  #panel-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.4);
+    z-index: 1040;
+  }
+  #panel-overlay.open { display: block; }
+
+  .panel-group { margin-bottom: 1rem; }
+  .panel-group-label {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: #6b7280;
+    margin-bottom: 0.4rem;
+  }
+  .panel-check {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.2rem 0;
+    cursor: pointer;
+    font-size: 0.82rem;
+    color: #d1d5db;
+    user-select: none;
+  }
+  .panel-check input { accent-color: #22d3ee; width: 14px; height: 14px; cursor: pointer; }
+
+  #btn-panel {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    z-index: 1030;
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    background: #0e7490;
+    border: none;
+    color: #fff;
+    font-size: 1.1rem;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,.4);
+    transition: background .15s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  #btn-panel:hover { background: #0891b2; }
+
+  /* ── Tabla scrollable ──────────────────────────────────────────────────── */
+  .table-scroll { overflow-x: auto; }
+  .table-scroll table { white-space: nowrap; }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container py-4">
+<div class="container-fluid py-4">
 
   <h1 class="page-title mb-3">
     Promedios por Jugador{% if jornada %} — Jornada {{ jornada }}{% endif %}
@@ -24,11 +95,11 @@
         <label for="rol" class="form-label mb-1">Rol</label>
         <select name="rol" id="rol" class="form-select">
           <option value="">Todos</option>
-          <option value="TOP"    {% if filtro_rol == 'TOP' %}selected{% endif %}>Top</option>
-          <option value="JGL"    {% if filtro_rol == 'JGL' %}selected{% endif %}>Jungle</option>
-          <option value="MID"    {% if filtro_rol == 'MID' %}selected{% endif %}>Mid</option>
-          <option value="ADC"    {% if filtro_rol == 'ADC' %}selected{% endif %}>ADC</option>
-          <option value="SUP"    {% if filtro_rol == 'SUP' %}selected{% endif %}>Support</option>
+          <option value="TOP" {% if filtro_rol == 'TOP' %}selected{% endif %}>Top</option>
+          <option value="JGL" {% if filtro_rol == 'JGL' %}selected{% endif %}>Jungle</option>
+          <option value="MID" {% if filtro_rol == 'MID' %}selected{% endif %}>Mid</option>
+          <option value="ADC" {% if filtro_rol == 'ADC' %}selected{% endif %}>ADC</option>
+          <option value="SUP" {% if filtro_rol == 'SUP' %}selected{% endif %}>Support</option>
         </select>
       </div>
 
@@ -46,25 +117,37 @@
         <label for="sort" class="form-label mb-1">Ordenar por</label>
         <select name="sort" id="sort" class="form-select">
           <option value="">No ordenar</option>
-          <option value="kills" {% if sort == 'kills' %}selected{% endif %}>K</option>
-          <option value="muertes" {% if sort == 'muertes' %}selected{% endif %}>D</option>
-          <option value="asistencias" {% if sort == 'asistencias' %}selected{% endif %}>A</option>
-          <option value="kda" {% if sort == 'kda' %}selected{% endif %}>KDA</option>
-          <option value="kp" {% if sort == 'kp' %}selected{% endif %}>KP %</option>
-          <option value="cs" {% if sort == 'cs' %}selected{% endif %}>CS</option>
-          <option value="cs_min" {% if sort == 'cs_min' %}selected{% endif %}>CS/min</option>
-          <option value="dano_min" {% if sort == 'dano_min' %}selected{% endif %}>Dmg/min</option>
-          <option value="dano_recibido" {% if sort == 'dano_recibido' %}selected{% endif %}>Dmg Rec</option>
+          <option value="kills"                  {% if sort == 'kills' %}selected{% endif %}>K</option>
+          <option value="muertes"                {% if sort == 'muertes' %}selected{% endif %}>D</option>
+          <option value="asistencias"            {% if sort == 'asistencias' %}selected{% endif %}>A</option>
+          <option value="kda"                    {% if sort == 'kda' %}selected{% endif %}>KDA</option>
+          <option value="kp"                     {% if sort == 'kp' %}selected{% endif %}>KP %</option>
+          <option value="cs"                     {% if sort == 'cs' %}selected{% endif %}>CS</option>
+          <option value="cs_min"                 {% if sort == 'cs_min' %}selected{% endif %}>CS/min</option>
+          <option value="dano_min"               {% if sort == 'dano_min' %}selected{% endif %}>Dmg/min</option>
+          <option value="dano_recibido"          {% if sort == 'dano_recibido' %}selected{% endif %}>Dmg Rec</option>
           <option value="porcentaje_dano_equipo" {% if sort == 'porcentaje_dano_equipo' %}selected{% endif %}>% Dmg</option>
-          <option value="oro_min" {% if sort == 'oro_min' %}selected{% endif %}>Oro/min</option>
-          <option value="dano_oro" {% if sort == 'dano_oro' %}selected{% endif %}>Dmg/Oro</option>
-          <option value="vision_min" {% if sort == 'vision_min' %}selected{% endif %}>Visión/min</option>
-          <option value="double_kills" {% if sort == 'double_kills' %}selected{% endif %}>2 kills</option>
-          <option value="triple_kills" {% if sort == 'triple_kills' %}selected{% endif %}>3 kills</option>
-          <option value="quadra_kills" {% if sort == 'quadra_kills' %}selected{% endif %}>4 kills</option>
-          <option value="penta_kills" {% if sort == 'penta_kills' %}selected{% endif %}>5 kills</option>
-          <option value="games" {% if sort == 'games' %}selected{% endif %}>Games</option>
-          <option value="game_time" {% if sort == 'game_time' %}selected{% endif %}>Tiempo medio</option>
+          <option value="oro_min"                {% if sort == 'oro_min' %}selected{% endif %}>Oro/min</option>
+          <option value="dano_oro"               {% if sort == 'dano_oro' %}selected{% endif %}>Dmg/Oro</option>
+          <option value="vision_min"             {% if sort == 'vision_min' %}selected{% endif %}>Visión/min</option>
+          <option value="wpm"                    {% if sort == 'wpm' %}selected{% endif %}>W/min</option>
+          <option value="cwpm"                   {% if sort == 'cwpm' %}selected{% endif %}>CW/min</option>
+          <option value="wcpm"                   {% if sort == 'wcpm' %}selected{% endif %}>WC/min</option>
+          <option value="gold_pct"               {% if sort == 'gold_pct' %}selected{% endif %}>Gold%</option>
+          <option value="death_share"            {% if sort == 'death_share' %}selected{% endif %}>Death%</option>
+          <option value="win_rate"               {% if sort == 'win_rate' %}selected{% endif %}>Win%</option>
+          <option value="gd15"                   {% if sort == 'gd15' %}selected{% endif %}>GD@15</option>
+          <option value="csd15"                  {% if sort == 'csd15' %}selected{% endif %}>CSD@15</option>
+          <option value="xpd15"                  {% if sort == 'xpd15' %}selected{% endif %}>XPD@15</option>
+          <option value="cs15"                   {% if sort == 'cs15' %}selected{% endif %}>CS@15</option>
+          <option value="ka15"                   {% if sort == 'ka15' %}selected{% endif %}>KA@15</option>
+          <option value="fb_rate"                {% if sort == 'fb_rate' %}selected{% endif %}>FB%</option>
+          <option value="double_kills"           {% if sort == 'double_kills' %}selected{% endif %}>2 kills</option>
+          <option value="triple_kills"           {% if sort == 'triple_kills' %}selected{% endif %}>3 kills</option>
+          <option value="quadra_kills"           {% if sort == 'quadra_kills' %}selected{% endif %}>4 kills</option>
+          <option value="penta_kills"            {% if sort == 'penta_kills' %}selected{% endif %}>5 kills</option>
+          <option value="games"                  {% if sort == 'games' %}selected{% endif %}>Games</option>
+          <option value="game_time"              {% if sort == 'game_time' %}selected{% endif %}>Tiempo medio</option>
         </select>
       </div>
 
@@ -72,7 +155,7 @@
         <label for="order" class="form-label mb-1">Orden</label>
         <select name="order" id="order" class="form-select">
           <option value="desc" {% if order == 'desc' %}selected{% endif %}>Desc</option>
-          <option value="asc" {% if order == 'asc' %}selected{% endif %}>Asc</option>
+          <option value="asc"  {% if order == 'asc'  %}selected{% endif %}>Asc</option>
         </select>
       </div>
 
@@ -85,66 +168,216 @@
     </form>
   </div>
 
-  <table class="table table-dark-kb table-hover table-sm">
-    <thead>
-      <tr>
-        <th>#</th>
-        <th>Jugador</th>
-        <th>Rol</th>
-        <th>K</th>
-        <th>D</th>
-        <th>A</th>
-        <th>KDA</th>
-        <th>KP %</th>
-        <th>CS</th>
-        <th>CS/min</th>
-        <th>Oro/min</th>
-        <th>Dmg/min</th>
-        <th>Dmg Rec</th>
-        <th>% Dmg</th>
-        <th>Dmg/Oro</th>
-        <th>Visión</th>
-        <th>2 kills</th>
-        <th>3 kills</th>
-        <th>4 kills</th>
-        <th>5 kills</th>
-        <th>Games</th>
-        <th>Tiempo medio</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for j in jugadores %}
-      <tr>
-        <td>{{ forloop.counter }}</td>
-        <td>{{ j.jugador_nombre }}</td>
-        <td>{{ j.rol_principal }}</td>
-        <td>{{ j.avg_kills }}</td>
-        <td>{{ j.avg_muertes }}</td>
-        <td>{{ j.avg_asistencias }}</td>
-        <td>{{ j.avg_kda|floatformat:2 }}</td>
-        <td>{{ j.avg_kp|floatformat:2 }}</td>
-        <td>{{ j.avg_cs|floatformat:2 }}</td>
-        <td>{{ j.avg_cs_min|floatformat:2 }}</td>
-        <td>{{ j.avg_oro_min|floatformat:2 }}</td>
-        <td>{{ j.avg_dano_min|floatformat:2 }}</td>
-        <td>{{ j.avg_dano_recibido|floatformat:2 }}</td>
-        <td>{{ j.avg_porcentaje_dano_equipo|floatformat:2 }}</td>
-        <td>{{ j.avg_dano_oro|floatformat:2 }}</td>
-        <td>{{ j.avg_vision_min|floatformat:2 }}</td>
-        <td>{{ j.avg_double }}</td>
-        <td>{{ j.avg_triple }}</td>
-        <td>{{ j.avg_quadra }}</td>
-        <td>{{ j.avg_penta }}</td>
-        <td>{{ j.games_played }}</td>
-        <td>{{ j.avg_game_time|floatformat:2 }}</td>
-      </tr>
-      {% empty %}
-      <tr>
-        <td colspan="23">No hay datos.</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <!-- Tabla scrollable -->
+  <div class="table-scroll">
+    <table class="table table-dark-kb table-hover table-sm" id="stats-table">
+      <thead>
+        <tr>
+          <th class="col-base">#</th>
+          <th class="col-base">Jugador</th>
+          <th class="col-base">Rol</th>
+          <th class="col-combate">K</th>
+          <th class="col-combate">D</th>
+          <th class="col-combate">A</th>
+          <th class="col-combate">KDA</th>
+          <th class="col-combate">KP %</th>
+          <th class="col-farmeo">CS</th>
+          <th class="col-farmeo">CS/min</th>
+          <th class="col-farmeo">Oro/min</th>
+          <th class="col-dano">Dmg/min</th>
+          <th class="col-dano">Dmg Rec</th>
+          <th class="col-dano">% Dmg</th>
+          <th class="col-dano">Dmg/Oro</th>
+          <th class="col-vision">Visión</th>
+          <th class="col-vision">W/min</th>
+          <th class="col-vision">CW/min</th>
+          <th class="col-vision">WC/min</th>
+          <th class="col-equipo">Gold%</th>
+          <th class="col-equipo">Death%</th>
+          <th class="col-equipo">Win%</th>
+          <th class="col-early">GD@15</th>
+          <th class="col-early">CSD@15</th>
+          <th class="col-early">XPD@15</th>
+          <th class="col-early">CS@15</th>
+          <th class="col-early">KA@15</th>
+          <th class="col-early">FB%</th>
+          <th class="col-multi">2K</th>
+          <th class="col-multi">3K</th>
+          <th class="col-multi">4K</th>
+          <th class="col-multi">5K</th>
+          <th class="col-base">Games</th>
+          <th class="col-tiempo">T. medio</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for j in jugadores %}
+        <tr>
+          <td class="col-base">{{ forloop.counter }}</td>
+          <td class="col-base">{{ j.jugador_nombre }}</td>
+          <td class="col-base">{{ j.rol_principal }}</td>
+          <td class="col-combate">{{ j.avg_kills }}</td>
+          <td class="col-combate">{{ j.avg_muertes }}</td>
+          <td class="col-combate">{{ j.avg_asistencias }}</td>
+          <td class="col-combate">{{ j.avg_kda|floatformat:2 }}</td>
+          <td class="col-combate">{{ j.avg_kp|floatformat:2 }}</td>
+          <td class="col-farmeo">{{ j.avg_cs|floatformat:0 }}</td>
+          <td class="col-farmeo">{{ j.avg_cs_min|floatformat:2 }}</td>
+          <td class="col-farmeo">{{ j.avg_oro_min|floatformat:2 }}</td>
+          <td class="col-dano">{{ j.avg_dano_min|floatformat:2 }}</td>
+          <td class="col-dano">{{ j.avg_dano_recibido|floatformat:0 }}</td>
+          <td class="col-dano">{{ j.avg_porcentaje_dano_equipo|floatformat:2 }}</td>
+          <td class="col-dano">{{ j.avg_dano_oro|floatformat:2 }}</td>
+          <td class="col-vision">{{ j.avg_vision_min|floatformat:2 }}</td>
+          <td class="col-vision">{{ j.avg_wpm|floatformat:2 }}</td>
+          <td class="col-vision">{{ j.avg_cwpm|floatformat:2 }}</td>
+          <td class="col-vision">{{ j.avg_wcpm|floatformat:2 }}</td>
+          <td class="col-equipo">{{ j.avg_gold_pct|floatformat:1 }}</td>
+          <td class="col-equipo">{{ j.avg_death_share|floatformat:1 }}</td>
+          <td class="col-equipo">{% if j.win_rate %}{{ j.win_rate|floatformat:0 }}%{% else %}—{% endif %}</td>
+          <td class="col-early">{% if j.avg_gd15 is not None %}{{ j.avg_gd15|floatformat:0 }}{% else %}—{% endif %}</td>
+          <td class="col-early">{% if j.avg_csd15 is not None %}{{ j.avg_csd15|floatformat:1 }}{% else %}—{% endif %}</td>
+          <td class="col-early">{% if j.avg_xpd15 is not None %}{{ j.avg_xpd15|floatformat:0 }}{% else %}—{% endif %}</td>
+          <td class="col-early">{% if j.avg_cs15 is not None %}{{ j.avg_cs15|floatformat:1 }}{% else %}—{% endif %}</td>
+          <td class="col-early">{% if j.avg_ka15 is not None %}{{ j.avg_ka15|floatformat:1 }}{% else %}—{% endif %}</td>
+          <td class="col-early">{% if j.fb_rate is not None %}{{ j.fb_rate|floatformat:0 }}%{% else %}—{% endif %}</td>
+          <td class="col-multi">{{ j.avg_double }}</td>
+          <td class="col-multi">{{ j.avg_triple }}</td>
+          <td class="col-multi">{{ j.avg_quadra }}</td>
+          <td class="col-multi">{{ j.avg_penta }}</td>
+          <td class="col-base">{{ j.games_played }}</td>
+          <td class="col-tiempo">{{ j.avg_game_time|floatformat:2 }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="34">No hay datos.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 
 </div>
+
+<!-- ── Panel lateral ──────────────────────────────────────────────────────── -->
+<div id="panel-overlay"></div>
+
+<div id="col-panel">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+    <span style="color:#22d3ee;font-size:0.85rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;">Columnas</span>
+    <button onclick="closePanel()" style="background:none;border:none;color:#6b7280;font-size:1.1rem;cursor:pointer;">✕</button>
+  </div>
+
+  <div class="panel-group">
+    <div class="panel-group-label">Base</div>
+    <label class="panel-check"><input type="checkbox" data-group="col-base" checked> Jugador / Rol / Games</label>
+  </div>
+
+  <div class="panel-group">
+    <div class="panel-group-label">Combate</div>
+    <label class="panel-check"><input type="checkbox" data-group="col-combate" checked> K / D / A / KDA / KP%</label>
+  </div>
+
+  <div class="panel-group">
+    <div class="panel-group-label">Farmeo</div>
+    <label class="panel-check"><input type="checkbox" data-group="col-farmeo" checked> CS / CS/min / Oro/min</label>
+  </div>
+
+  <div class="panel-group">
+    <div class="panel-group-label">Daño</div>
+    <label class="panel-check"><input type="checkbox" data-group="col-dano" checked> Dmg/min / Rec / % / Oro</label>
+  </div>
+
+  <div class="panel-group">
+    <div class="panel-group-label">Visión</div>
+    <label class="panel-check"><input type="checkbox" data-group="col-vision" checked> Visión / W/min / CW/min / WC/min</label>
+  </div>
+
+  <div class="panel-group">
+    <div class="panel-group-label">Equipo</div>
+    <label class="panel-check"><input type="checkbox" data-group="col-equipo" checked> Gold% / Death% / Win%</label>
+  </div>
+
+  <div class="panel-group">
+    <div class="panel-group-label">Early Game</div>
+    <label class="panel-check"><input type="checkbox" data-group="col-early" checked> GD@15 / CSD@15 / XPD@15 / CS@15 / KA@15 / FB%</label>
+  </div>
+
+  <div class="panel-group">
+    <div class="panel-group-label">Multi-kills</div>
+    <label class="panel-check"><input type="checkbox" data-group="col-multi" checked> 2K / 3K / 4K / 5K</label>
+  </div>
+
+  <div class="panel-group">
+    <div class="panel-group-label">Tiempo</div>
+    <label class="panel-check"><input type="checkbox" data-group="col-tiempo" checked> Tiempo medio</label>
+  </div>
+
+  <div style="margin-top:1.25rem;display:flex;gap:0.5rem;">
+    <button onclick="setAll(true)"  class="btn btn-sm btn-outline-secondary" style="flex:1;font-size:0.75rem;">Todas</button>
+    <button onclick="setAll(false)" class="btn btn-sm btn-outline-secondary" style="flex:1;font-size:0.75rem;">Ninguna</button>
+  </div>
+</div>
+
+<!-- Botón flotante -->
+<button id="btn-panel" onclick="openPanel()" title="Mostrar / ocultar columnas">
+  ⊞
+</button>
+
+<script>
+(function () {
+  const STORAGE_KEY = 'kbstats_col_prefs';
+
+  function getCells(group) {
+    return document.querySelectorAll(`#stats-table .${group}`);
+  }
+
+  function applyGroup(group, visible) {
+    getCells(group).forEach(el => { el.style.display = visible ? '' : 'none'; });
+  }
+
+  function savePrefs() {
+    const prefs = {};
+    document.querySelectorAll('#col-panel input[data-group]').forEach(cb => {
+      prefs[cb.dataset.group] = cb.checked;
+    });
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs)); } catch {}
+  }
+
+  function loadPrefs() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
+  }
+
+  // Init: apply saved prefs or defaults
+  const saved = loadPrefs();
+  document.querySelectorAll('#col-panel input[data-group]').forEach(cb => {
+    if (saved && saved[cb.dataset.group] !== undefined) {
+      cb.checked = saved[cb.dataset.group];
+    }
+    applyGroup(cb.dataset.group, cb.checked);
+    cb.addEventListener('change', () => {
+      applyGroup(cb.dataset.group, cb.checked);
+      savePrefs();
+    });
+  });
+
+  window.openPanel = function () {
+    document.getElementById('col-panel').classList.add('open');
+    document.getElementById('panel-overlay').classList.add('open');
+  };
+  window.closePanel = function () {
+    document.getElementById('col-panel').classList.remove('open');
+    document.getElementById('panel-overlay').classList.remove('open');
+  };
+  window.setAll = function (on) {
+    document.querySelectorAll('#col-panel input[data-group]').forEach(cb => {
+      cb.checked = on;
+      applyGroup(cb.dataset.group, on);
+    });
+    savePrefs();
+  };
+
+  document.getElementById('panel-overlay').addEventListener('click', closePanel);
+})();
+</script>
 {% endblock %}

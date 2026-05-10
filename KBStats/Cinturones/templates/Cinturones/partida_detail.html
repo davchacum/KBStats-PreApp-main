@@ -1,4 +1,83 @@
-{% extends 'Cinturones/base.html' %} {% block content %}
+{% extends 'Cinturones/base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+  .heatmap-wrap {
+    position: relative;
+    width: 512px;
+    height: 512px;
+    border: 1px solid #1f2937;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .heatmap-wrap::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("{% static 'images/f5da4bd98cb87704342fa1c6e4b6ab416aca990e-705x701.png' %}");
+    background-size: 512px 512px;
+    background-repeat: no-repeat;
+    opacity: 0.5;
+    z-index: 0;
+  }
+  .heatmap-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    min-width: 200px;
+  }
+  .player-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.75rem;
+    border-radius: 0.375rem;
+    border: 1px solid #1f2937;
+    background: #0b1220;
+    color: #d1d5db;
+    cursor: pointer;
+    font-size: 0.82rem;
+    transition: background 0.15s, border-color 0.15s;
+    text-align: left;
+  }
+  .player-btn:hover { background: #1f2937; }
+  .player-btn.active { border-color: #22d3ee; color: #22d3ee; background: #0b2030; }
+  .player-btn.active-all { border-color: #4ade80; color: #4ade80; background: #0b1e14; }
+  .dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .phase-btn {
+    padding: 0.3rem 0.6rem;
+    border-radius: 0.3rem;
+    border: 1px solid #1f2937;
+    background: #0b1220;
+    color: #9ca3af;
+    cursor: pointer;
+    font-size: 0.75rem;
+    transition: background 0.15s;
+  }
+  .phase-btn.active { border-color: #22d3ee; color: #22d3ee; }
+  .heatmap-section {
+    background: #0b1220;
+    border: 1px solid #1f2937;
+    border-radius: 0.5rem;
+    padding: 1.25rem;
+    margin-top: 2rem;
+  }
+  .no-data-msg {
+    color: #6b7280;
+    font-size: 0.85rem;
+    padding: 2rem;
+    text-align: center;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
 <div class="container py-4">
   <h1 class="page-title">Partida {{ partida.match_id }}</h1>
 
@@ -55,6 +134,12 @@
         <th>3K</th>
         <th>4K</th>
         <th>5K</th>
+        <th>GD@15</th>
+        <th>CSD@15</th>
+        <th>XPD@15</th>
+        <th>CS@15</th>
+        <th>KA@15</th>
+        <th>FB</th>
       </tr>
     </thead>
     <tbody>
@@ -78,6 +163,12 @@
         <td>{{ s.triple_kills }}</td>
         <td>{{ s.quadra_kills }}</td>
         <td>{{ s.penta_kills }}</td>
+        <td>{% if s.gd15 is not None %}{{ s.gd15 }}{% else %}—{% endif %}</td>
+        <td>{% if s.csd15 is not None %}{{ s.csd15 }}{% else %}—{% endif %}</td>
+        <td>{% if s.xpd15 is not None %}{{ s.xpd15 }}{% else %}—{% endif %}</td>
+        <td>{% if s.cs15 is not None %}{{ s.cs15 }}{% else %}—{% endif %}</td>
+        <td>{% if s.ka15 is not None %}{{ s.ka15 }}{% else %}—{% endif %}</td>
+        <td>{% if s.fb %}✓{% elif s.fb is not None %}—{% else %}—{% endif %}</td>
       </tr>
       {% endfor %}
     </tbody>
@@ -106,6 +197,12 @@
         <th>3K</th>
         <th>4K</th>
         <th>5K</th>
+        <th>GD@15</th>
+        <th>CSD@15</th>
+        <th>XPD@15</th>
+        <th>CS@15</th>
+        <th>KA@15</th>
+        <th>FB</th>
       </tr>
     </thead>
     <tbody>
@@ -129,9 +226,233 @@
         <td>{{ s.triple_kills }}</td>
         <td>{{ s.quadra_kills }}</td>
         <td>{{ s.penta_kills }}</td>
+        <td>{% if s.gd15 is not None %}{{ s.gd15 }}{% else %}—{% endif %}</td>
+        <td>{% if s.csd15 is not None %}{{ s.csd15 }}{% else %}—{% endif %}</td>
+        <td>{% if s.xpd15 is not None %}{{ s.xpd15 }}{% else %}—{% endif %}</td>
+        <td>{% if s.cs15 is not None %}{{ s.cs15 }}{% else %}—{% endif %}</td>
+        <td>{% if s.ka15 is not None %}{{ s.ka15 }}{% else %}—{% endif %}</td>
+        <td>{% if s.fb %}✓{% elif s.fb is not None %}—{% else %}—{% endif %}</td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
+
+  <!-- ── MAPA DE CALOR ───────────────────────────────────────────────────── -->
+  <div class="heatmap-section">
+    <h3 class="section-title mb-3">Mapa de Calor</h3>
+    <div id="heatmap-container">
+      <div class="no-data-msg" id="heatmap-loading">Cargando datos de posición…</div>
+    </div>
+  </div>
 </div>
+
+<!-- heatmap.js -->
+<script src="https://cdn.jsdelivr.net/npm/heatmap.js@2.0.5/build/heatmap.min.js"></script>
+<script>
+(function () {
+  const MATCH_ID   = "{{ partida.match_id }}";
+  const MAP_SIZE   = 512;
+  const LOL_MAX    = 14820;
+const TEAM_COLORS = { 100: '#60a5fa', 200: '#f87171' };
+  const HEAT_CFG_BLUE = {
+    maxOpacity: 0.8, radius: 22, blur: 0.85,
+    gradient: { 0.2: '#001eff', 0.5: '#00aaff', 0.75: '#00eeff', 1.0: '#ffffff' },
+  };
+  const HEAT_CFG_RED = {
+    maxOpacity: 0.8, radius: 22, blur: 0.85,
+    gradient: { 0.2: '#cc0000', 0.5: '#ff4400', 0.75: '#ff9900', 1.0: '#ffffff' },
+  };
+  const PHASES = {
+    all:   [0, Infinity],
+    early: [0,       900000],
+    mid:   [900000, 1800000],
+    late:  [1800000, Infinity],
+  };
+
+  let allData      = null;
+  let heatBlue     = null;
+  let heatRed      = null;
+  let selectedPids = new Set(['all']); // 'all' = todos seleccionados
+  let activePhase  = 'all';
+
+  function toCanvas(x, y) {
+    return {
+      cx: Math.round((x / LOL_MAX) * MAP_SIZE),
+      cy: Math.round((1 - y / LOL_MAX) * MAP_SIZE),
+    };
+  }
+
+  // Devuelve puntos para los jugadores seleccionados del equipo indicado
+  function buildPoints(teamId, phase) {
+    if (!allData) return [];
+    const [tMin, tMax] = PHASES[phase] || PHASES.all;
+    const showAll = selectedPids.has('all');
+    const pts = [];
+
+    for (const [pid, p] of Object.entries(allData.players)) {
+      if (p.team !== teamId) continue;
+      if (!showAll && !selectedPids.has(pid)) continue;
+      p.positions.forEach((pos, i) => {
+        const t = pos.length >= 3 ? pos[2] : i * 60000; // retrocompat formato viejo [x,y]
+        if (t < tMin || t >= tMax) return;
+        const { cx, cy } = toCanvas(pos[0], pos[1]);
+        pts.push({ x: cx, y: cy, value: 1 });
+      });
+    }
+
+    // Eventos kill/death para jugadores seleccionados individualmente
+    if (!showAll && allData.kills) {
+      selectedPids.forEach(pid => {
+        const p = allData.players[pid];
+        if (!p || p.team !== teamId) return;
+        const pidInt = parseInt(pid);
+        allData.kills.forEach(k => {
+          if (k.t < tMin || k.t >= tMax) return;
+          if (k.killer === pidInt || k.victim === pidInt) {
+            const { cx, cy } = toCanvas(k.x, k.y);
+            pts.push({ x: cx, y: cy, value: 3 });
+          }
+        });
+      });
+    }
+
+    return pts;
+  }
+
+  function makeWrap() {
+    const outer = document.createElement('div');
+    const wrap = document.createElement('div');
+    wrap.className = 'heatmap-wrap';
+    outer.appendChild(wrap);
+    return { outer, wrap };
+  }
+
+  function buildMaps(area) {
+    area.innerHTML = '';
+    heatBlue = null; heatRed = null;
+    const { outer, wrap } = makeWrap();
+    area.appendChild(outer);
+    heatBlue = h337.create({ container: wrap, ...HEAT_CFG_BLUE });
+    heatRed  = h337.create({ container: wrap, ...HEAT_CFG_RED });
+  }
+
+  function renderHeatmap() {
+    if (!allData || !heatBlue || !heatRed) return;
+    heatBlue.setData({ max: 6, data: buildPoints(100, activePhase) });
+    heatRed.setData({ max: 6,  data: buildPoints(200, activePhase) });
+  }
+
+  function updateButtons() {
+    const isAll = selectedPids.has('all');
+    document.querySelector('.player-btn[data-pid="all"]')
+      ?.classList.toggle('active-all', isAll);
+    document.querySelectorAll('.player-btn:not([data-pid="all"])').forEach(b => {
+      b.classList.toggle('active', !isAll && selectedPids.has(b.dataset.pid));
+    });
+  }
+
+  function togglePlayer(pid) {
+    if (pid === 'all') {
+      selectedPids = new Set(['all']);
+    } else {
+      const wasAll = selectedPids.has('all');
+      if (wasAll) {
+        // Primera selección individual: partimos de cero
+        selectedPids = new Set([pid]);
+      } else if (selectedPids.has(pid)) {
+        selectedPids.delete(pid);
+        if (selectedPids.size === 0) selectedPids.add('all');
+      } else {
+        selectedPids.add(pid);
+      }
+    }
+    updateButtons();
+    renderHeatmap();
+  }
+
+  function buildUI() {
+    const container = document.getElementById('heatmap-container');
+    container.innerHTML = '';
+
+    const layout = document.createElement('div');
+    layout.style.cssText = 'display:flex;gap:1.5rem;align-items:flex-start;flex-wrap:wrap;';
+
+    const mapsArea = document.createElement('div');
+    layout.appendChild(mapsArea);
+
+    const ctrl = document.createElement('div');
+    ctrl.className = 'heatmap-controls';
+
+    const phaseLabel = document.createElement('div');
+    phaseLabel.style.cssText = 'color:#6b7280;font-size:0.7rem;text-transform:uppercase;letter-spacing:.08em;margin-bottom:0.25rem;';
+    phaseLabel.textContent = 'Fase';
+    ctrl.appendChild(phaseLabel);
+
+    const phaseRow = document.createElement('div');
+    phaseRow.style.cssText = 'display:flex;gap:0.4rem;flex-wrap:wrap;';
+    [['all','Toda'],['early','Early (0-15)'],['mid','Mid (15-30)'],['late','Late (30+)']]
+      .forEach(([key, label]) => {
+        const btn = document.createElement('button');
+        btn.className = 'phase-btn' + (key === 'all' ? ' active' : '');
+        btn.textContent = label;
+        btn.dataset.phase = key;
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.phase-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          activePhase = key;
+          renderHeatmap();
+        });
+        phaseRow.appendChild(btn);
+      });
+    ctrl.appendChild(phaseRow);
+
+    const playerLabel = document.createElement('div');
+    playerLabel.style.cssText = 'color:#6b7280;font-size:0.7rem;text-transform:uppercase;letter-spacing:.08em;margin-top:0.75rem;margin-bottom:0.25rem;';
+    playerLabel.textContent = 'Jugador';
+    ctrl.appendChild(playerLabel);
+
+    const allBtn = document.createElement('button');
+    allBtn.className = 'player-btn active-all';
+    allBtn.dataset.pid = 'all';
+    allBtn.innerHTML = '<span class="dot" style="background:#4ade80"></span>Todos los jugadores';
+    allBtn.addEventListener('click', () => togglePlayer('all'));
+    ctrl.appendChild(allBtn);
+
+    const pidOrder = Object.keys(allData.players).sort((a, b) => {
+      const pa = allData.players[a], pb = allData.players[b];
+      return pa.team - pb.team || parseInt(a) - parseInt(b);
+    });
+    pidOrder.forEach(pid => {
+      const p     = allData.players[pid];
+      const color = TEAM_COLORS[p.team] || '#9ca3af';
+      const btn   = document.createElement('button');
+      btn.className = 'player-btn';
+      btn.dataset.pid = pid;
+      btn.innerHTML = `<span class="dot" style="background:${color}"></span>${p.name}`;
+      btn.addEventListener('click', () => togglePlayer(pid));
+      ctrl.appendChild(btn);
+    });
+
+    layout.appendChild(ctrl);
+    container.appendChild(layout);
+
+    buildMaps(mapsArea);
+    renderHeatmap();
+  }
+
+  fetch(`/partida/${MATCH_ID}/heatmap/`)
+    .then(r => {
+      if (!r.ok) throw new Error('Sin datos');
+      return r.json();
+    })
+    .then(data => {
+      allData = data;
+      buildUI();
+    })
+    .catch(() => {
+      document.getElementById('heatmap-loading').textContent =
+        'No hay datos de posición para esta partida. Reimporta la partida con seed_partidas para generarlos.';
+    });
+})();
+</script>
 {% endblock %}

@@ -6,6 +6,23 @@ from django.db import transaction
 from .models import Equipo, Jugador, Partida, StatsJugador
 
 
+_NAME_ALIASES: dict[str, str] = {
+    'Sr Leem0n#11235':      'CarryDoctor#112',
+    'Lo siento#EUW2':       'MaikyG#EUW2',
+    'Desu Zaa#KIDDO':       'Hikigaayaa#YUKNO',
+    '身勝手の極意#T1F':     'LegendLegacyy#EUW',
+    'Fumatusi#2103':        'Cuco#ESPÑA',
+    'DBX#101':              'Torrente#ESPÑA',
+    'CULIT0 SEDIENT0#QL0':  'De Tora Si Soy#Kbron',
+    'sara x pauton#papis':  'angelowo#frost',
+    'Awika Pump YaaaY#AWKPM': 'SτyłΣR#Pingu',
+}
+
+
+def _apply_name_alias(name: str) -> str:
+    return _NAME_ALIASES.get(name, name)
+
+
 def extract_match_data(json_data: str, equipo_azul_nombre: str, equipo_rojo_nombre: str) -> Dict[str, Any]:
     try:
         data = json.loads(json_data)
@@ -19,6 +36,8 @@ def extract_match_data(json_data: str, equipo_azul_nombre: str, equipo_rojo_nomb
         team_id_map = {100: equipo_azul_nombre, 200: equipo_rojo_nombre}
         team_objectives = {100: {}, 200: {}}
         team_total_kills = {100: 0, 200: 0}
+        team_total_gold = {100: 0, 200: 0}
+        team_total_deaths = {100: 0, 200: 0}
         winning_team_riot_id = None
 
         for team in teams_data:
@@ -46,6 +65,12 @@ def extract_match_data(json_data: str, equipo_azul_nombre: str, equipo_rojo_nomb
         if winning_team_riot_id is None and participants:
             if participants[0].get('win'):
                 winning_team_riot_id = participants[0].get('teamId')
+
+        # Primer pase: totales de equipo para shares
+        for p in participants:
+            tid = p.get('teamId')
+            team_total_gold[tid]   = team_total_gold.get(tid, 0)  + p.get('goldEarned', 0)
+            team_total_deaths[tid] = team_total_deaths.get(tid, 0) + p.get('deaths', 0)
 
         partida_data = {
             "match_id": match_id,
@@ -103,29 +128,23 @@ def extract_match_data(json_data: str, equipo_azul_nombre: str, equipo_rojo_nomb
             game_time = game_length_minutes
             dano_min = total_damage_dealt_to_champions / game_length_minutes if game_length_minutes > 0 else 0
             team_damage_percentage = p.get('challenges', {}).get('teamDamagePercentage', 0)
-            if nombre_tag == 'Sr Leem0n#11235':
-                nombre_tag = 'CarryDoctor#112'
-            elif nombre_tag == 'Lo siento#EUW2':
-                nombre_tag = 'MaikyG#EUW2'
-            if nombre_tag == 'Desu Zaa#KIDDO':
-                nombre_tag = 'Hikigaayaa#YUKNO'
-            if nombre_tag == '身勝手の極意#T1F':
-                nombre_tag = 'LegendLegacyy#EUW'
-            if nombre_tag == 'Fumatusi#2103':
-                nombre_tag = 'Cuco#ESPÑA'
-            if nombre_tag == 'DBX#101':
-                nombre_tag = 'Torrente#ESPÑA'
-            if nombre_tag == 'CULIT0 SEDIENT0#QL0':
-                nombre_tag = 'De Tora Si Soy#Kbron'
-            if nombre_tag == 'sara x pauton#papis':
-                nombre_tag = 'angelowo#frost'
-            if nombre_tag == 'Awika Pump YaaaY#AWKPM':
-                nombre_tag = 'SτyłΣR#Pingu'
+            nombre_tag = _apply_name_alias(nombre_tag)
             
 
             oro_min = round(oro_obtenido / game_length_minutes, 2) if game_length_minutes > 0 else 0
-                            
             porcentaje_dano_equipo = round(team_damage_percentage * 100, 2)
+
+            # Visión desglosada
+            wpm  = round(p.get('wardsPlaced', 0)             / game_length_minutes, 3) if game_length_minutes > 0 else 0
+            cwpm = round(p.get('visionWardsBoughtInGame', 0) / game_length_minutes, 3) if game_length_minutes > 0 else 0
+            wcpm = round(p.get('wardsKilled', 0)             / game_length_minutes, 3) if game_length_minutes > 0 else 0
+
+            # Shares de equipo
+            t_gold   = team_total_gold.get(team_riot_id, 1) or 1
+            t_deaths = team_total_deaths.get(team_riot_id, 1) or 1
+            gold_pct    = round(oro_obtenido / t_gold   * 100, 2)
+            death_share = round(deaths       / t_deaths * 100, 2)
+
             player_stats_list.append({
                 "nombre_jugador": nombre_tag,
                 "nombre_equipo": team_id_map.get(team_riot_id, "Desconocido"),
@@ -150,6 +169,12 @@ def extract_match_data(json_data: str, equipo_azul_nombre: str, equipo_rojo_nomb
                 "penta_kills": p.get('pentaKills', 0),
                 "game_time": game_time,
                 "dano_oro": round(dano_min / oro_min, 2) if oro_min > 0 else 0,
+                "wpm": wpm,
+                "cwpm": cwpm,
+                "wcpm": wcpm,
+                "gold_pct": gold_pct,
+                "death_share": death_share,
+                "victoria": bool(p.get('win', False)),
             })
 
         return {"partida": partida_data, "stats_jugadores": player_stats_list}
@@ -248,6 +273,12 @@ def save_to_django(match_data: Dict[str, Any], jornada: str, numero_partida: str
                 'penta_kills': p_stats.get('penta_kills', 0),
                 'game_time': p_stats.get('game_time', 0.0),
                 'dano_oro': p_stats.get('dano_oro', 0.0),
+                'wpm': p_stats.get('wpm', 0.0),
+                'cwpm': p_stats.get('cwpm', 0.0),
+                'wcpm': p_stats.get('wcpm', 0.0),
+                'gold_pct': p_stats.get('gold_pct', 0.0),
+                'death_share': p_stats.get('death_share', 0.0),
+                'victoria': p_stats.get('victoria', False),
             }
 
             StatsJugador.objects.update_or_create(
@@ -255,3 +286,215 @@ def save_to_django(match_data: Dict[str, Any], jornada: str, numero_partida: str
                 jugador=jugador_obj,
                 defaults=stats_defaults,
             )
+
+
+def extract_positions_from_timeline(timeline_json: str, match_json: str) -> dict | None:
+    """
+    Extrae posiciones de todos los participantes frame a frame del timeline.
+
+    Retorna:
+    {
+      "players": {
+        "1": {"name": "Player#TAG", "team": 100, "positions": [[x,y], ...]},
+        ...
+      },
+      "kills": [{"killer": pid, "victim": pid, "x": int, "y": int, "t": ms}, ...]
+    }
+    Los kills incluyen posición exacta de cada muerte (útil para heatmap de peleas).
+    Coordenadas LoL: x/y de 0 a ~14820. El eje Y debe invertirse para mostrar en pantalla.
+    """
+    try:
+        timeline = json.loads(timeline_json)
+        match    = json.loads(match_json)
+    except Exception:
+        return None
+
+    participants = match.get('info', {}).get('participants', [])
+    pid_to_name: dict[str, str] = {}
+    pid_to_team: dict[str, int] = {}
+    for p in participants:
+        pid = str(p['participantId'])
+        name = p.get('riotIdGameName', 'Unknown') + '#' + p.get('riotIdTagline', '000')
+        pid_to_name[pid] = name
+        pid_to_team[pid] = p.get('teamId', 100)
+
+    frames = timeline.get('info', {}).get('frames', [])
+
+    # Tipos de evento que tienen posición + participantId
+    EVENT_TYPES_WITH_POS = {
+        'WARD_PLACED', 'WARD_KILL', 'ITEM_PURCHASED', 'ITEM_SOLD',
+        'SKILL_LEVEL_UP', 'LEVEL_UP', 'CHAMPION_SPECIAL_KILL',
+        'BUILDING_KILL', 'ELITE_MONSTER_KILL',
+    }
+    INTERP_STEPS = 9  # 9 puntos intermedios entre frames → posición cada ~6 s
+
+    positions: dict[str, list] = {str(i): [] for i in range(1, 11)}
+    prev_frame: dict[str, tuple] = {}  # pid -> (x, y, t)
+    kills: list[dict] = []
+
+    for frame in frames:
+        frame_t = frame.get('timestamp', 0)
+        pf = frame.get('participantFrames', {})
+
+        for pid_str, pdata in pf.items():
+            pos = pdata.get('position', {})
+            if not pos:
+                continue
+            cx, cy = pos['x'], pos['y']
+
+            # Interpolar desde el frame anterior
+            if pid_str in prev_frame:
+                px, py, pt = prev_frame[pid_str]
+                for step in range(1, INTERP_STEPS + 1):
+                    frac = step / (INTERP_STEPS + 1)
+                    positions[pid_str].append([
+                        round(px + (cx - px) * frac),
+                        round(py + (cy - py) * frac),
+                        round(pt + (frame_t - pt) * frac),
+                    ])
+
+            positions[pid_str].append([cx, cy, frame_t])
+            prev_frame[pid_str] = (cx, cy, frame_t)
+
+        for ev in frame.get('events', []):
+            ev_type = ev.get('type', '')
+            ev_pos  = ev.get('position', {})
+            ev_t    = ev.get('timestamp', 0)
+
+            if ev_type == 'CHAMPION_KILL':
+                kills.append({
+                    'killer': ev.get('killerId', 0),
+                    'victim': ev.get('victimId', 0),
+                    'x': ev_pos.get('x', 0),
+                    'y': ev_pos.get('y', 0),
+                    't': ev_t,
+                })
+                # Añadir posición del asesino y la víctima al heatmap
+                for pid_key in ('killerId', 'victimId'):
+                    pid_str = str(ev.get(pid_key, 0))
+                    if pid_str in positions and ev_pos:
+                        positions[pid_str].append([ev_pos['x'], ev_pos['y'], ev_t])
+
+            elif ev_type in EVENT_TYPES_WITH_POS and ev_pos:
+                pid_str = str(ev.get('participantId', 0))
+                if pid_str in positions:
+                    positions[pid_str].append([ev_pos['x'], ev_pos['y'], ev_t])
+
+    # Ordenar por timestamp para que el filtro de fase funcione correctamente
+    for pid_str in positions:
+        positions[pid_str].sort(key=lambda p: p[2])
+
+    return {
+        'players': {
+            pid: {
+                'name':      pid_to_name.get(pid, pid),
+                'team':      pid_to_team.get(pid, 100),
+                'positions': positions[pid],
+            }
+            for pid in positions
+        },
+        'kills': kills,
+    }
+
+
+def update_early_game_stats(timeline_json: str, match_json: str, match_id_str: str) -> None:
+    """
+    Extrae métricas de early game del timeline y las guarda en StatsJugador.
+
+    Campos actualizados por jugador:
+      gd15  : diferencia de oro vs rival de mismo rol al min 15
+      csd15 : diferencia de CS vs rival de mismo rol al min 15
+      xpd15 : diferencia de XP vs rival de mismo rol al min 15
+      cs15  : CS absoluto al min 15
+      ka15  : kills + assists antes del min 15
+      fb    : participó en First Blood (kill o assist)
+      fbv   : fue la primera víctima del juego
+    """
+    try:
+        timeline = json.loads(timeline_json)
+        match    = json.loads(match_json)
+    except Exception:
+        return
+
+    frames     = timeline.get('info', {}).get('frames', [])
+    TARGET_MS  = 15 * 60 * 1000
+
+    participants = match.get('info', {}).get('participants', [])
+
+    # pid → nombre normalizado
+    pid_to_name: dict[int, str] = {}
+    for p in participants:
+        raw = f"{p.get('riotIdGameName','Jugador')}#{p.get('riotIdTagline','000')}"
+        pid_to_name[p['participantId']] = _apply_name_alias(raw)
+
+    # Rival de mismo rol: pid100 ↔ pid200 (misma teamPosition)
+    role_to_pids: dict[str, list[int]] = {}
+    for p in participants:
+        pos = p.get('teamPosition', 'UNKNOWN')
+        role_to_pids.setdefault(pos, []).append(p['participantId'])
+
+    rival_de: dict[int, int] = {}
+    for pids in role_to_pids.values():
+        if len(pids) == 2:
+            rival_de[pids[0]] = pids[1]
+            rival_de[pids[1]] = pids[0]
+
+    # Frame más cercano al min 15
+    frame_15 = min(frames, key=lambda f: abs(f['timestamp'] - TARGET_MS), default=None)
+    if frame_15 is None:
+        return
+
+    pf = frame_15.get('participantFrames', {})
+
+    def cs(f: dict) -> int:
+        return f.get('minionsKilled', 0) + f.get('jungleMinionsKilled', 0)
+
+    # Eventos pre-15 para KA@15 y First Blood
+    ka15: dict[int, int] = {}
+    fb_killer  = 0
+    fb_victim  = 0
+    fb_assists: list[int] = []
+
+    for frame in frames:
+        if frame['timestamp'] > TARGET_MS:
+            break
+        for ev in frame.get('events', []):
+            if ev['type'] != 'CHAMPION_KILL':
+                continue
+            if fb_killer == 0:
+                fb_killer  = ev.get('killerId', 0)
+                fb_victim  = ev.get('victimId', 0)
+                fb_assists = ev.get('assistingParticipantIds', [])
+            k = ev.get('killerId', 0)
+            if k > 0:
+                ka15[k] = ka15.get(k, 0) + 1
+            for a in ev.get('assistingParticipantIds', []):
+                ka15[a] = ka15.get(a, 0) + 1
+
+    # Recuperar Partida y actualizar cada StatsJugador
+    try:
+        partida_obj = Partida.objects.get(match_id=match_id_str)
+    except Partida.DoesNotExist:
+        return
+
+    for pid in range(1, 11):
+        nombre = pid_to_name.get(pid)
+        if not nombre:
+            continue
+        my   = pf.get(str(pid), {})
+        opp  = pf.get(str(rival_de.get(pid, -1)), {})
+
+        early = {
+            'gd15':  my.get('totalGold', 0)  - opp.get('totalGold', 0),
+            'csd15': cs(my)                   - cs(opp),
+            'xpd15': my.get('xp', 0)         - opp.get('xp', 0),
+            'cs15':  cs(my),
+            'ka15':  ka15.get(pid, 0),
+            'fb':    pid == fb_killer or pid in fb_assists,
+            'fbv':   pid == fb_victim,
+        }
+
+        StatsJugador.objects.filter(
+            partida=partida_obj,
+            jugador__nombre=nombre,
+        ).update(**early)

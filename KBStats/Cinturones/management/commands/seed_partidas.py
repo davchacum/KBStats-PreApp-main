@@ -10,7 +10,7 @@ from django.db import transaction
 import requests
 
 from KBStats.Cinturones.models import Equipo, Partida
-from KBStats.Cinturones.utils import extract_match_data, save_to_django
+from KBStats.Cinturones.utils import extract_match_data, save_to_django, extract_positions_from_timeline, update_early_game_stats
 
 
 class Command(BaseCommand):
@@ -108,7 +108,22 @@ class Command(BaseCommand):
                 except Exception as e:
                     errors += 1
                     self.stdout.write(self.style.ERROR(f"Línea {nr}: Error guardando datos para '{match_id}': {e}"))
-                # Pequeña pausa para evitar limites de la API
+
+                # Obtener timeline para el mapa de calor
+                time.sleep(0.5)
+                try:
+                    timeline_url = f"https://europe.api.riotgames.com/lol/match/v5/matches/{match_id}/timeline?api_key={api_key}"
+                    t_resp = requests.get(timeline_url, timeout=30)
+                    t_resp.raise_for_status()
+                    pos_data = extract_positions_from_timeline(t_resp.text, resp.text)
+                    if pos_data:
+                        Partida.objects.filter(match_id=match_id).update(position_data=pos_data)
+                        self.stdout.write(self.style.SUCCESS(f"Línea {nr}: Posiciones guardadas para '{match_id}'."))
+                    update_early_game_stats(t_resp.text, resp.text, match_id)
+                    self.stdout.write(self.style.SUCCESS(f"Línea {nr}: Early game stats guardadas para '{match_id}'."))
+                except Exception as e:
+                    self.stdout.write(self.style.WARNING(f"Línea {nr}: No se pudieron guardar posiciones/early game para '{match_id}': {e}"))
+
                 time.sleep(0.5)
 
         self.stdout.write('')
