@@ -2,6 +2,16 @@ from django.core.management.base import BaseCommand
 from KBStats.Kblix.models import Jugador, Temporada, Equipo
 
 DATOS = {
+    'Split 1': {
+        'Kaiju':       ['Dara', 'Cachimbas', 'Ulterior', 'Hyakko', 'Noob', 'Tiger'],
+        'Kanji':      ['Miki', 'Mr Martinez', 'Carlitos', 'Drago', 'Lythiumm', 'JoseAngel', 'AngelGenius', 'ZenithLeaf', 'Ismael'],
+        'Kuru':      ['Igrid', 'Sons', 'Hidon', 'Menos20', 'TTJow','FranX'],
+        'Hajime':       ['Patito', 'xNok', 'Kata', 'xRoxas', 'Invictutus'],
+        'Yagi':        ['Pedro Angel', 'Xubi', 'Omar', 'Isma GV', 'Zas'],
+        'Tora':        ['Manue', 'Beta', 'Dwailet', 'Narciso', 'Deiviaki', 'Mitsu', 'Freddy'],
+    },
+
+
     'Split 2': {
         'Kaiju':       ['Dara', 'Cachimbas', 'Ulterior', 'Hyakko', 'Otarion', 'Tiger'],
         'Akarui':      ['Marakas', 'Cariatis', 'Mufasa', 'Gondal', 'Deiviaki'],
@@ -11,11 +21,11 @@ DATOS = {
         'Saru':        ['Juan Manuel', 'Sustanon', 'Alejandro', 'D4dtor', 'Rexito'],
         'Atsui':       ['Jarra', 'Dakin', 'Monchi', 'Karmac', 'Horizon'],
         'Ronin':       ['jk', 'Bakis', 'JoseOli', 'xRoxas', 'melon pan'],
-        'Kuru':        ['Igrid', 'Sons', 'Hidon', 'Menos20', 'FrarX', 'Lolex', 'Reiko', 'Comunisma'],
+        'Kuru':        ['Igrid', 'Sons', 'Hidon', 'Menos20', 'FranX', 'Lolex', 'Reiko', 'Comunisma'],
         'Kemono':      ['TinkyWinky', 'Paellero', 'Ctrl4enjoyer', 'Dwailet', 'Isaacs'],
         'Toroi':       ['Edreira', 'Kutxi', 'Drago', 'Pais Vasco', 'Tominsa', 'Seda', 'Mith'],
         'Akuma':       ['Meleka', 'Humble', 'Krazel', 'Poro', 'Jordi'],
-        'Kanji':       ['Angelgenius', 'JoseAngel', 'Ismael', 'Lythiumm', 'ZenithLeaf'],
+        'Kanji':       ['AngelGenius', 'JoseAngel', 'Ismael', 'Lythiumm', 'ZenithLeaf'],
         'Kenkujutsu':  ['Heart', 'overr', 'senpalvila', '88jefeantonio', 'Beta'],
     },
     'NBA Draft': {
@@ -64,13 +74,16 @@ DATOS = {
         'Kuru':       ['Xhadow', 'Sons', 'Cariatis', 'Hidon', 'Patito'],
         'Doragon':    ['Pedro Angel', 'MaikyG', 'Kata', 'Demon', 'TTJow', 'Wesam'],
         'PSF':        ['Phantom', 'Kenaka', 'Lucyfer', 'NdeNero', 'Alatriste'],
-        'Kanji':      ['Deiviaki', 'Padeco', 'Honda', 'Lythiumm', 'Ismael', 'Stryke', 'menos20'],
+        'Kanji':      ['Deiviaki', 'Padeco', 'Honda', 'Lythiumm', 'Ismael', 'Stryke', 'Menos20'],
         'Kanji 2':    ['The White Shark', 'Mr Martinez', 'Carlitos', 'Lythiumm', 'Deiviaki', 'ElSobrao', 'Stryke'],
         'Atsui':      ['Jarra', 'Dakin', 'Ventana', 'Dafenosa', 'Adrimerk'],
         'Tora 2':     ['Ann', 'Mitsu', 'Zoe', 'Narciso', 'Almope'],
         'Amateratsu': ['TinkyWinky', 'ILP', 'SPJaina', 'Nihility', 'Coña mala'],
         'KamiSaru':   ['Lolex', 'Sustanon', 'Reiko', 'Ironfranman', 'Rexito', 'Miki', 'Hazard'],
         'Tora 3':     ['Ann', 'Mitsu', 'Freddy', 'D4dtor', 'Almope'],
+        'KBMADRID':     ['Dakin', 'Jarra', 'Narciso', 'Reiko', 'Manue'],
+        'Rayjin':     ['ReformedGragas', 'Wesam', 'Ale', 'Isma GV', 'Chingu'],
+
     },
 }
 
