@@ -51,7 +51,7 @@ DATOS = {
         'Saru':      ['Styler', 'Sustanon', 'Alejandro', 'D4dtor', 'Rexito', 'Kingkai', 'Nifi'],
         'Arashi':    ['Artorias', 'BuZz', 'AnPuuR', 'Cuco', 'Torrente', 'Deiviaki', 'Mecex'],
         'Tora':      ['Invictus', 'Xenius', 'AngelOwo', 'Narciso', 'Dantesaurio', 'Almope', 'Mitsu'],
-        'Chiru':     ['Ragnarok', 'Thaiger', 'Qyrran', 'Gyokeres', 'Horizon', 'Karmac', 'Lucas', 'OuO', 'AgnesTachyon'],
+        'Chiru':     ['Ragnarok', 'Thaiger', 'Qyrran', 'Pais Vasco', 'Horizon', 'Karmac', 'Lucas', 'OuO', 'AgnesTachyon'],
         'Atsui':     ['Gaatsu', 'Dakin', 'Sporfu', 'Dr Filtros', 'Coña mala', 'Komit', 'Dafenosa','Mitsu'],
         'Kamikaze':  ['Miki', 'Lolex', 'Ironfranman', 'Bastii','ILP'],
         'Kuru':      ['Comunisma', 'Hidon', 'Cariatis', 'LegendLegacy', 'Sons'],
