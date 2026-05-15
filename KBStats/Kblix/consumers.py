@@ -149,9 +149,8 @@ class GameConsumer(AsyncWebsocketConsumer):
 
     @sync_to_async
     def _validar(self, nombre, jugador_anterior_id, cadena_ids):
-        try:
-            jugador = Jugador.objects.get(nombre__iexact=nombre)
-        except Jugador.DoesNotExist:
+        jugador = Jugador.objects.filter(nombre__iexact=nombre).first()
+        if jugador is None:
             return False, None, None
 
         if jugador.id in cadena_ids:

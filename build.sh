@@ -5,5 +5,5 @@ python manage.py migrate
 python manage.py seed_grupos
 python manage.py seed_partidas
 python manage.py seed_partidas_manuales
-python manage.py cargar_datos_kblix
+python manage.py cargar_datos_kblix --reset
 python manage.py collectstatic --noinput

@@ -4,7 +4,7 @@ from KBStats.Kblix.models import Jugador, Temporada, Equipo
 DATOS = {
     'Split 2': {
         'Kaiju':       ['Dara', 'Cachimbas', 'Ulterior', 'Hyakko', 'Otarion', 'Tiger'],
-        'Akarui':      ['Marakas', 'Cariatis', 'Mufasa', 'Gondal', 'DeiviAki'],
+        'Akarui':      ['Marakas', 'Cariatis', 'Mufasa', 'Gondal', 'Deiviaki'],
         'Kaizen':      ['ElCapitan', 'MnkyWlean', 'Reiko', 'Myrddin', 'Moon Magik'],
         'Bushi':       ['Chopito', 'Tusky', 'Vulpes', 'Leemon', 'Koku'],
         'Tora':        ['Patito', 'Mitsu', 'Freddy', 'Narciso', 'Zamore'],
@@ -38,14 +38,14 @@ DATOS = {
     'Sprint 4': {
         'Kaiju':     ['Despo', 'J Legend', 'Freddy', 'Davura', 'Sergi', 'Hyakko'],
         'Bushi':     ['Chopito', 'Tusky', 'Gallego', 'Leemon', 'Koku', 'Reiko', 'Ichigo'],
-        'Saru':      ['Styler', 'Sustanon', 'Alejandro', 'D4dtor', 'Rexito', 'KingKai', 'Nifi'],
+        'Saru':      ['Styler', 'Sustanon', 'Alejandro', 'D4dtor', 'Rexito', 'Kingkai', 'Nifi'],
         'Arashi':    ['Artorias', 'BuZz', 'AnPuuR', 'Cuco', 'Torrente', 'Deiviaki', 'Mecex'],
         'Tora':      ['Invictus', 'Xenius', 'AngelOwo', 'Narciso', 'Dantesaurio', 'Almope', 'Mitsu'],
-        'Chiru':     ['Ragnarok', 'Thaiger', 'Qyrran', 'Gyokeres', 'Horizon', 'Karmac', 'Lucas999', 'OuO', 'AgnesTachyon', 'LEA JUGKING'],
+        'Chiru':     ['Ragnarok', 'Thaiger', 'Qyrran', 'Gyokeres', 'Horizon', 'Karmac', 'Lucas', 'OuO', 'AgnesTachyon', 'LEA JUGKING'],
         'Atsui':     ['Gaatsu', 'Dakin', 'Sporfu', 'Dr Filtros', 'Coña mala', 'Komit', 'Dafenosa'],
         'Kamikaze':  ['Miki', 'Lolex', 'Ironfranman', 'Bastii','ILP'],
         'Kuru':      ['Comunisma', 'Hidon', 'Cariatis', 'LegendLegacy', 'Sons'],
-        'PSF':       ['Phantom', 'ILP', 'Lucyfer', 'NdeNero', 'Alatriste', 'KingKai', 'Zroly', 'Jfet'],
+        'PSF':       ['Phantom', 'Dayx', 'Lucyfer', 'NdeNero', 'Alatriste', 'Kingkai', 'Zroly', 'Jfet'],
         'Sorairo':   ['Farlopez', 'Polucion', 'Invictutus', 'Demon', 'Ranita', 'Marakas', 'Wesele', 'MaikyG', 'Duncan'],
         'Kanji':     ['Dara', 'Kaboshi', 'Makitah', 'Lythiumm', 'AngelGenius', 'xNeark', 'Diamond'],
         'Tabu':      ['Margakhan', 'Escuadra', 'Lady', 'Hazard', 'Arxan', 'Humble', 'Kuruta', 'Patoal', 'Fonkai', 'Huais'],
