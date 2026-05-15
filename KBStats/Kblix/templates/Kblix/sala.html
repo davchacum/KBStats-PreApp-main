@@ -136,7 +136,7 @@
   }
   #fin-box h2 { font-size: 2rem; margin-bottom: 0.5rem; }
   #fin-box p { color: #8b949e; margin-bottom: 1rem; }
-  #fin-box a {
+  #fin-box a, #rematch-btn {
     display: inline-block;
     padding: 0.75rem 1.5rem;
     background: #1f6feb;
@@ -144,7 +144,11 @@
     border-radius: 8px;
     text-decoration: none;
     font-weight: 600;
+    border: none;
+    font-size: 1rem;
+    cursor: pointer;
   }
+  #rematch-btn:hover { opacity: 0.85; }
   #opciones-box {
     margin: 1rem 0 1.5rem;
     display: none;
@@ -213,7 +217,7 @@
       <div class="opciones-label">Podías haber dicho...</div>
       <div class="opciones-lista" id="opciones-lista"></div>
     </div>
-    <a href="{% url 'kblix:index' %}">Jugar de nuevo</a>
+    <button id="rematch-btn" onclick="pedirRevancha()">Jugar de nuevo</button>
   </div>
 </div>
 
@@ -361,7 +365,19 @@
     if (data.type === 'error') {
       document.getElementById('status-box').textContent = data.msg;
     }
+    if (data.type === 'rematch') {
+      window.location.href = `/kblix/sala/${data.room_id}/`;
+    }
   };
+
+  function pedirRevancha() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let newRoom = '';
+    for (let i = 0; i < 6; i++) newRoom += chars[Math.floor(Math.random() * chars.length)];
+    document.getElementById('rematch-btn').disabled = true;
+    document.getElementById('rematch-btn').textContent = 'Esperando al rival...';
+    ws.send(JSON.stringify({ type: 'rematch', room_id: newRoom }));
+  }
 
   function enviar() {
     const input = document.getElementById('nombre-input');

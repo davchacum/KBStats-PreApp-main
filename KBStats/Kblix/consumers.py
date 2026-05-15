@@ -60,6 +60,16 @@ class GameConsumer(AsyncWebsocketConsumer):
 
     async def receive(self, text_data):
         data = json.loads(text_data)
+
+        if data.get('type') == 'rematch':
+            room_id = data.get('room_id', '')
+            if room_id:
+                await self.channel_layer.group_send(
+                    self.room_group,
+                    {'type': 'rematch_game', 'room_id': room_id}
+                )
+            return
+
         state = game_states.get(self.room_id)
 
         if not state or not state['started']:
@@ -186,4 +196,10 @@ class GameConsumer(AsyncWebsocketConsumer):
             'razon': event['razon'],
             'cadena': state.get('nombres', []),
             'opciones': event.get('opciones', []),
+        }))
+
+    async def rematch_game(self, event):
+        await self.send(json.dumps({
+            'type': 'rematch',
+            'room_id': event['room_id'],
         }))
