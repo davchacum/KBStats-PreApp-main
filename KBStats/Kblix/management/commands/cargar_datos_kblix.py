@@ -21,7 +21,7 @@ DATOS = {
     'NBA Draft': {
         'Team Sons':   ['Nipa', 'Sune', 'Almope', 'Mari', 'Patito'],
         'Team Jarra':  ['Jarra', 'Dakin', 'Aolob', 'Delta', 'Zas'],
-        'Team Deivi':  ['Espectro', 'Tusky', 'Marakas', 'Lirex', 'Deivi'],
+        'Team Deivi':  ['Espectro', 'Tusky', 'Marakas', 'Lirex', 'Deiviaki'],
         'Team Dwailet':['Kingkai', 'Mitsu', 'Dwailet', 'Narciso', 'Asessino'],
         'Team Reiko':  ['Miki', 'Echidna', 'Reiko', 'Lolex', 'Manue'],
         'Team Dato':   ['Kirby', 'Sustanon', 'Freddy', 'D4dtor', 'Sergi'],
@@ -60,7 +60,7 @@ DATOS = {
         'Tora':       ['Ann', 'Mitsu', 'Freddy', 'Narciso', 'Almope'],
         'Chiru':      ['Minito', 'Dakin', 'Sporfu', 'Karmac', 'Horizon', 'Xharon', 'Thaiger', 'Monchi'],
         'Saru 2':     ['Tusky', 'Sustanon', 'Alejandro', 'D4dtor', 'Rexito', 'Gaatsu', 'McJuanjoDLC'],
-        'Kamikaze':   ['Miki', 'Tamayin', 'Reiko', 'Lolex', 'Ironfran', 'Echidna', 'Xenius', 'ElCapitan'],
+        'Kamikaze':   ['Miki', 'Tamayin', 'Reiko', 'Lolex', 'Ironfranman', 'Echidna', 'Xenius', 'ElCapitan'],
         'Kuru':       ['Xhadow', 'Sons', 'Cariatis', 'Hidon', 'Patito'],
         'Doragon':    ['Pedro Angel', 'MaikyG', 'Kata', 'Demon', 'TTJow', 'Wesam'],
         'PSF':        ['Phantom', 'Kenaka', 'Lucyfer', 'NdeNero', 'Alatriste'],
