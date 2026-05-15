@@ -29,7 +29,7 @@ DATOS = {
         'Kenkujutsu':  ['Heart', 'overr', 'senpalvila', '88jefeantonio', 'Beta'],
     },
     'NBA Draft': {
-        'Team Sons':   ['Nipa', 'Sune', 'Almope', 'Mari', 'Patito'],
+        'Team Sons':   ['Nipa', 'Sons', 'Almope', 'Mani', 'Patito'],
         'Team Jarra':  ['Jarra', 'Dakin', 'Aolob', 'Delta', 'Zas'],
         'Team Deivi':  ['Espectro', 'Tusky', 'Marakas', 'Lirex', 'Deiviaki'],
         'Team Dwailet':['Kingkai', 'Mitsu', 'Dwailet', 'Narciso', 'Asessino'],
