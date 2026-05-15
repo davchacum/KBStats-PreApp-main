@@ -46,7 +46,7 @@ DATOS = {
         'Kamikaze':  ['Miki', 'Lolex', 'Ironfranman', 'Bastii','ILP'],
         'Kuru':      ['Comunisma', 'Hidon', 'Cariatis', 'LegendLegacy', 'Sons'],
         'PSF':       ['Phantom', 'ILP', 'Lucyfer', 'NdeNero', 'Alatriste', 'KingKai', 'Zroly', 'Jfet'],
-        'Sorairo':   ['Farlopez', 'Polucion', 'Invictutus', 'Demon', 'Ranita', 'KingKai', 'Marakas', 'Wesele', 'MaikyG', 'Duncan'],
+        'Sorairo':   ['Farlopez', 'Polucion', 'Invictutus', 'Demon', 'Ranita', 'Marakas', 'Wesele', 'MaikyG', 'Duncan'],
         'Kanji':     ['Dara', 'Kaboshi', 'Makitah', 'Lythiumm', 'AngelGenius', 'xNeark', 'Diamond'],
         'Tabu':      ['Margakhan', 'Escuadra', 'Lady', 'Hazard', 'Arxan', 'Humble', 'Kuruta', 'Patoal', 'Fonkai', 'Huais'],
         'Kitsune':   ['HugoSexy', 'J4b4', 'Acelga', 'Bdd', 'Castañitas', 'Almope', 'Borjaocerin', 'Wiki', 'Potayu'],
