@@ -164,7 +164,9 @@ class GameConsumer(AsyncWebsocketConsumer):
 
     @sync_to_async
     def _jugador_aleatorio(self):
-        return Jugador.objects.order_by('?').first()
+        return Jugador.objects.filter(
+            equipos__temporada__nombre__in=['Sprint 4', 'Split 3']
+        ).distinct().order_by('?').first()
 
     async def game_start(self, event):
         state = game_states.get(self.room_id, {})
