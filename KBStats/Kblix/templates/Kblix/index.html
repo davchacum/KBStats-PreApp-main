@@ -1,0 +1,108 @@
+{% extends "Cinturones/base.html" %}
+
+{% block extra_css %}
+<style>
+  .kblix-hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 1rem 2rem;
+  }
+  .kblix-title {
+    font-size: 3.5rem;
+    font-weight: 800;
+    color: #58a6ff;
+    letter-spacing: 6px;
+    margin-bottom: 0.4rem;
+  }
+  .kblix-sub {
+    color: #8b949e;
+    font-size: 1.05rem;
+    margin-bottom: 3rem;
+  }
+  .kblix-card {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 14px;
+    padding: 2.5rem;
+    width: 100%;
+    max-width: 380px;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .kblix-card input {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    color: #e6edf3;
+    font-size: 1rem;
+    width: 100%;
+  }
+  .kblix-card input:focus {
+    outline: none;
+    border-color: #58a6ff;
+  }
+  .kblix-card .btn-crear {
+    background: #238636;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 0.75rem;
+    font-size: 1rem;
+    font-weight: 600;
+    width: 100%;
+    cursor: pointer;
+    text-decoration: none;
+    display: block;
+    text-align: center;
+    transition: opacity 0.2s;
+  }
+  .kblix-card .btn-crear:hover { opacity: 0.85; color: #fff; }
+  .kblix-card .btn-unirse {
+    background: #1f6feb;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 0.75rem;
+    font-size: 1rem;
+    font-weight: 600;
+    width: 100%;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  .kblix-card .btn-unirse:hover { opacity: 0.85; }
+  .kblix-divider { text-align: center; color: #8b949e; font-size: 0.85rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="kblix-hero">
+  <div class="kblix-title">KBLIX</div>
+  <p class="kblix-sub">¿Quién jugó con quién?</p>
+
+  <div class="kblix-card">
+    <a href="{% url 'kblix:crear_sala' %}" class="btn-crear">Crear nueva sala</a>
+
+    <div class="kblix-divider">— o únete con un código —</div>
+
+    <form id="join-form" style="display:flex; flex-direction:column; gap:0.75rem;">
+      <input type="text" id="room-input" placeholder="Código de sala (ej: AB12CD)"
+             maxlength="6" style="text-transform:uppercase;" autocomplete="off">
+      <button type="submit" class="btn-unirse">Unirse</button>
+    </form>
+  </div>
+</div>
+
+<script>
+  document.getElementById('join-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const code = document.getElementById('room-input').value.trim().toUpperCase();
+    if (code.length === 6) {
+      window.location.href = `/kblix/sala/${code}/`;
+    }
+  });
+</script>
+{% endblock %}

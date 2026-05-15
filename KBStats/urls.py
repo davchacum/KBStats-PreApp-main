@@ -15,7 +15,7 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 # from django.contrib import admin  # DESACTIVADO POR SEGURIDAD
-from django.urls import path
+from django.urls import path, include
 from .Cinturones.views import index, buscar_partidos_form, buscar_partidos_por_jornada, detalle_partida, promedios_jugadores, clasificacion_grupos, exportar_csv_jugadores, tier_list, heatmap_data  # , add_partida  # DESACTIVADO
 
 urlpatterns = [
@@ -32,4 +32,5 @@ urlpatterns = [
     path('tierlist/', tier_list, name='tier_list'),
     path('promedios_jugadores/<str:jugador_nombre>/', promedios_jugadores, name='promedios_jugadores_detalle'),
     path('promedios_jugadores/<str:jugador_nombre>/<str:campeon>/', promedios_jugadores, name='promedios_jugadores_detalle_campeon'),
+    path('kblix/', include('KBStats.Kblix.urls', namespace='kblix')),
 ]

@@ -14,10 +14,18 @@ from KBStats.Cinturones.utils import extract_match_data, save_to_django, extract
 
 
 class Command(BaseCommand):
-    help = 'Seed partidas desde el archivo seed_partidos.csv (crea Equipos si no existen)'
+    help = 'Seed partidas desde un archivo CSV (crea Equipos si no existen)'
+
+    def add_arguments(self, parser):
+        parser.add_argument(
+            '--file',
+            type=str,
+            default='seed_partidosCinturones3.csv',
+            help='Nombre del archivo CSV en BASE_DIR (por defecto: seed_partidos.csv)',
+        )
 
     def handle(self, *args, **options):
-        file_path = Path(settings.BASE_DIR) / 'seed_partidos.csv'
+        file_path = Path(settings.BASE_DIR) / options['file']
 
         if not file_path.exists():
             self.stdout.write(self.style.ERROR(f"No se encontró {file_path}. Asegúrate de que el archivo exista."))

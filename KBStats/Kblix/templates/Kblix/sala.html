@@ -1,0 +1,386 @@
+{% extends "Cinturones/base.html" %}
+
+{% block extra_css %}
+<style>
+  .sala-wrap {
+    max-width: 700px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    padding-bottom: 3rem;
+  }
+  .sala-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .sala-title { color: #58a6ff; font-size: 1.6rem; font-weight: 800; letter-spacing: 3px; }
+  .room-badge {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 0.4rem 0.9rem;
+    font-size: 0.85rem;
+    color: #8b949e;
+  }
+
+  #status-box {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 12px;
+    padding: 2rem;
+    text-align: center;
+    font-size: 1.1rem;
+    color: #8b949e;
+  }
+  #share-box { display: none; text-align: center; color: #8b949e; font-size: 0.85rem; }
+  #share-link {
+    background: #21262d;
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    font-family: monospace;
+    color: #58a6ff;
+    cursor: pointer;
+    user-select: all;
+  }
+
+  #jugador-actual-box {
+    display: none;
+    background: #161b22;
+    border: 1px solid #58a6ff;
+    border-radius: 12px;
+    padding: 1.5rem;
+    text-align: center;
+  }
+  #jugador-actual-box .label { color: #8b949e; font-size: 0.85rem; margin-bottom: 0.5rem; }
+  #jugador-actual { font-size: 2rem; font-weight: 700; color: #58a6ff; }
+
+  #timer-box { display: none; text-align: center; }
+  #timer-bar-container {
+    background: #21262d;
+    border-radius: 99px;
+    height: 10px;
+    overflow: hidden;
+    margin-bottom: 0.4rem;
+  }
+  #timer-bar { height: 100%; border-radius: 99px; background: #238636; transition: width 1s linear, background 1s; }
+  #timer-text { color: #8b949e; font-size: 0.85rem; }
+
+  #cadena-box {
+    display: none;
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 12px;
+    padding: 1.25rem;
+  }
+  #cadena-box h3 { color: #8b949e; font-size: 0.8rem; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 1px; }
+  #cadena { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .cadena-item {
+    background: #21262d;
+    border-radius: 6px;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .cadena-item::after { content: '→'; color: #30363d; }
+  .cadena-item:last-child::after { content: ''; }
+  .cadena-item.activo { background: #1f3a5f; color: #58a6ff; }
+
+  #input-box { display: none; flex-direction: column; gap: 0.75rem; }
+  #turno-label {
+    text-align: center;
+    font-size: 0.9rem;
+    font-weight: 600;
+    padding: 0.5rem;
+    border-radius: 8px;
+  }
+  .turno-yo { background: #1a3a1a; color: #3fb950; }
+  .turno-rival { background: #1a1f2e; color: #8b949e; }
+  .input-row { display: flex; gap: 0.75rem; }
+  #nombre-input {
+    flex: 1;
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    color: #e6edf3;
+    font-size: 1rem;
+  }
+  #nombre-input:focus { outline: none; border-color: #58a6ff; }
+  #nombre-input:disabled { opacity: 0.4; cursor: not-allowed; }
+  #enviar-btn {
+    padding: 0.75rem 1.5rem;
+    background: #238636;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  #enviar-btn:hover:not(:disabled) { opacity: 0.85; }
+  #enviar-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  #error-msg { color: #f85149; font-size: 0.9rem; text-align: center; min-height: 1.2rem; }
+
+  #fin-box {
+    display: none;
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 12px;
+    padding: 2.5rem;
+    text-align: center;
+  }
+  #fin-box h2 { font-size: 2rem; margin-bottom: 0.5rem; }
+  #fin-box p { color: #8b949e; margin-bottom: 1rem; }
+  #fin-box a {
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
+    background: #1f6feb;
+    color: #fff;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+  }
+  #opciones-box {
+    margin: 1rem 0 1.5rem;
+    display: none;
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: center;
+  }
+  .opciones-label { font-size: 0.8rem; color: #8b949e; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.25rem; }
+  .opciones-lista { display: flex; gap: 0.6rem; flex-wrap: wrap; justify-content: center; }
+  .opcion {
+    background: #1f3a1f;
+    border: 1px solid #238636;
+    color: #3fb950;
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="sala-wrap">
+  <div class="sala-header">
+    <span class="sala-title">KBLIX</span>
+    <span class="room-badge">Sala: {{ room_id }}</span>
+  </div>
+
+  <div id="status-box">Conectando...</div>
+
+  <div id="share-box">
+    Comparte el código con tu rival:
+    <span id="share-link" title="Haz clic para copiar">{{ room_id }}</span>
+  </div>
+
+  <div id="jugador-actual-box">
+    <div class="label">Hay que conectar con</div>
+    <div id="jugador-actual">—</div>
+  </div>
+
+  <div id="timer-box">
+    <div id="timer-bar-container">
+      <div id="timer-bar" style="width:100%"></div>
+    </div>
+    <div id="timer-text">15s</div>
+  </div>
+
+  <div id="cadena-box">
+    <h3>Cadena</h3>
+    <div id="cadena"></div>
+  </div>
+
+  <div id="input-box">
+    <div id="turno-label" class="turno-rival">Turno del rival...</div>
+    <div class="input-row">
+      <input type="text" id="nombre-input" placeholder="Nombre del jugador..." autocomplete="off" disabled>
+      <button id="enviar-btn" disabled>Enviar</button>
+    </div>
+    <div id="error-msg"></div>
+  </div>
+
+  <div id="fin-box">
+    <h2 id="fin-titulo"></h2>
+    <p id="fin-razon"></p>
+    <div id="opciones-box">
+      <div class="opciones-label">Podías haber dicho...</div>
+      <div class="opciones-lista" id="opciones-lista"></div>
+    </div>
+    <a href="{% url 'kblix:index' %}">Jugar de nuevo</a>
+  </div>
+</div>
+
+<script>
+  const ROOM_ID = '{{ room_id }}';
+  const wsProto = window.location.protocol === 'https:' ? 'wss' : 'ws';
+  const ws = new WebSocket(`${wsProto}://${window.location.host}/ws/kblix/${ROOM_ID}/`);
+
+  let timerInterval = null;
+  let timerTotal = 15;
+
+  function show(...ids) { ids.forEach(id => { document.getElementById(id).style.display = 'flex'; }); }
+  function hide(...ids) { ids.forEach(id => { document.getElementById(id).style.display = 'none'; }); }
+  function showBlock(...ids) { ids.forEach(id => { document.getElementById(id).style.display = 'block'; }); }
+
+  function setJugador(nombre) {
+    document.getElementById('jugador-actual').textContent = nombre;
+    showBlock('jugador-actual-box');
+  }
+
+  function renderCadena(nombres) {
+    const el = document.getElementById('cadena');
+    el.innerHTML = nombres.map((n, i) => {
+      const cls = i === nombres.length - 1 ? 'cadena-item activo' : 'cadena-item';
+      return `<span class="${cls}">${n}</span>`;
+    }).join('');
+    showBlock('cadena-box');
+  }
+
+  function startTimer(segundos) {
+    clearInterval(timerInterval);
+    timerTotal = segundos;
+    const bar = document.getElementById('timer-bar');
+    const text = document.getElementById('timer-text');
+    let remaining = segundos;
+
+    bar.style.transition = 'none';
+    bar.style.width = '100%';
+    bar.style.background = '#238636';
+    text.textContent = `${remaining}s`;
+    showBlock('timer-box');
+
+    timerInterval = setInterval(() => {
+      remaining--;
+      const pct = (remaining / timerTotal) * 100;
+      bar.style.transition = 'width 1s linear, background 0.5s';
+      bar.style.width = pct + '%';
+      if (pct < 30) bar.style.background = '#da3633';
+      else if (pct < 60) bar.style.background = '#d29922';
+      text.textContent = `${remaining}s`;
+      if (remaining <= 0) clearInterval(timerInterval);
+    }, 1000);
+  }
+
+  function setTurno(miTurno) {
+    const label = document.getElementById('turno-label');
+    const input = document.getElementById('nombre-input');
+    const btn = document.getElementById('enviar-btn');
+    if (miTurno) {
+      label.textContent = '¡Tu turno!';
+      label.className = 'turno-yo';
+      input.disabled = false;
+      btn.disabled = false;
+      input.focus();
+    } else {
+      label.textContent = 'Turno del rival...';
+      label.className = 'turno-rival';
+      input.disabled = true;
+      btn.disabled = true;
+    }
+  }
+
+  function mostrarFin(gane, razon, cadena, opciones) {
+    clearInterval(timerInterval);
+    hide('input-box', 'timer-box');
+    if (cadena && cadena.length) renderCadena(cadena);
+
+    const titulo = document.getElementById('fin-titulo');
+    const razEl = document.getElementById('fin-razon');
+
+    if (gane === null) {
+      titulo.textContent = 'Partida cancelada';
+      titulo.style.color = '#8b949e';
+    } else if (gane) {
+      titulo.textContent = '¡Has ganado!';
+      titulo.style.color = '#3fb950';
+    } else {
+      titulo.textContent = 'Has perdido';
+      titulo.style.color = '#f85149';
+    }
+
+    razEl.textContent = razon === 'tiempo' ? 'El tiempo se agotó' : razon;
+
+    if (gane === false && razon === 'tiempo' && opciones && opciones.length) {
+      const listaEl = document.getElementById('opciones-lista');
+      listaEl.innerHTML = opciones.map(n => `<span class="opcion">${n}</span>`).join('');
+      document.getElementById('opciones-box').style.display = 'flex';
+    }
+
+    showBlock('fin-box');
+  }
+
+  ws.onopen = () => {
+    document.getElementById('status-box').textContent = 'Conectado. Esperando rival...';
+  };
+  ws.onclose = () => {
+    clearInterval(timerInterval);
+    document.getElementById('status-box').textContent = 'Conexión cerrada.';
+    showBlock('status-box');
+  };
+  ws.onerror = () => {
+    document.getElementById('status-box').textContent = 'Error de conexión.';
+  };
+
+  ws.onmessage = function(e) {
+    const data = JSON.parse(e.data);
+
+    if (data.type === 'esperando') {
+      document.getElementById('status-box').textContent = data.msg;
+      document.getElementById('share-box').style.display = 'block';
+    }
+    if (data.type === 'start') {
+      hide('status-box');
+      document.getElementById('share-box').style.display = 'none';
+      setJugador(data.jugador_inicial);
+      renderCadena([data.jugador_inicial]);
+      show('input-box');
+      setTurno(data.mi_turno);
+      startTimer(data.tiempo);
+    }
+    if (data.type === 'valido') {
+      document.getElementById('error-msg').textContent = '';
+      document.getElementById('nombre-input').value = '';
+      setJugador(data.nombre);
+      renderCadena(data.cadena);
+      setTurno(data.mi_turno);
+      startTimer(data.tiempo);
+    }
+    if (data.type === 'invalido') {
+      document.getElementById('error-msg').textContent = data.msg;
+    }
+    if (data.type === 'fin') {
+      mostrarFin(data.gane, data.razon, data.cadena, data.opciones);
+    }
+    if (data.type === 'error') {
+      document.getElementById('status-box').textContent = data.msg;
+    }
+  };
+
+  function enviar() {
+    const input = document.getElementById('nombre-input');
+    const nombre = input.value.trim();
+    if (!nombre) return;
+    document.getElementById('error-msg').textContent = '';
+    ws.send(JSON.stringify({ nombre }));
+  }
+
+  document.getElementById('enviar-btn').addEventListener('click', enviar);
+  document.getElementById('nombre-input').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') enviar();
+  });
+
+  document.getElementById('share-link').addEventListener('click', function() {
+    navigator.clipboard.writeText(this.textContent).then(() => {
+      this.textContent = '¡Copiado!';
+      setTimeout(() => this.textContent = ROOM_ID, 1500);
+    });
+  });
+</script>
+{% endblock %}

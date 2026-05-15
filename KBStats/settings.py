@@ -52,13 +52,16 @@ ALLOWED_HOSTS = ['kbstats-preapp-main.onrender.com', 'www.kbstats.es', 'kbstats.
 # Application definition
 # APPS DE ADMIN/AUTH DESACTIVADAS POR SEGURIDAD - Aplicación totalmente estática
 INSTALLED_APPS = [
+    'daphne',  # ASGI server — debe ir primero para reemplazar runserver
     # 'django.contrib.admin',  # DESACTIVADO
     # 'django.contrib.auth',  # DESACTIVADO
     'django.contrib.contenttypes',
     # 'django.contrib.sessions',  # DESACTIVADO
     # 'django.contrib.messages',  # DESACTIVADO
     'django.contrib.staticfiles',
+    'channels',
     'KBStats.Cinturones',
+    'KBStats.Kblix',
 ]
 
 MIDDLEWARE = [
@@ -90,6 +93,13 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'KBStats.wsgi.application'
+ASGI_APPLICATION = 'KBStats.asgi.application'
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    },
+}
 
 
 # Database
