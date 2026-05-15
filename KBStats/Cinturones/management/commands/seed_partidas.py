@@ -20,7 +20,7 @@ class Command(BaseCommand):
         parser.add_argument(
             '--file',
             type=str,
-            default='seed_partidosCinturones3.csv',
+            default='seed_partidos.csv',
             help='Nombre del archivo CSV en BASE_DIR (por defecto: seed_partidos.csv)',
         )
 
