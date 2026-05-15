@@ -31,7 +31,7 @@ DATOS = {
         'Kb Amegos': ['Ragnarok', 'Lucas999', 'Marakas', 'LegendLegacy', 'Ironfranman', 'Sergi'],
         'Saru':      ['Styler', 'Sustanon', 'Alejandro', 'D4dtor', 'Rexito', 'Xenius'],
         'Arashi':    ['Artorias', 'BuZz', 'AnPuuR', 'Lolex', 'Torrente'],
-        'Atsui':     ['Gaatsu', 'Dakin', 'Sporfu', 'Dr Filtros', 'Coña mala', 'Lisbd'],
+        'Atsui':     ['Gaatsu', 'Dakin', 'Sporfu', 'Dr Filtros', 'Coña mala', 'Lisbd','Invictutus'],
         'PSF':       ['Phantom', 'Mister G', 'Lucyfer', 'NdeNero', 'Alatriste'],
         'Kb CT':     ['Ann', 'Mitsu', 'Liss', 'Kenaka', 'Almope'],
     },
