@@ -28,7 +28,7 @@ DATOS = {
     },
     'Open': {
         'Kaiju':     ['Myno', 'J Legend', 'Freddy', 'Davura', 'Sergi', 'Hyakko', 'Clavijo'],
-        'Kb Amegos': ['Ragnarok', 'Lucas999', 'Marakas', 'LegendLegacy', 'Ironfranman', 'Sergi'],
+        'Kb Amegos': ['Ragnarok', 'Lucas', 'Marakas', 'LegendLegacy', 'Ironfranman', 'Sergi'],
         'Saru':      ['Styler', 'Sustanon', 'Alejandro', 'D4dtor', 'Rexito', 'Xenius'],
         'Arashi':    ['Artorias', 'BuZz', 'AnPuuR', 'Lolex', 'Torrente'],
         'Atsui':     ['Gaatsu', 'Dakin', 'Sporfu', 'Dr Filtros', 'Coña mala', 'Lisbd','Invictutus'],
@@ -42,7 +42,7 @@ DATOS = {
         'Arashi':    ['Artorias', 'BuZz', 'AnPuuR', 'Cuco', 'Torrente', 'Deiviaki', 'Mecex'],
         'Tora':      ['Invictus', 'Xenius', 'AngelOwo', 'Narciso', 'Dantesaurio', 'Almope', 'Mitsu'],
         'Chiru':     ['Ragnarok', 'Thaiger', 'Qyrran', 'Gyokeres', 'Horizon', 'Karmac', 'Lucas', 'OuO', 'AgnesTachyon', 'LEA JUGKING'],
-        'Atsui':     ['Gaatsu', 'Dakin', 'Sporfu', 'Dr Filtros', 'Coña mala', 'Komit', 'Dafenosa'],
+        'Atsui':     ['Gaatsu', 'Dakin', 'Sporfu', 'Dr Filtros', 'Coña mala', 'Komit', 'Dafenosa','Mitsu'],
         'Kamikaze':  ['Miki', 'Lolex', 'Ironfranman', 'Bastii','ILP'],
         'Kuru':      ['Comunisma', 'Hidon', 'Cariatis', 'LegendLegacy', 'Sons'],
         'PSF':       ['Phantom', 'Dayx', 'Lucyfer', 'NdeNero', 'Alatriste', 'Kingkai', 'Zroly', 'Jfet'],
