@@ -106,3 +106,78 @@ class StatsJugador(models.Model):
 
 	def __str__(self):
 		return f"{self.jugador} - {self.partida.match_id}"
+
+
+# ── Scouting ──────────────────────────────────────────────────────────────────
+
+class ScoutedPlayer(models.Model):
+	identifier = models.CharField(max_length=100, unique=True)
+	notes      = models.TextField(blank=True)
+	created_at = models.DateTimeField(auto_now_add=True)
+
+	class Meta:
+		ordering            = ['identifier']
+		verbose_name        = 'Jugador Scouted'
+		verbose_name_plural = 'Jugadores Scouted'
+
+	def __str__(self):
+		return self.identifier
+
+
+class PlayerAccount(models.Model):
+	player       = models.ForeignKey(ScoutedPlayer, on_delete=models.CASCADE, related_name='accounts')
+	riot_id      = models.CharField(max_length=100)   # "GameName#TAG"
+	puuid        = models.CharField(max_length=200, blank=True)
+	is_main      = models.BooleanField(default=False)
+	last_fetched = models.DateTimeField(null=True, blank=True)
+
+	class Meta:
+		unique_together     = ('player', 'riot_id')
+		verbose_name        = 'Cuenta'
+		verbose_name_plural = 'Cuentas'
+
+	def __str__(self):
+		suffix = ' (main)' if self.is_main else ''
+		return f'{self.riot_id}{suffix}'
+
+
+class ScoutedMatch(models.Model):
+	account       = models.ForeignKey(PlayerAccount, on_delete=models.CASCADE, related_name='scouted_matches')
+	match_id      = models.CharField(max_length=50)
+	game_start    = models.BigIntegerField(default=0)   # epoch ms
+	game_duration = models.IntegerField(default=0)      # seconds
+	queue_id      = models.IntegerField(default=0)
+	champion_name = models.CharField(max_length=50)
+	role          = models.CharField(max_length=20, blank=True)  # teamPosition
+	team_id       = models.IntegerField(default=100)
+	win           = models.BooleanField(default=False)
+	kills         = models.IntegerField(default=0)
+	deaths        = models.IntegerField(default=0)
+	assists       = models.IntegerField(default=0)
+	cs            = models.IntegerField(default=0)
+	vision_score  = models.IntegerField(default=0)
+	damage_dealt  = models.IntegerField(default=0)
+	gold_earned   = models.IntegerField(default=0)
+	# Jungle-only: positions [[x,y,t],...] + analysis stats
+	position_data = models.JSONField(null=True, blank=True)
+	jungle_stats  = models.JSONField(null=True, blank=True)
+	# Lightweight participant list for cross-reference
+	participants  = models.JSONField(null=True, blank=True)
+
+	class Meta:
+		unique_together     = ('account', 'match_id')
+		ordering            = ['-game_start']
+		verbose_name        = 'Partida Scouted'
+		verbose_name_plural = 'Partidas Scouted'
+
+	def __str__(self):
+		return f'{self.account.riot_id} · {self.champion_name} ({self.match_id})'
+
+	@property
+	def kda(self):
+		return round((self.kills + self.assists) / max(1, self.deaths), 2)
+
+	@property
+	def game_start_dt(self):
+		from datetime import datetime
+		return datetime.fromtimestamp(self.game_start / 1000) if self.game_start else None

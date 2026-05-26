@@ -428,9 +428,10 @@ def extract_positions_from_timeline(timeline_json: str, match_json: str) -> dict
     }
     INTERP_STEPS = 9  # 9 puntos intermedios entre frames → posición cada ~6 s
 
-    positions: dict[str, list] = {str(i): [] for i in range(1, 11)}
+    positions:  dict[str, list] = {str(i): [] for i in range(1, 11)}
     prev_frame: dict[str, tuple] = {}  # pid -> (x, y, t)
-    kills: list[dict] = []
+    kills:      list[dict] = []
+    objectives: list[dict] = []
 
     for frame in frames:
         frame_t = frame.get('timestamp', 0)
@@ -469,11 +470,34 @@ def extract_positions_from_timeline(timeline_json: str, match_json: str) -> dict
                     'y': ev_pos.get('y', 0),
                     't': ev_t,
                 })
-                # Añadir posición del asesino y la víctima al heatmap
                 for pid_key in ('killerId', 'victimId'):
                     pid_str = str(ev.get(pid_key, 0))
                     if pid_str in positions and ev_pos:
                         positions[pid_str].append([ev_pos['x'], ev_pos['y'], ev_t])
+
+            elif ev_type == 'ELITE_MONSTER_KILL':
+                objectives.append({
+                    'type':    ev.get('monsterType', ''),
+                    'subtype': ev.get('monsterSubType', ''),
+                    'team':    ev.get('killerTeamId', 0),
+                    'x': ev_pos.get('x', 0) if ev_pos else 0,
+                    'y': ev_pos.get('y', 0) if ev_pos else 0,
+                    't': ev_t,
+                })
+                pid_str = str(ev.get('participantId', 0))
+                if ev_pos and pid_str in positions:
+                    positions[pid_str].append([ev_pos['x'], ev_pos['y'], ev_t])
+
+            elif ev_type == 'BUILDING_KILL' and ev_pos:
+                objectives.append({
+                    'type':      'TOWER',
+                    'subtype':   ev.get('towerType', ''),
+                    'lane':      ev.get('laneType', ''),
+                    'team_lost': ev.get('teamId', 0),
+                    'x': ev_pos['x'],
+                    'y': ev_pos['y'],
+                    't': ev_t,
+                })
 
             elif ev_type in EVENT_TYPES_WITH_POS and ev_pos:
                 pid_str = str(ev.get('participantId', 0))
@@ -493,7 +517,8 @@ def extract_positions_from_timeline(timeline_json: str, match_json: str) -> dict
             }
             for pid in positions
         },
-        'kills': kills,
+        'kills':      kills,
+        'objectives': objectives,
     }
 
 

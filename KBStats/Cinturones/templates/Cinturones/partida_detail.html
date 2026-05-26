@@ -109,6 +109,64 @@
   }
   .prox-blue { background: #60a5fa; }
   .prox-red  { background: #f87171; }
+  .time-slider-section {
+    margin-top: 1rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid #1f2937;
+  }
+  .time-slider-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    font-size: 0.72rem;
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+  }
+  .time-current {
+    color: #22d3ee;
+    font-weight: 600;
+    font-size: 0.85rem;
+    font-variant-numeric: tabular-nums;
+  }
+  #time-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 5px;
+    border-radius: 3px;
+    background: #1f2937;
+    outline: none;
+    cursor: pointer;
+  }
+  #time-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #22d3ee;
+    cursor: pointer;
+    border: 2px solid #0b1220;
+    box-shadow: 0 0 0 2px #22d3ee44;
+  }
+  #time-slider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #22d3ee;
+    cursor: pointer;
+    border: 2px solid #0b1220;
+  }
+  .time-slider-ticks {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.62rem;
+    color: #4b5563;
+    margin-top: 0.4rem;
+  }
+  .phase-btn.slider-active-mode { opacity: 0.45; }
 </style>
 {% endblock %}
 
@@ -393,6 +451,10 @@ const TEAM_COLORS = { 100: '#60a5fa', 200: '#f87171' };
   let heatRed      = null;
   let selectedPids = new Set(['all']); // 'all' = todos seleccionados
   let activePhase  = 'all';
+  let sliderMode   = false;
+  let sliderTime   = 0;
+  const WINDOW_MS  = 30000; // ventana ±30s alrededor del tiempo seleccionado
+  let maxTime      = 0;
 
   function toCanvas(x, y) {
     return {
@@ -401,10 +463,27 @@ const TEAM_COLORS = { 100: '#60a5fa', 200: '#f87171' };
     };
   }
 
+  function fmtTime(sec) {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  }
+
+  function updateTimeDisplay(sec) {
+    const el = document.getElementById('time-display');
+    if (el) el.textContent = fmtTime(sec);
+  }
+
   // Devuelve puntos para los jugadores seleccionados del equipo indicado
-  function buildPoints(teamId, phase) {
+  function buildPoints(teamId) {
     if (!allData) return [];
-    const [tMin, tMax] = PHASES[phase] || PHASES.all;
+    let tMin, tMax;
+    if (sliderMode) {
+      tMin = Math.max(0, sliderTime - WINDOW_MS);
+      tMax = sliderTime + WINDOW_MS;
+    } else {
+      [tMin, tMax] = PHASES[activePhase] || PHASES.all;
+    }
     const showAll = selectedPids.has('all');
     const pts = [];
 
@@ -453,12 +532,131 @@ const TEAM_COLORS = { 100: '#60a5fa', 200: '#f87171' };
     area.appendChild(outer);
     heatBlue = h337.create({ container: wrap, ...HEAT_CFG_BLUE });
     heatRed  = h337.create({ container: wrap, ...HEAT_CFG_RED });
+    const objCanvas = document.createElement('canvas');
+    objCanvas.id = 'obj-overlay';
+    objCanvas.width = MAP_SIZE;
+    objCanvas.height = MAP_SIZE;
+    objCanvas.style.cssText = 'position:absolute;top:0;left:0;z-index:10;pointer-events:none;';
+    wrap.appendChild(objCanvas);
   }
+
+  // ─── Objetivos ──────────────────────────────────────────────────────────────
+  const DRAG_COLORS = {
+    FIRE_DRAGON: '#ff5500', WATER_DRAGON: '#00aaff', AIR_DRAGON: '#99ff44',
+    EARTH_DRAGON: '#cc8800', HEXTECH_DRAGON: '#aa44ff', CHEMTECH_DRAGON: '#44dd55',
+    ELDER_DRAGON: '#ffd700',
+  };
+  const OBJ_STYLE = {
+    DRAGON:       { label: 'D', color: (o) => DRAG_COLORS[o.subtype] || '#ff8800' },
+    BARON_NASHOR: { label: 'B', color: () => '#bb44ff' },
+    RIFTHERALD:   { label: 'H', color: () => '#44ccbb' },
+    HORDE:        { label: 'V', color: () => '#99aa33' },
+    TOWER:        { label: 'T', color: (o) => o.team_lost === 100 ? '#60a5fa' : '#f87171' },
+  };
+  const PIT_POS = {
+    DRAGON:       { x: 9866, y: 4414 },
+    BARON_NASHOR: { x: 4960, y: 10011 },
+    RIFTHERALD:   { x: 4960, y: 10011 },
+  };
+  const FIRST_SPAWN_MS = { DRAGON: 300000, BARON_NASHOR: 1200000, RIFTHERALD: 480000 };
+  const RESPAWN_MS     = { DRAGON: 300000, BARON_NASHOR: 360000,  RIFTHERALD: null };
+
+  function objColor(obj) {
+    const s = OBJ_STYLE[obj.type];
+    return s ? s.color(obj) : '#ffffff';
+  }
+  function objLabel(obj) { return (OBJ_STYLE[obj.type] || {}).label || '?'; }
+
+  function getSpawnWindows(type) {
+    if (!allData || !allData.objectives) return [];
+    const kills = allData.objectives.filter(o => o.type === type).sort((a, b) => a.t - b.t);
+    const firstSpawn = FIRST_SPAWN_MS[type];
+    const respawn    = RESPAWN_MS[type];
+    if (!firstSpawn) return [];
+    const windows = [];
+    let nextSpawn = firstSpawn;
+    for (const kill of kills) {
+      if (kill.t >= nextSpawn) windows.push([nextSpawn, kill.t]);
+      if (!respawn) break;
+      nextSpawn = kill.t + respawn;
+    }
+    windows.push([nextSpawn, Infinity]);
+    return windows;
+  }
+
+  function isAliveAt(type, timeMs) {
+    return getSpawnWindows(type).some(([s, k]) => timeMs >= s && timeMs < k);
+  }
+
+  function drawObjKill(ctx, obj) {
+    const { cx, cy } = toCanvas(obj.x, obj.y);
+    const r = 13;
+    const col = objColor(obj);
+    ctx.save();
+    ctx.shadowColor = col; ctx.shadowBlur = 12;
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fillStyle = col + 'cc'; ctx.fill();
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.shadowBlur = 0;
+    const s = 5;
+    ctx.beginPath();
+    ctx.moveTo(cx - s, cy - s); ctx.lineTo(cx + s, cy + s);
+    ctx.moveTo(cx + s, cy - s); ctx.lineTo(cx - s, cy + s);
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2.5; ctx.stroke();
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 9px sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    ctx.fillText(objLabel(obj), cx, cy + r + 2);
+    ctx.restore();
+  }
+
+  function drawObjSpawn(ctx, type) {
+    const pit = PIT_POS[type];
+    if (!pit) return;
+    const { cx, cy } = toCanvas(pit.x, pit.y);
+    const r = 10;
+    const col = OBJ_STYLE[type] ? OBJ_STYLE[type].color({}) : '#fff';
+    ctx.save();
+    ctx.globalAlpha = 0.75;
+    ctx.shadowColor = col; ctx.shadowBlur = 10;
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fillStyle = col + '55'; ctx.fill();
+    ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#fff'; ctx.font = `bold ${r}px sans-serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText((OBJ_STYLE[type] || {}).label || '?', cx, cy);
+    ctx.restore();
+  }
+
+  function drawObjectives() {
+    const canvas = document.getElementById('obj-overlay');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, MAP_SIZE, MAP_SIZE);
+    if (!allData || !allData.objectives) return;
+
+    let tMin, tMax;
+    if (sliderMode) {
+      tMin = Math.max(0, sliderTime - WINDOW_MS);
+      tMax = sliderTime + WINDOW_MS;
+      ['DRAGON', 'BARON_NASHOR', 'RIFTHERALD'].forEach(type => {
+        if (isAliveAt(type, sliderTime)) drawObjSpawn(ctx, type);
+      });
+    } else {
+      [tMin, tMax] = PHASES[activePhase] || PHASES.all;
+    }
+
+    allData.objectives.forEach(obj => {
+      if (obj.t >= tMin && obj.t < tMax) drawObjKill(ctx, obj);
+    });
+  }
+  // ────────────────────────────────────────────────────────────────────────────
 
   function renderHeatmap() {
     if (!allData || !heatBlue || !heatRed) return;
-    heatBlue.setData({ max: 6, data: buildPoints(100, activePhase) });
-    heatRed.setData({ max: 6,  data: buildPoints(200, activePhase) });
+    heatBlue.setData({ max: 6, data: buildPoints(100) });
+    heatRed.setData({ max: 6,  data: buildPoints(200) });
+    drawObjectives();
   }
 
   function updateButtons() {
@@ -516,9 +714,15 @@ const TEAM_COLORS = { 100: '#60a5fa', 200: '#f87171' };
         btn.textContent = label;
         btn.dataset.phase = key;
         btn.addEventListener('click', () => {
-          document.querySelectorAll('.phase-btn').forEach(b => b.classList.remove('active'));
+          document.querySelectorAll('.phase-btn').forEach(b => {
+            b.classList.remove('active');
+            b.classList.remove('slider-active-mode');
+          });
           btn.classList.add('active');
           activePhase = key;
+          sliderMode = false;
+          const slider = document.getElementById('time-slider');
+          if (slider) slider.style.accentColor = '#22d3ee';
           renderHeatmap();
         });
         phaseRow.appendChild(btn);
@@ -573,6 +777,66 @@ const TEAM_COLORS = { 100: '#60a5fa', 200: '#f87171' };
 
     layout.appendChild(ctrl);
     container.appendChild(layout);
+
+    // Calcular duración máxima de la partida
+    maxTime = 0;
+    Object.values(allData.players).forEach(p => {
+      p.positions.forEach(pos => {
+        if (pos.length >= 3) maxTime = Math.max(maxTime, pos[2]);
+      });
+    });
+    const maxSec = Math.ceil(maxTime / 1000);
+
+    const sliderSection = document.createElement('div');
+    sliderSection.className = 'time-slider-section';
+    const q1 = Math.round(maxSec / 4);
+    const q2 = Math.round(maxSec / 2);
+    const q3 = Math.round(3 * maxSec / 4);
+    sliderSection.innerHTML = `
+      <div class="time-slider-label">
+        <span>Línea de tiempo <span style="color:#4b5563;font-size:0.65rem;">(ventana ±30s)</span></span>
+        <span class="time-current" id="time-display">— fase activa</span>
+      </div>
+      <input type="range" id="time-slider" min="0" max="${maxSec}" value="0" step="5">
+      <div class="time-slider-ticks">
+        <span>0:00</span><span>${fmtTime(q1)}</span><span>${fmtTime(q2)}</span><span>${fmtTime(q3)}</span><span>${fmtTime(maxSec)}</span>
+      </div>
+    `;
+    container.appendChild(sliderSection);
+
+    document.getElementById('time-slider').addEventListener('input', function () {
+      const sec = parseInt(this.value);
+      sliderTime = sec * 1000;
+      sliderMode = true;
+      updateTimeDisplay(sec);
+      document.querySelectorAll('.phase-btn').forEach(b => {
+        b.classList.remove('active');
+        b.classList.add('slider-active-mode');
+      });
+      renderHeatmap();
+    });
+
+    // Leyenda de objetivos
+    const legend = document.createElement('div');
+    legend.style.cssText = 'display:flex;flex-wrap:wrap;gap:0.4rem 1.2rem;margin-top:0.75rem;font-size:0.68rem;color:#9ca3af;';
+    [
+      ['#ff8800', 'Dragón'],
+      ['#ffd700', 'Dragón Ancestral'],
+      ['#bb44ff', 'Barón Nashor'],
+      ['#44ccbb', 'Heraldo'],
+      ['#99aa33', 'Void Grubs'],
+      ['#888', 'Torre'],
+    ].forEach(([col, name]) => {
+      const item = document.createElement('span');
+      item.style.cssText = 'display:flex;align-items:center;gap:0.35rem;';
+      item.innerHTML = `<span style="width:9px;height:9px;border-radius:50%;background:${col};display:inline-block;border:1px solid #fff4;flex-shrink:0"></span>${name}`;
+      legend.appendChild(item);
+    });
+    const note = document.createElement('div');
+    note.style.cssText = 'margin-top:0.3rem;font-size:0.63rem;color:#4b5563;';
+    note.textContent = 'Círculo = vivo en ese momento · × = matado dentro de la ventana de ±30s';
+    legend.appendChild(note);
+    container.appendChild(legend);
 
     buildMaps(mapsArea);
     renderHeatmap();

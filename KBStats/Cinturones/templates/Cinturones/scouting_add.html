@@ -1,0 +1,57 @@
+{% extends 'Cinturones/base.html' %}
+{% block extra_css %}
+<style>
+.scout-form { max-width: 560px; }
+.form-label-kb { font-size: .8rem; color: #9ca3af; text-transform: uppercase; letter-spacing: .07em; margin-bottom: .35rem; }
+.form-control-kb {
+  background: #0b1220;
+  border: 1px solid #1f2937;
+  border-radius: .4rem;
+  color: #e5e7eb;
+  padding: .55rem .75rem;
+  font-size: .9rem;
+  width: 100%;
+}
+.form-control-kb:focus { border-color: #22d3ee; outline: none; }
+.hint { font-size: .72rem; color: #4b5563; margin-top: .3rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+  <a href="{% url 'scouting_home' %}" style="font-size:.82rem;color:#6b7280;">← Scouting</a>
+</div>
+<h2 class="text-gradient mb-4" style="font-size:1.4rem;">Añadir jugador scouted</h2>
+
+{% if error %}
+<div class="alert alert-danger py-2 mb-3" style="font-size:.85rem;">{{ error }}</div>
+{% endif %}
+
+<form method="post" class="scout-form">
+  {% csrf_token %}
+
+  <div class="mb-4">
+    <div class="form-label-kb">Identificador</div>
+    <input type="text" name="identifier" class="form-control-kb"
+           placeholder="Ej. Ocelote, Nemesis, JGL Enemigo" required>
+    <div class="hint">Nombre interno tuyo para identificar a este jugador.</div>
+  </div>
+
+  <div class="mb-4">
+    <div class="form-label-kb">Riot IDs</div>
+    <textarea name="riot_ids" class="form-control-kb" rows="5"
+              placeholder="GameName#TAG&#10;SmurfName#EUW&#10;AltAccount#000"
+              style="resize:vertical;"></textarea>
+    <div class="hint">Un Riot ID por línea. El primero se marca como cuenta principal.</div>
+  </div>
+
+  <div class="mb-4">
+    <div class="form-label-kb">Notas <span style="color:#4b5563;">(opcional)</span></div>
+    <textarea name="notes" class="form-control-kb" rows="3"
+              placeholder="Rol principal, equipo, observaciones…" style="resize:vertical;"></textarea>
+  </div>
+
+  <button type="submit" class="btn btn-primary px-4">Guardar jugador</button>
+  <a href="{% url 'scouting_home' %}" class="btn btn-outline-secondary ms-2">Cancelar</a>
+</form>
+{% endblock %}
