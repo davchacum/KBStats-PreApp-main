@@ -412,11 +412,13 @@ def extract_positions_from_timeline(timeline_json: str, match_json: str) -> dict
     participants = match.get('info', {}).get('participants', [])
     pid_to_name: dict[str, str] = {}
     pid_to_team: dict[str, int] = {}
+    pid_to_role: dict[str, str] = {}
     for p in participants:
         pid = str(p['participantId'])
         name = p.get('riotIdGameName', 'Unknown') + '#' + p.get('riotIdTagline', '000')
         pid_to_name[pid] = name
         pid_to_team[pid] = p.get('teamId', 100)
+        pid_to_role[pid] = p.get('teamPosition', '')
 
     frames = timeline.get('info', {}).get('frames', [])
 
@@ -513,6 +515,7 @@ def extract_positions_from_timeline(timeline_json: str, match_json: str) -> dict
             pid: {
                 'name':      pid_to_name.get(pid, pid),
                 'team':      pid_to_team.get(pid, 100),
+                'role':      pid_to_role.get(pid, ''),
                 'positions': positions[pid],
             }
             for pid in positions

@@ -538,6 +538,55 @@ const TEAM_COLORS = { 100: '#60a5fa', 200: '#f87171' };
     objCanvas.height = MAP_SIZE;
     objCanvas.style.cssText = 'position:absolute;top:0;left:0;z-index:10;pointer-events:none;';
     wrap.appendChild(objCanvas);
+    const posCanvas = document.createElement('canvas');
+    posCanvas.id = 'pos-overlay';
+    posCanvas.width = MAP_SIZE;
+    posCanvas.height = MAP_SIZE;
+    posCanvas.style.cssText = 'position:absolute;top:0;left:0;z-index:11;pointer-events:none;';
+    wrap.appendChild(posCanvas);
+  }
+
+  const ROLE_LETTER = { TOP: 'T', JUNGLE: 'J', MIDDLE: 'M', BOTTOM: 'A', UTILITY: 'S' };
+
+  function closestPosition(positions, timeMs) {
+    if (!positions || positions.length === 0) return null;
+    let best = null, bestDt = Infinity;
+    for (const pos of positions) {
+      const t = pos.length >= 3 ? pos[2] : 0;
+      const dt = Math.abs(t - timeMs);
+      if (dt < bestDt) { best = pos; bestDt = dt; }
+      if (t > timeMs + 120000) break;
+    }
+    return best;
+  }
+
+  function drawPositionDots() {
+    const canvas = document.getElementById('pos-overlay');
+    if (!canvas || !allData) return;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, MAP_SIZE, MAP_SIZE);
+    if (!sliderMode) return;
+
+    const showAll = selectedPids.has('all');
+    for (const [pid, p] of Object.entries(allData.players)) {
+      if (!showAll && !selectedPids.has(pid)) continue;
+      const pos = closestPosition(p.positions, sliderTime);
+      if (!pos) continue;
+      const { cx, cy } = toCanvas(pos[0], pos[1]);
+      const col = TEAM_COLORS[p.team] || '#ffffff';
+      const letter = ROLE_LETTER[p.role] || pid;
+      const R = 13;
+      ctx.save();
+      ctx.shadowColor = col; ctx.shadowBlur = 10;
+      ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2);
+      ctx.fillStyle = col + 'cc'; ctx.fill();
+      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.stroke();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = '#ffffff'; ctx.font = `bold 11px sans-serif`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(letter, cx, cy);
+      ctx.restore();
+    }
   }
 
   // ─── Objetivos ──────────────────────────────────────────────────────────────
@@ -657,6 +706,7 @@ const TEAM_COLORS = { 100: '#60a5fa', 200: '#f87171' };
     heatBlue.setData({ max: 6, data: buildPoints(100) });
     heatRed.setData({ max: 6,  data: buildPoints(200) });
     drawObjectives();
+    drawPositionDots();
   }
 
   function updateButtons() {

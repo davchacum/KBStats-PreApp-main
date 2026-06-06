@@ -1,6 +1,5 @@
 {% extends 'Cinturones/base.html' %}
 {% load static %}
-
 {% block extra_css %}
 <style>
 .section-card { background:#0b1220; border:1px solid #1f2937; border-radius:.6rem; padding:1.25rem; margin-bottom:1.5rem; }
@@ -8,12 +7,10 @@
 .heatmap-wrap { position:relative; width:700px; height:700px; border:1px solid #1f2937; border-radius:.5rem; overflow:hidden; flex-shrink:0; }
 .heatmap-wrap::before { content:''; position:absolute; inset:0; background-image:url("{% static 'images/f5da4bd98cb87704342fa1c6e4b6ab416aca990e-705x701.png' %}"); background-size:700px 700px; background-repeat:no-repeat; opacity:0.5; z-index:0; }
 .zone-bar-track { height:8px; background:#1f2937; border-radius:4px; overflow:hidden; flex:1; }
-.zone-bar-fill { height:100%; border-radius:4px; transition:width .4s; }
+.zone-bar-fill { height:100%; border-radius:4px; }
 .stat-big { font-size:2rem; font-weight:700; }
 .kill-row { font-size:.78rem; color:#d1d5db; padding:.35rem 0; border-bottom:1px solid #0d1424; display:flex; gap:.8rem; align-items:center; }
 .kill-row:last-child { border-bottom:none; }
-.side-indicator { display:inline-flex; align-items:center; gap:.5rem; font-size:.9rem; font-weight:600; }
-/* Time slider (reutilizado del heatmap principal) */
 .time-slider-section { margin-top:1rem; padding-top:.75rem; border-top:1px solid #1f2937; }
 .time-slider-label { display:flex; justify-content:space-between; align-items:center; margin-bottom:.5rem; font-size:.72rem; color:#9ca3af; text-transform:uppercase; letter-spacing:.07em; }
 .time-current { color:#22d3ee; font-weight:600; font-size:.85rem; font-variant-numeric:tabular-nums; }
@@ -24,25 +21,21 @@
 {% endblock %}
 
 {% block content %}
-<!-- Breadcrumb -->
 <div class="mb-3" style="font-size:.82rem;color:#6b7280;">
-  <a href="{% url 'scouting_home' %}" style="color:#6b7280;">Scouting</a>
-  · <a href="{% url 'scouting_detail' player.pk %}" style="color:#6b7280;">{{ player.identifier }}</a>
-  · Jungla
+  <a href="{% url 'scouting_home' %}" style="color:#6b7280;">Scouting</a> ·
+  <a href="{% url 'scouting_detail' player.pk %}" style="color:#6b7280;">{{ player.identifier }}</a> · Jungla
 </div>
 
 <h2 class="text-gradient mb-1" style="font-size:1.4rem;">{{ match.champion_name }} — {{ match.match_id }}</h2>
 <div style="font-size:.78rem;color:#6b7280;margin-bottom:1.5rem;">
-  <span class="badge-account" style="display:inline-block;background:#111827;border:1px solid #374151;border-radius:.3rem;padding:.12rem .5rem;">{{ match.account.riot_id }}</span>
+  <span style="background:#111827;border:1px solid #374151;border-radius:.3rem;padding:.12rem .5rem;">{{ match.account.riot_id }}</span>
   · {% if match.win %}<span style="color:#4ade80;">Victoria</span>{% else %}<span style="color:#f87171;">Derrota</span>{% endif %}
   · {{ match.kills }}/{{ match.deaths }}/{{ match.assists }}
   {% if match.game_start_dt %}· {{ match.game_start_dt|date:"d/m/Y" }}{% endif %}
 </div>
 
 {% if not match.position_data %}
-<div class="section-card" style="color:#6b7280;text-align:center;padding:2.5rem;">
-  No hay datos de posición para esta partida.
-</div>
+<div class="section-card" style="color:#6b7280;text-align:center;padding:2.5rem;">Sin datos de posición para esta partida.</div>
 {% else %}
 
 <!-- Stats rápidos -->
@@ -51,11 +44,10 @@
   <div class="col-6 col-md-3">
     <div class="section-card text-center">
       <div class="section-title mb-1">Lado inicio</div>
-      {% if stats.starting_side == 'blue' %}
-        <div class="stat-big" style="color:#60a5fa;">AZUL</div>
-      {% else %}
-        <div class="stat-big" style="color:#f87171;">ROJO</div>
-      {% endif %}
+      {% if stats.starting_side == 'own' %}<div class="stat-big" style="color:#60a5fa;">PROPIA</div>
+      {% elif stats.starting_side == 'enemy' %}<div class="stat-big" style="color:#f87171;">ENEMIGA</div>
+      {% elif stats.starting_side == 'blue' %}<div class="stat-big" style="color:#60a5fa;">AZUL</div>
+      {% else %}<div class="stat-big" style="color:#f87171;">ROJO</div>{% endif %}
     </div>
   </div>
   <div class="col-6 col-md-3">
@@ -77,12 +69,32 @@
       <div class="stat-big" style="color:#e5e7eb;">{{ match.kda }}</div>
     </div>
   </div>
+  {% if pathing_side %}
+  <div class="col-6 col-md-3">
+    <div class="section-card text-center">
+      <div class="section-title mb-1">Pathing</div>
+      {% if pathing_side == 'top' %}
+        <div class="stat-big" style="color:#a78bfa;">TOP</div>
+      {% else %}
+        <div class="stat-big" style="color:#fb923c;">BOT</div>
+      {% endif %}
+      <div style="margin-top:.5rem;display:flex;align-items:center;gap:4px;justify-content:center;">
+        <div style="height:6px;border-radius:3px 0 0 3px;background:#a78bfa;width:{{ pathing_top_pct }}px;max-width:60px;opacity:{% if pathing_side == 'top' %}1{% else %}0.35{% endif %};"></div>
+        <div style="height:6px;border-radius:0 3px 3px 0;background:#fb923c;width:{{ pathing_bot_pct }}px;max-width:60px;opacity:{% if pathing_side == 'bot' %}1{% else %}0.35{% endif %};"></div>
+      </div>
+      <div style="font-size:.65rem;color:#6b7280;margin-top:.3rem;">
+        <span style="color:#a78bfa;">T {{ pathing_top_pct }}%</span>
+        &nbsp;/&nbsp;
+        <span style="color:#fb923c;">B {{ pathing_bot_pct }}%</span>
+      </div>
+    </div>
+  </div>
+  {% endif %}
 </div>
 {% endif %}
 
-<!-- Layout heatmap + stats -->
 <div class="d-flex gap-4 flex-wrap align-items-start">
-  <!-- Mapa de calor -->
+  <!-- Heatmap -->
   <div>
     <div class="section-card" style="padding:.75rem;">
       <div class="section-title">Mapa de posiciones</div>
@@ -92,44 +104,37 @@
     </div>
   </div>
 
-  <!-- Panel de stats -->
+  <!-- Panel stats -->
   <div style="flex:1;min-width:280px;">
-    <!-- Distribución de zonas (partida completa) -->
     {% if zone_dist %}
     <div class="section-card">
-      <div class="section-title">Distribución de zonas (partida)</div>
-      {% for z in zone_dist %}{% if z.pct > 0.5 %}
+      <div class="section-title">Distribución de zonas (partida completa)</div>
+      {% for z in zone_dist %}
       <div class="d-flex align-items-center gap-2 mb-2" style="font-size:.78rem;">
         <span style="min-width:90px;color:#d1d5db;">{{ z.label }}</span>
-        <div class="zone-bar-track">
-          <div class="zone-bar-fill" style="width:{{ z.pct }}%;background:{{ z.color }};"></div>
-        </div>
+        <div class="zone-bar-track"><div class="zone-bar-fill" style="width:{{ z.pct }}%;background:{{ z.color }};"></div></div>
         <span style="min-width:38px;text-align:right;color:#9ca3af;">{{ z.pct }}%</span>
       </div>
-      {% endif %}{% endfor %}
+      {% endfor %}
     </div>
     {% endif %}
 
-    <!-- Distribución early (0-10 min) -->
     {% if early_dist %}
     <div class="section-card">
-      <div class="section-title">Early game (0-10 min)</div>
-      {% for z in early_dist %}{% if z.pct > 0.5 %}
+      <div class="section-title">Early game (primeros 10 min)</div>
+      {% for z in early_dist %}
       <div class="d-flex align-items-center gap-2 mb-2" style="font-size:.78rem;">
         <span style="min-width:90px;color:#d1d5db;">{{ z.label }}</span>
-        <div class="zone-bar-track">
-          <div class="zone-bar-fill" style="width:{{ z.pct }}%;background:{{ z.color }};"></div>
-        </div>
+        <div class="zone-bar-track"><div class="zone-bar-fill" style="width:{{ z.pct }}%;background:{{ z.color }};"></div></div>
         <span style="min-width:38px;text-align:right;color:#9ca3af;">{{ z.pct }}%</span>
       </div>
-      {% endif %}{% endfor %}
+      {% endfor %}
     </div>
     {% endif %}
 
-    <!-- Kills / ganks -->
     {% if kills %}
     <div class="section-card">
-      <div class="section-title">Kills y ganks ({{ kills|length }})</div>
+      <div class="section-title">Kills / Ganks ({{ kills|length }})</div>
       {% for k in kills %}
       <div class="kill-row">
         <span style="color:#6b7280;font-variant-numeric:tabular-nums;min-width:38px;">{{ k.time_str }}</span>
@@ -145,49 +150,70 @@
 </div>
 {% endif %}
 
-<!-- heatmap.js -->
 <script src="https://cdn.jsdelivr.net/npm/heatmap.js@2.0.5/build/heatmap.min.js"></script>
 <script>
 (function () {
-  const MATCH_ID = "{{ match.match_id }}";
+  const MATCH_ID  = "{{ match.match_id }}";
   const PLAYER_ID = "{{ player.pk }}";
   const MAP_SIZE  = 700;
   const LOL_MAX   = 14820;
   const TEAM      = {{ match.team_id|default:100 }};
-
-  const HEAT_CFG = TEAM === 100 ? {
-    maxOpacity:.85, radius:22, blur:.85,
-    gradient:{0.2:'#001eff',0.5:'#00aaff',0.75:'#00eeff',1.0:'#ffffff'},
-  } : {
-    maxOpacity:.85, radius:22, blur:.85,
-    gradient:{0.2:'#cc0000',0.5:'#ff4400',0.75:'#ff9900',1.0:'#ffffff'},
-  };
-
   const WINDOW_MS = 30000;
+
+  const HEAT_CFG = TEAM === 100
+    ? { maxOpacity:.85, radius:22, blur:.85, gradient:{0.2:'#001eff',0.5:'#00aaff',0.75:'#00eeff',1.0:'#ffffff'} }
+    : { maxOpacity:.85, radius:22, blur:.85, gradient:{0.2:'#cc0000',0.5:'#ff4400',0.75:'#ff9900',1.0:'#ffffff'} };
+
   let allData = null, heat = null;
   let sliderMode = false, sliderTime = 0, maxTime = 0;
 
-  function toCanvas(x, y) {
-    return {
-      cx: Math.round((x / LOL_MAX) * MAP_SIZE),
-      cy: Math.round((1 - y / LOL_MAX) * MAP_SIZE),
-    };
+  const toCanvas = (x, y) => ({
+    cx: Math.round((x / LOL_MAX) * MAP_SIZE),
+    cy: Math.round((1 - y / LOL_MAX) * MAP_SIZE),
+  });
+
+  const fmtTime = sec => `${Math.floor(sec/60)}:${(sec%60).toString().padStart(2,'0')}`;
+
+  function closestPosition(positions, timeMs) {
+    if (!positions || positions.length === 0) return null;
+    let best = null, bestDt = Infinity;
+    for (const pos of positions) {
+      const t = pos.length >= 3 ? pos[2] : 0;
+      const dt = Math.abs(t - timeMs);
+      if (dt < bestDt) { best = pos; bestDt = dt; }
+      if (t > timeMs + 120000) break;
+    }
+    return best;
   }
 
-  function fmtTime(sec) {
-    const m = Math.floor(sec / 60), s = sec % 60;
-    return `${m}:${s.toString().padStart(2,'0')}`;
+  function drawJunglerDot() {
+    const canvas = document.getElementById('pos-overlay');
+    if (!canvas || !allData) return;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, MAP_SIZE, MAP_SIZE);
+    if (!sliderMode) return;
+    const pos = closestPosition(allData.players['1'].positions, sliderTime);
+    if (!pos) return;
+    const { cx, cy } = toCanvas(pos[0], pos[1]);
+    const col = TEAM === 100 ? '#60a5fa' : '#f87171';
+    const R = 14;
+    ctx.save();
+    ctx.shadowColor = col; ctx.shadowBlur = 12;
+    ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2);
+    ctx.fillStyle = col + 'cc'; ctx.fill();
+    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2.5; ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#ffffff'; ctx.font = 'bold 12px sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('J', cx, cy);
+    ctx.restore();
   }
 
   function buildPoints() {
-    if (!allData) return [];
     const positions = allData.players['1'].positions;
     const pts = [];
-    let tMin = 0, tMax = Infinity;
-    if (sliderMode) {
-      tMin = Math.max(0, sliderTime - WINDOW_MS);
-      tMax = sliderTime + WINDOW_MS;
-    }
+    const tMin = sliderMode ? Math.max(0, sliderTime - WINDOW_MS) : 0;
+    const tMax = sliderMode ? sliderTime + WINDOW_MS : Infinity;
     positions.forEach((pos, i) => {
       const t = pos.length >= 3 ? pos[2] : i * 60000;
       if (t < tMin || t >= tMax) return;
@@ -200,38 +226,39 @@
   function render() {
     if (!heat || !allData) return;
     heat.setData({max: 6, data: buildPoints()});
+    drawJunglerDot();
   }
 
   function buildUI() {
     const container = document.getElementById('heatmap-container');
     container.innerHTML = '';
-
     const wrap = document.createElement('div');
     wrap.className = 'heatmap-wrap';
     container.appendChild(wrap);
     heat = h337.create({container: wrap, ...HEAT_CFG});
+    const posCanvas = document.createElement('canvas');
+    posCanvas.id = 'pos-overlay';
+    posCanvas.width = MAP_SIZE; posCanvas.height = MAP_SIZE;
+    posCanvas.style.cssText = 'position:absolute;top:0;left:0;z-index:11;pointer-events:none;';
+    wrap.appendChild(posCanvas);
 
-    // Slider de tiempo
     maxTime = 0;
-    allData.players['1'].positions.forEach(p => {
-      if (p.length >= 3) maxTime = Math.max(maxTime, p[2]);
-    });
+    allData.players['1'].positions.forEach(p => { if (p.length >= 3) maxTime = Math.max(maxTime, p[2]); });
     const maxSec = Math.ceil(maxTime / 1000);
 
-    const sliderSection = document.createElement('div');
-    sliderSection.className = 'time-slider-section';
+    const sl = document.createElement('div');
+    sl.className = 'time-slider-section';
     const q1 = Math.round(maxSec/4), q2 = Math.round(maxSec/2), q3 = Math.round(3*maxSec/4);
-    sliderSection.innerHTML = `
+    sl.innerHTML = `
       <div class="time-slider-label">
-        <span>Línea de tiempo <span style="color:#4b5563;font-size:.65rem;">(ventana ±30s)</span></span>
+        <span>Línea de tiempo <span style="color:#4b5563;font-size:.65rem;">(±30s)</span></span>
         <span class="time-current" id="time-display">— todo</span>
       </div>
       <input type="range" id="time-slider" min="0" max="${maxSec}" value="0" step="5">
       <div class="time-slider-ticks">
         <span>0:00</span><span>${fmtTime(q1)}</span><span>${fmtTime(q2)}</span><span>${fmtTime(q3)}</span><span>${fmtTime(maxSec)}</span>
-      </div>
-    `;
-    container.appendChild(sliderSection);
+      </div>`;
+    container.appendChild(sl);
 
     document.getElementById('time-slider').addEventListener('input', function () {
       const sec = parseInt(this.value);

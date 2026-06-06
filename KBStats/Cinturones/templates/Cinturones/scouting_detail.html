@@ -1,29 +1,38 @@
 {% extends 'Cinturones/base.html' %}
 {% block extra_css %}
 <style>
-.section-card {
-  background: #0b1220; border: 1px solid #1f2937;
-  border-radius: .6rem; padding: 1.25rem; margin-bottom: 1.5rem;
-}
-.section-title { font-size: .7rem; text-transform: uppercase; letter-spacing: .1em; color: #6b7280; margin-bottom: .9rem; }
+.section-card { background:#0b1220; border:1px solid #1f2937; border-radius:.6rem; padding:1.25rem; margin-bottom:1.5rem; }
+.section-title { font-size:.7rem; text-transform:uppercase; letter-spacing:.1em; color:#6b7280; margin-bottom:.9rem; }
 .badge-account { display:inline-block; background:#111827; border:1px solid #374151; border-radius:.3rem; padding:.15rem .55rem; font-size:.75rem; color:#9ca3af; margin:.1rem .2rem 0 0; }
 .badge-account.main { border-color:#22d3ee; color:#22d3ee; }
-.stat-pill { text-align:center; }
+.role-tag { display:inline-block; background:#1e1b4b; border:1px solid #4338ca; border-radius:.3rem; padding:.12rem .5rem; font-size:.72rem; color:#a5b4fc; }
 .stat-pill .val { font-size:1.5rem; font-weight:700; color:#e5e7eb; }
 .stat-pill .lbl { font-size:.65rem; color:#6b7280; text-transform:uppercase; letter-spacing:.07em; }
-.champ-row { display:flex; align-items:center; gap:.6rem; padding:.45rem 0; border-bottom:1px solid #111827; font-size:.82rem; }
-.champ-row:last-child { border-bottom:none; }
-.champ-name { color:#e5e7eb; min-width:110px; }
-.wr-bar-track { height:5px; background:#1f2937; border-radius:3px; flex:1; overflow:hidden; }
+.champ-card { padding:.75rem 0; border-bottom:1px solid #111827; }
+.champ-card:last-child { border-bottom:none; }
+.champ-row1 { display:flex; align-items:center; gap:.6rem; font-size:.82rem; margin-bottom:.4rem; }
+.champ-row2 { display:flex; align-items:center; gap:1rem; font-size:.74rem; flex-wrap:wrap; padding-left:2px; }
+.champ-name { color:#e5e7eb; min-width:110px; font-weight:600; }
+.wr-bar-track { height:5px; background:#1f2937; border-radius:3px; flex:1; overflow:hidden; min-width:60px; }
 .wr-bar-fill { height:100%; border-radius:3px; background:linear-gradient(90deg,#22c55e,#4ade80); }
 .wr-bar-fill.bad { background:linear-gradient(90deg,#ef4444,#f87171); }
+/* Top vs Bot split bar */
+.tb-wrap { display:flex; align-items:center; gap:.4rem; }
+.tb-bar { height:7px; border-radius:3px; overflow:hidden; display:flex; width:100px; background:#1f2937; }
+.tb-top { background:#a78bfa; height:100%; border-radius:3px 0 0 3px; }
+.tb-bot { background:#fb923c; height:100%; border-radius:0 3px 3px 0; }
+.tb-label { font-size:.68rem; }
+/* Side pills */
+.side-pill { display:inline-flex; align-items:center; gap:.3rem; background:#111827; border-radius:.3rem; padding:.12rem .5rem; border:1px solid #1f2937; }
+.side-dot  { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+/* Style tag */
+.style-tag { display:inline-block; border-radius:.25rem; padding:.1rem .4rem; font-size:.67rem; font-weight:600; border:1px solid currentColor; opacity:.9; }
 .match-table { width:100%; border-collapse:collapse; font-size:.78rem; }
 .match-table th { color:#4b5563; font-weight:500; text-transform:uppercase; font-size:.65rem; letter-spacing:.07em; padding:.4rem .6rem; border-bottom:1px solid #1f2937; }
 .match-table td { padding:.45rem .6rem; border-bottom:1px solid #0d1424; color:#d1d5db; }
 .match-table tr:hover td { background:#111827; }
 .win-dot { width:8px; height:8px; border-radius:50%; display:inline-block; }
-.win-dot.w { background:#22c55e; }
-.win-dot.l { background:#ef4444; }
+.win-dot.w { background:#22c55e; } .win-dot.l { background:#ef4444; }
 .shared-row { font-size:.8rem; color:#9ca3af; padding:.35rem 0; border-bottom:1px solid #111827; }
 .shared-row:last-child { border-bottom:none; }
 #fetch-log { font-size:.72rem; color:#9ca3af; white-space:pre-wrap; max-height:260px; overflow-y:auto; }
@@ -35,7 +44,12 @@
 <div class="d-flex align-items-start justify-content-between flex-wrap gap-2 mb-4">
   <div>
     <a href="{% url 'scouting_home' %}" style="font-size:.82rem;color:#6b7280;">← Scouting</a>
-    <h2 class="text-gradient mb-0 mt-1" style="font-size:1.6rem;">{{ player.identifier }}</h2>
+    <h2 class="text-gradient mb-0 mt-1" style="font-size:1.6rem;">
+      {{ player.identifier }}
+      {% if player.preferred_role %}
+        <span class="role-tag ms-2">{{ player.role_label }}</span>
+      {% endif %}
+    </h2>
     <div class="mt-1">
       {% for acc in player.accounts.all %}
         <span class="badge-account {% if acc.is_main %}main{% endif %}">
@@ -48,8 +62,10 @@
   </div>
   <div class="d-flex gap-2 flex-wrap">
     <button id="btn-fetch" class="btn btn-primary btn-sm px-3">Actualizar partidas</button>
-    <a href="{% url 'scouting_add' %}" class="btn btn-outline-secondary btn-sm px-3">Editar</a>
-    <form method="post" action="{% url 'scouting_delete' player.pk %}" style="display:inline;" onsubmit="return confirm('¿Eliminar {{ player.identifier }}?')">
+    <a href="{% url 'scouting_edit' player.pk %}" class="btn btn-outline-secondary btn-sm px-3">Editar</a>
+    <a href="{% url 'scouting_export' player.pk %}" class="btn btn-sm px-3" style="border:1px solid #374151;color:#22d3ee;background:transparent;">↓ Exportar ZIP</a>
+    <form method="post" action="{% url 'scouting_delete' player.pk %}" style="display:inline;"
+          onsubmit="return confirm('¿Eliminar {{ player.identifier }}?')">
       {% csrf_token %}
       <button type="submit" class="btn btn-sm" style="border:1px solid #7f1d1d;color:#f87171;background:transparent;">Eliminar</button>
     </form>
@@ -60,60 +76,101 @@
 <div id="fetch-section" class="section-card" style="display:none;">
   <div class="section-title">Importando…</div>
   <div id="fetch-log"></div>
-  <div id="fetch-summary" class="mt-2" style="font-size:.8rem;color:#22d3ee;display:none;"></div>
+  <div id="fetch-summary" style="font-size:.8rem;color:#22d3ee;margin-top:.5rem;display:none;"></div>
 </div>
 
 <!-- Totales -->
-{% with t=aggregates.total %}
-{% if t.games %}
+{% with t=aggregates.total %}{% if t.games %}
 <div class="section-card">
   <div class="section-title">Resumen global — {{ t.games }} partida{{ t.games|pluralize }}</div>
-  <div class="row g-3 text-center mb-2">
+  <div class="row g-3 text-center">
     <div class="col stat-pill">
       <div class="val {% if t.winrate >= 55 %}text-success{% elif t.winrate < 45 %}text-danger{% else %}text-warning{% endif %}">{{ t.winrate }}%</div>
       <div class="lbl">Win Rate</div>
     </div>
-    <div class="col stat-pill">
-      <div class="val">{{ t.kda }}</div>
-      <div class="lbl">KDA</div>
-    </div>
-    <div class="col stat-pill">
-      <div class="val">{{ t.kills }}</div>
-      <div class="lbl">Kills</div>
-    </div>
-    <div class="col stat-pill">
-      <div class="val">{{ t.deaths }}</div>
-      <div class="lbl">Deaths</div>
-    </div>
-    <div class="col stat-pill">
-      <div class="val">{{ t.assists }}</div>
-      <div class="lbl">Assists</div>
-    </div>
+    <div class="col stat-pill"><div class="val">{{ t.kda }}</div><div class="lbl">KDA</div></div>
+    <div class="col stat-pill"><div class="val">{{ t.kills }}</div><div class="lbl">Kills</div></div>
+    <div class="col stat-pill"><div class="val">{{ t.deaths }}</div><div class="lbl">Deaths</div></div>
+    <div class="col stat-pill"><div class="val">{{ t.assists }}</div><div class="lbl">Assists</div></div>
   </div>
 </div>
-{% endif %}
-{% endwith %}
+{% endif %}{% endwith %}
 
-<!-- Campeones -->
+<!-- Pool de campeones -->
 {% if aggregates.champions %}
 <div class="section-card">
   <div class="section-title">Pool de campeones</div>
   {% for c in aggregates.champions %}
-  <div class="champ-row">
-    <span class="champ-name">{{ c.name }}</span>
-    <span style="min-width:28px;color:#6b7280;">{{ c.games }}g</span>
-    <div class="wr-bar-track">
-      <div class="wr-bar-fill {% if c.winrate < 45 %}bad{% endif %}" style="width:{{ c.winrate }}%;"></div>
+  <div class="champ-card">
+
+    <!-- Fila 1: nombre · games · WR bar · WR% · KDA · K/D/A -->
+    <div class="champ-row1">
+      <span class="champ-name">{{ c.name }}</span>
+      <span style="min-width:28px;color:#6b7280;">{{ c.games }}g</span>
+      <div class="wr-bar-track">
+        <div class="wr-bar-fill {% if c.winrate < 45 %}bad{% endif %}" style="width:{{ c.winrate }}%;"></div>
+      </div>
+      <span style="min-width:44px;text-align:right;font-weight:600;{% if c.winrate >= 55 %}color:#4ade80;{% elif c.winrate < 45 %}color:#f87171;{% else %}color:#e5e7eb;{% endif %}">{{ c.winrate }}%</span>
+      <span style="color:#9ca3af;min-width:52px;">{{ c.kda }} KDA</span>
+      <span style="color:#6b7280;font-size:.72rem;">{{ c.avg_k }}/{{ c.avg_d }}/{{ c.avg_a }}</span>
     </div>
-    <span style="min-width:48px;text-align:right;{% if c.winrate >= 55 %}color:#4ade80;{% elif c.winrate < 45 %}color:#f87171;{% else %}color:#e5e7eb;{% endif %}">{{ c.winrate }}%</span>
-    <span style="min-width:42px;color:#9ca3af;">{{ c.kda }} KDA</span>
-    <span style="color:#6b7280;font-size:.74rem;">{{ c.avg_k }}/{{ c.avg_d }}/{{ c.avg_a }}</span>
+
+    <!-- Fila 2: pathing Top/Bot · jungla% · ganks/g · side pills -->
+    {% if c.has_stats %}
+    <div class="champ-row2">
+
+      <!-- Top vs Bot split bar -->
+      <div class="tb-wrap">
+        <span style="color:#4b5563;font-size:.65rem;text-transform:uppercase;letter-spacing:.06em;">Pathing</span>
+        <div class="tb-bar">
+          <div class="tb-top" style="width:{{ c.top_pct }}%;"></div>
+          <div class="tb-bot" style="width:{{ c.bot_pct }}%;"></div>
+        </div>
+        <span class="tb-label" style="color:#a78bfa;font-weight:{% if c.top_favored %}700{% else %}400{% endif %};">Top {{ c.top_pct }}%</span>
+        <span style="color:#4b5563;font-size:.65rem;">/</span>
+        <span class="tb-label" style="color:#fb923c;font-weight:{% if c.top_favored %}400{% else %}700{% endif %};">Bot {{ c.bot_pct }}%</span>
+      </div>
+
+      <!-- Actividad -->
+      {% if c.lane_presence is not None %}
+      <span style="color:#6b7280;font-size:.68rem;">
+        Carril <span style="color:{% if c.lane_presence > 16 %}#4ade80{% elif c.lane_presence < 8 %}#fb923c{% else %}#9ca3af{% endif %};font-weight:600;">{{ c.lane_presence }}%</span>
+      </span>
+      {% endif %}
+      {% if c.avg_ganks10 is not None %}
+      <span style="color:#6b7280;font-size:.68rem;">
+        <span style="color:#22d3ee;font-weight:600;">{{ c.avg_ganks10 }}</span> ganks/10min
+      </span>
+      {% endif %}
+      {% if c.style %}
+      <span class="style-tag" style="color:{{ c.style.1 }};">{{ c.style.0 }}</span>
+      {% endif %}
+
+      <!-- Side breakdown -->
+      {% if c.blue_games %}
+      <div class="side-pill">
+        <span class="side-dot" style="background:#60a5fa;"></span>
+        <span style="color:#9ca3af;">Azul {{ c.blue_games }}g</span>
+        {% if c.blue_wr is not None %}<span style="font-weight:600;{% if c.blue_wr >= 55 %}color:#4ade80;{% elif c.blue_wr < 45 %}color:#f87171;{% else %}color:#e5e7eb;{% endif %}">{{ c.blue_wr }}%</span>{% endif %}
+      </div>
+      {% endif %}
+      {% if c.red_games %}
+      <div class="side-pill">
+        <span class="side-dot" style="background:#f87171;"></span>
+        <span style="color:#9ca3af;">Rojo {{ c.red_games }}g</span>
+        {% if c.red_wr is not None %}<span style="font-weight:600;{% if c.red_wr >= 55 %}color:#4ade80;{% elif c.red_wr < 45 %}color:#f87171;{% else %}color:#e5e7eb;{% endif %}">{{ c.red_wr }}%</span>{% endif %}
+      </div>
+      {% endif %}
+
+    </div>
+    {% endif %}
+
   </div>
   {% endfor %}
 </div>
 {% endif %}
 
-<!-- Análisis jungla (si aplica) -->
+<!-- Análisis jungla -->
 {% if jungle_matches %}
 <div class="section-card">
   <div class="section-title">Análisis jungla — {{ jungle_matches|length }} partida{{ jungle_matches|length|pluralize }}</div>
@@ -121,13 +178,8 @@
     <table class="match-table">
       <thead>
         <tr>
-          <th>Campeón</th>
-          <th>Resultado</th>
-          <th>KDA</th>
-          <th>Lado inicio</th>
-          <th>Invasión</th>
-          <th>Ganks</th>
-          <th></th>
+          <th>Campeón</th><th>Resultado</th><th>KDA</th>
+          <th>Lado inicio</th><th>Invasión</th><th>Ganks</th><th></th>
         </tr>
       </thead>
       <tbody>
@@ -136,29 +188,15 @@
           <td>{{ m.champion_name }}</td>
           <td><span class="win-dot {% if m.win %}w{% else %}l{% endif %}"></span> {% if m.win %}Victoria{% else %}Derrota{% endif %}</td>
           <td>{{ m.kda }}</td>
-          <td>
-            {% if m.jungle_stats %}
-              {% if m.jungle_stats.starting_side == 'blue' %}
-                <span style="color:#60a5fa;">Azul</span>
-              {% else %}
-                <span style="color:#f87171;">Rojo</span>
-              {% endif %}
-            {% else %}—{% endif %}
-          </td>
-          <td>
-            {% if m.jungle_stats %}{{ m.jungle_stats.invasion_pct }}%{% else %}—{% endif %}
-          </td>
-          <td>
-            {% if m.jungle_stats %}
-              {{ m.jungle_stats.gank_kills }}k / {{ m.jungle_stats.gank_count }}g
-            {% else %}—{% endif %}
-          </td>
-          <td>
-            {% if m.position_data %}
-              <a href="{% url 'scouting_jungle_detail' player.pk m.match_id %}"
-                 style="font-size:.72rem;color:#22d3ee;">Heatmap →</a>
-            {% endif %}
-          </td>
+          <td>{% if m.jungle_stats %}
+            {% if m.jungle_stats.starting_side == 'own' %}<span style="color:#60a5fa;">Propia</span>
+            {% elif m.jungle_stats.starting_side == 'enemy' %}<span style="color:#f87171;">Enemiga</span>
+            {% elif m.jungle_stats.starting_side == 'blue' %}<span style="color:#60a5fa;">Azul</span>
+            {% else %}<span style="color:#f87171;">Rojo</span>{% endif %}
+          {% else %}—{% endif %}</td>
+          <td>{% if m.jungle_stats %}{{ m.jungle_stats.invasion_pct }}%{% else %}—{% endif %}</td>
+          <td>{% if m.jungle_stats %}{{ m.jungle_stats.gank_kills }}k/{{ m.jungle_stats.gank_count }}g{% else %}—{% endif %}</td>
+          <td>{% if m.position_data %}<a href="{% url 'scouting_jungle_detail' player.pk m.match_id %}" style="font-size:.72rem;color:#22d3ee;">Heatmap →</a>{% endif %}</td>
         </tr>
         {% endfor %}
       </tbody>
@@ -167,13 +205,13 @@
 </div>
 {% endif %}
 
-<!-- Partidas compartidas entre cuentas -->
+<!-- Cuentas en la misma partida -->
 {% if shared %}
 <div class="section-card">
   <div class="section-title">Cuentas en la misma partida</div>
   {% for s in shared %}
   <div class="shared-row">
-    <a href="{% url 'scouting_jungle_detail' player.pk s.match.match_id %}" style="color:#22d3ee;">{{ s.match.match_id }}</a>
+    <span style="color:#22d3ee;">{{ s.match.match_id }}</span>
     · {{ s.match.champion_name }} · con
     {% for acc in s.co_accounts %}<span style="color:#a5b4fc;">{{ acc.riot_id }}</span>{% if not forloop.last %}, {% endif %}{% endfor %}
   </div>
@@ -181,22 +219,14 @@
 </div>
 {% endif %}
 
-<!-- Historial de partidas -->
+<!-- Historial -->
 {% if matches %}
 <div class="section-card">
   <div class="section-title">Historial ({{ matches|length }} más recientes)</div>
   <div style="overflow-x:auto;">
     <table class="match-table">
       <thead>
-        <tr>
-          <th>Cuenta</th>
-          <th>Campeón</th>
-          <th>Rol</th>
-          <th>Resultado</th>
-          <th>K/D/A</th>
-          <th>KDA</th>
-          <th>CS</th>
-        </tr>
+        <tr><th>Cuenta</th><th>Campeón</th><th>Rol</th><th>Res.</th><th>K/D/A</th><th>KDA</th><th>CS</th></tr>
       </thead>
       <tbody>
         {% for m in matches %}
@@ -230,14 +260,17 @@
     log.textContent = '';
     summary.style.display = 'none';
 
-    fetch('{% url "scouting_fetch" player.pk %}', { method: 'POST', headers: {'X-CSRFToken': '{{ csrf_token }}'} })
+    fetch('{% url "scouting_fetch" player.pk %}', {
+      method: 'POST',
+      headers: {'X-CSRFToken': '{{ csrf_token }}'},
+    })
       .then(r => r.json())
       .then(data => {
         log.textContent = data.log.join('\n');
-        summary.textContent = `✓ ${data.created} creadas · ${data.skipped} omitidas · ${data.errors} errores`;
+        summary.textContent = `✓ ${data.created} guardadas · ${data.skipped} ya existían · ${data.filtered} de otro rol · ${data.errors} errores`;
         summary.style.display = '';
         btn.textContent = 'Actualizado';
-        setTimeout(() => location.reload(), 1500);
+        setTimeout(() => location.reload(), 1800);
       })
       .catch(e => {
         log.textContent = 'Error: ' + e;

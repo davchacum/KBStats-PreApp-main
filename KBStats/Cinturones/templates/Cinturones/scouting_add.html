@@ -2,18 +2,12 @@
 {% block extra_css %}
 <style>
 .scout-form { max-width: 560px; }
-.form-label-kb { font-size: .8rem; color: #9ca3af; text-transform: uppercase; letter-spacing: .07em; margin-bottom: .35rem; }
-.form-control-kb {
-  background: #0b1220;
-  border: 1px solid #1f2937;
-  border-radius: .4rem;
-  color: #e5e7eb;
-  padding: .55rem .75rem;
-  font-size: .9rem;
-  width: 100%;
-}
-.form-control-kb:focus { border-color: #22d3ee; outline: none; }
-.hint { font-size: .72rem; color: #4b5563; margin-top: .3rem; }
+.form-label-kb { font-size:.8rem; color:#9ca3af; text-transform:uppercase; letter-spacing:.07em; margin-bottom:.35rem; }
+.form-control-kb { background:#0b1220; border:1px solid #1f2937; border-radius:.4rem; color:#e5e7eb; padding:.55rem .75rem; font-size:.9rem; width:100%; }
+.form-control-kb:focus { border-color:#22d3ee; outline:none; }
+.form-select-kb { background:#0b1220 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%236b7280' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E") no-repeat right .75rem center; border:1px solid #1f2937; border-radius:.4rem; color:#e5e7eb; padding:.55rem 2.25rem .55rem .75rem; font-size:.9rem; width:100%; appearance:none; cursor:pointer; }
+.form-select-kb:focus { border-color:#22d3ee; outline:none; }
+.hint { font-size:.72rem; color:#4b5563; margin-top:.3rem; }
 </style>
 {% endblock %}
 
@@ -21,11 +15,11 @@
 <div class="mb-4">
   <a href="{% url 'scouting_home' %}" style="font-size:.82rem;color:#6b7280;">← Scouting</a>
 </div>
-<h2 class="text-gradient mb-4" style="font-size:1.4rem;">Añadir jugador scouted</h2>
+<h2 class="text-gradient mb-4" style="font-size:1.4rem;">
+  {% if edit %}Editar{% else %}Añadir{% endif %} jugador scouted
+</h2>
 
-{% if error %}
-<div class="alert alert-danger py-2 mb-3" style="font-size:.85rem;">{{ error }}</div>
-{% endif %}
+{% if error %}<div class="alert alert-danger py-2 mb-3" style="font-size:.85rem;">{{ error }}</div>{% endif %}
 
 <form method="post" class="scout-form">
   {% csrf_token %}
@@ -33,25 +27,46 @@
   <div class="mb-4">
     <div class="form-label-kb">Identificador</div>
     <input type="text" name="identifier" class="form-control-kb"
-           placeholder="Ej. Ocelote, Nemesis, JGL Enemigo" required>
-    <div class="hint">Nombre interno tuyo para identificar a este jugador.</div>
+           placeholder="Ej. Ocelote, Nemesis, JGL Enemigo"
+           value="{{ player.identifier|default:'' }}" required>
+    <div class="hint">Nombre interno para identificar a este jugador.</div>
   </div>
 
   <div class="mb-4">
-    <div class="form-label-kb">Riot IDs</div>
+    <div class="form-label-kb">Rol a analizar</div>
+    <select name="preferred_role" class="form-select-kb">
+      {% for value, label in role_choices %}
+        <option value="{{ value }}"
+          {% if player.preferred_role == value %}selected{% endif %}>
+          {{ label }}
+        </option>
+      {% endfor %}
+    </select>
+    <div class="hint">
+      Solo se guardarán partidas donde el jugador haya jugado este rol.
+      Elige <em>Todos los roles</em> para no filtrar.
+    </div>
+  </div>
+
+  <div class="mb-4">
+    <div class="form-label-kb">
+      Riot IDs
+      {% if edit %}<span style="color:#4b5563;font-weight:400;">(añade nuevas cuentas; las existentes no se eliminan)</span>{% endif %}
+    </div>
     <textarea name="riot_ids" class="form-control-kb" rows="5"
               placeholder="GameName#TAG&#10;SmurfName#EUW&#10;AltAccount#000"
               style="resize:vertical;"></textarea>
-    <div class="hint">Un Riot ID por línea. El primero se marca como cuenta principal.</div>
+    <div class="hint">Un Riot ID por línea.{% if not edit %} El primero se marca como cuenta principal.{% endif %}</div>
   </div>
 
   <div class="mb-4">
     <div class="form-label-kb">Notas <span style="color:#4b5563;">(opcional)</span></div>
     <textarea name="notes" class="form-control-kb" rows="3"
-              placeholder="Rol principal, equipo, observaciones…" style="resize:vertical;"></textarea>
+              style="resize:vertical;">{{ player.notes|default:'' }}</textarea>
   </div>
 
-  <button type="submit" class="btn btn-primary px-4">Guardar jugador</button>
-  <a href="{% url 'scouting_home' %}" class="btn btn-outline-secondary ms-2">Cancelar</a>
+  <button type="submit" class="btn btn-primary px-4">Guardar</button>
+  <a href="{% if edit %}{% url 'scouting_detail' player.pk %}{% else %}{% url 'scouting_home' %}{% endif %}"
+     class="btn btn-outline-secondary ms-2">Cancelar</a>
 </form>
 {% endblock %}

@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ match.champion_name }} · {{ match.match_id }} · KBStats</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>{{ kbstats_css|safe }}</style>
+<style>
+.section-card { background:#0b1220; border:1px solid #1f2937; border-radius:.6rem; padding:1.25rem; margin-bottom:1.5rem; }
+.section-title { font-size:.7rem; text-transform:uppercase; letter-spacing:.1em; color:#6b7280; margin-bottom:.9rem; }
+.heatmap-wrap { position:relative; width:700px; height:700px; border:1px solid #1f2937; border-radius:.5rem; overflow:hidden; flex-shrink:0; }
+.heatmap-wrap::before { content:''; position:absolute; inset:0; background-image:var(--hm-map-url,none); background-size:700px 700px; background-repeat:no-repeat; opacity:0.5; z-index:0; }
+.zone-bar-track { height:8px; background:#1f2937; border-radius:4px; overflow:hidden; flex:1; }
+.zone-bar-fill { height:100%; border-radius:4px; }
+.stat-big { font-size:2rem; font-weight:700; }
+.kill-row { font-size:.78rem; color:#d1d5db; padding:.35rem 0; border-bottom:1px solid #0d1424; display:flex; gap:.8rem; align-items:center; }
+.kill-row:last-child { border-bottom:none; }
+.time-slider-section { margin-top:1rem; padding-top:.75rem; border-top:1px solid #1f2937; }
+.time-slider-label { display:flex; justify-content:space-between; align-items:center; margin-bottom:.5rem; font-size:.72rem; color:#9ca3af; text-transform:uppercase; letter-spacing:.07em; }
+.time-current { color:#22d3ee; font-weight:600; font-size:.85rem; font-variant-numeric:tabular-nums; }
+#time-slider { -webkit-appearance:none; appearance:none; width:100%; height:5px; border-radius:3px; background:#1f2937; outline:none; cursor:pointer; }
+#time-slider::-webkit-slider-thumb { -webkit-appearance:none; width:16px; height:16px; border-radius:50%; background:#22d3ee; cursor:pointer; border:2px solid #0b1220; }
+.time-slider-ticks { display:flex; justify-content:space-between; font-size:.62rem; color:#4b5563; margin-top:.4rem; }
+</style>
+</head>
+<body class="wrapper">
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+  <div class="container-fluid">
+    <a class="navbar-brand d-flex align-items-center fs-3" href="../index.html">KB Stats</a>
+    <span style="font-size:.78rem;color:#6b7280;">Scouting Export · {{ export_date }}</span>
+  </div>
+</nav>
+
+<main class="container">
+
+<div class="mb-3" style="font-size:.82rem;color:#6b7280;">
+  <a href="../index.html" style="color:#6b7280;">Scouting</a> ·
+  <a href="../index.html" style="color:#6b7280;">{{ player.identifier }}</a> · Jungla
+</div>
+
+<h2 class="text-gradient mb-1" style="font-size:1.4rem;">{{ match.champion_name }} — {{ match.match_id }}</h2>
+<div style="font-size:.78rem;color:#6b7280;margin-bottom:1.5rem;">
+  <span style="background:#111827;border:1px solid #374151;border-radius:.3rem;padding:.12rem .5rem;">{{ match.account.riot_id }}</span>
+  · {% if match.win %}<span style="color:#4ade80;">Victoria</span>{% else %}<span style="color:#f87171;">Derrota</span>{% endif %}
+  · {{ match.kills }}/{{ match.deaths }}/{{ match.assists }}
+  {% if match.game_start_dt %}· {{ match.game_start_dt|date:"d/m/Y" }}{% endif %}
+</div>
+
+<!-- Stats rápidos -->
+{% if stats %}
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-3">
+    <div class="section-card text-center">
+      <div class="section-title mb-1">Lado inicio</div>
+      {% if stats.starting_side == 'own' %}<div class="stat-big" style="color:#60a5fa;">PROPIA</div>
+      {% elif stats.starting_side == 'enemy' %}<div class="stat-big" style="color:#f87171;">ENEMIGA</div>
+      {% elif stats.starting_side == 'blue' %}<div class="stat-big" style="color:#60a5fa;">AZUL</div>
+      {% else %}<div class="stat-big" style="color:#f87171;">ROJO</div>{% endif %}
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="section-card text-center">
+      <div class="section-title mb-1">Invasión</div>
+      <div class="stat-big" style="color:{% if stats.invasion_pct > 15 %}#f87171{% else %}#22d3ee{% endif %};">{{ stats.invasion_pct }}%</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="section-card text-center">
+      <div class="section-title mb-1">Ganks</div>
+      <div class="stat-big" style="color:#e5e7eb;">{{ stats.gank_count }}</div>
+      <div style="font-size:.7rem;color:#6b7280;">{{ stats.gank_kills }} kills</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="section-card text-center">
+      <div class="section-title mb-1">KDA partida</div>
+      <div class="stat-big" style="color:#e5e7eb;">{{ match.kda }}</div>
+    </div>
+  </div>
+  {% if pathing_side %}
+  <div class="col-6 col-md-3">
+    <div class="section-card text-center">
+      <div class="section-title mb-1">Pathing</div>
+      {% if pathing_side == 'top' %}
+        <div class="stat-big" style="color:#a78bfa;">TOP</div>
+      {% else %}
+        <div class="stat-big" style="color:#fb923c;">BOT</div>
+      {% endif %}
+      <div style="margin-top:.5rem;display:flex;align-items:center;gap:4px;justify-content:center;">
+        <div style="height:6px;border-radius:3px 0 0 3px;background:#a78bfa;width:{{ pathing_top }}px;max-width:60px;opacity:{% if pathing_side == 'top' %}1{% else %}0.35{% endif %};"></div>
+        <div style="height:6px;border-radius:0 3px 3px 0;background:#fb923c;width:{{ pathing_bot }}px;max-width:60px;opacity:{% if pathing_side == 'bot' %}1{% else %}0.35{% endif %};"></div>
+      </div>
+      <div style="font-size:.65rem;color:#6b7280;margin-top:.3rem;">
+        <span style="color:#a78bfa;">T {{ pathing_top }}%</span>
+        &nbsp;/&nbsp;
+        <span style="color:#fb923c;">B {{ pathing_bot }}%</span>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
+<div class="d-flex gap-4 flex-wrap align-items-start">
+  <!-- Heatmap -->
+  <div>
+    <div class="section-card" style="padding:.75rem;">
+      <div class="section-title">Mapa de posiciones</div>
+      <div id="heatmap-container">
+        <div style="color:#6b7280;padding:2rem;text-align:center;">Cargando…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Panel stats -->
+  <div style="flex:1;min-width:280px;">
+    {% if zone_dist %}
+    <div class="section-card">
+      <div class="section-title">Distribución de zonas (partida completa)</div>
+      {% for z in zone_dist %}
+      <div class="d-flex align-items-center gap-2 mb-2" style="font-size:.78rem;">
+        <span style="min-width:90px;color:#d1d5db;">{{ z.label }}</span>
+        <div class="zone-bar-track"><div class="zone-bar-fill" style="width:{{ z.pct }}%;background:{{ z.color }};"></div></div>
+        <span style="min-width:38px;text-align:right;color:#9ca3af;">{{ z.pct }}%</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if early_dist %}
+    <div class="section-card">
+      <div class="section-title">Early game (primeros 10 min)</div>
+      {% for z in early_dist %}
+      <div class="d-flex align-items-center gap-2 mb-2" style="font-size:.78rem;">
+        <span style="min-width:90px;color:#d1d5db;">{{ z.label }}</span>
+        <div class="zone-bar-track"><div class="zone-bar-fill" style="width:{{ z.pct }}%;background:{{ z.color }};"></div></div>
+        <span style="min-width:38px;text-align:right;color:#9ca3af;">{{ z.pct }}%</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if kills %}
+    <div class="section-card">
+      <div class="section-title">Kills / Ganks ({{ kills|length }})</div>
+      {% for k in kills %}
+      <div class="kill-row">
+        <span style="color:#6b7280;font-variant-numeric:tabular-nums;min-width:38px;">{{ k.time_str }}</span>
+        <span style="{% if k.kill %}color:#4ade80;{% else %}color:#facc15;{% endif %}">{% if k.kill %}Kill{% else %}Assist{% endif %}</span>
+        <span>{{ k.victim_champion }}</span>
+        <span style="color:#6b7280;">{{ k.zone_label }}</span>
+        {% if k.is_gank %}<span style="color:#f97316;font-size:.68rem;">GANK</span>{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+</main>
+
+<!-- heatmap.js embebido -->
+{% if heatmap_js %}
+<script>{{ heatmap_js|safe }}</script>
+{% else %}
+<script src="https://cdn.jsdelivr.net/npm/heatmap.js@2.0.5/build/heatmap.min.js"></script>
+{% endif %}
+
+<script>
+(function () {
+  // Imagen del mapa embebida en base64
+  const _MAP_B64 = {{ map_b64_json|safe }};
+  if (_MAP_B64) {
+    document.documentElement.style.setProperty('--hm-map-url', 'url("' + _MAP_B64 + '")');
+  }
+
+  const MAP_SIZE  = 700;
+  const LOL_MAX   = 14820;
+  const TEAM      = {{ team }};
+  const WINDOW_MS = 30000;
+
+  const HEAT_CFG = TEAM === 100
+    ? { maxOpacity:.85, radius:22, blur:.85, gradient:{0.2:'#001eff',0.5:'#00aaff',0.75:'#00eeff',1.0:'#ffffff'} }
+    : { maxOpacity:.85, radius:22, blur:.85, gradient:{0.2:'#cc0000',0.5:'#ff4400',0.75:'#ff9900',1.0:'#ffffff'} };
+
+  // Datos de posición embebidos directamente (sin fetch al servidor)
+  const allData = {
+    players: {
+      '1': {
+        name:      "{{ match.account.riot_id|escapejs }}",
+        team:      TEAM,
+        positions: {{ positions_json|safe }},
+      }
+    }
+  };
+
+  let heat = null;
+  let sliderMode = false, sliderTime = 0, maxTime = 0;
+
+  const toCanvas = (x, y) => ({
+    cx: Math.round((x / LOL_MAX) * MAP_SIZE),
+    cy: Math.round((1 - y / LOL_MAX) * MAP_SIZE),
+  });
+
+  const fmtTime = sec => `${Math.floor(sec/60)}:${(sec%60).toString().padStart(2,'0')}`;
+
+  function closestPosition(positions, timeMs) {
+    if (!positions || positions.length === 0) return null;
+    let best = null, bestDt = Infinity;
+    for (const pos of positions) {
+      const t = pos.length >= 3 ? pos[2] : 0;
+      const dt = Math.abs(t - timeMs);
+      if (dt < bestDt) { best = pos; bestDt = dt; }
+      if (t > timeMs + 120000) break;
+    }
+    return best;
+  }
+
+  function drawJunglerDot() {
+    const canvas = document.getElementById('pos-overlay');
+    if (!canvas || !allData) return;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, MAP_SIZE, MAP_SIZE);
+    if (!sliderMode) return;
+    const pos = closestPosition(allData.players['1'].positions, sliderTime);
+    if (!pos) return;
+    const { cx, cy } = toCanvas(pos[0], pos[1]);
+    const col = TEAM === 100 ? '#60a5fa' : '#f87171';
+    const R = 14;
+    ctx.save();
+    ctx.shadowColor = col; ctx.shadowBlur = 12;
+    ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2);
+    ctx.fillStyle = col + 'cc'; ctx.fill();
+    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2.5; ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#ffffff'; ctx.font = 'bold 12px sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('J', cx, cy);
+    ctx.restore();
+  }
+
+  function buildPoints() {
+    const positions = allData.players['1'].positions;
+    const pts = [];
+    const tMin = sliderMode ? Math.max(0, sliderTime - WINDOW_MS) : 0;
+    const tMax = sliderMode ? sliderTime + WINDOW_MS : Infinity;
+    positions.forEach((pos, i) => {
+      const t = pos.length >= 3 ? pos[2] : i * 60000;
+      if (t < tMin || t >= tMax) return;
+      const {cx, cy} = toCanvas(pos[0], pos[1]);
+      pts.push({x: cx, y: cy, value: 1});
+    });
+    return pts;
+  }
+
+  function render() {
+    if (!heat || !allData) return;
+    heat.setData({max: 6, data: buildPoints()});
+    drawJunglerDot();
+  }
+
+  function buildUI() {
+    const container = document.getElementById('heatmap-container');
+    container.innerHTML = '';
+    const wrap = document.createElement('div');
+    wrap.className = 'heatmap-wrap';
+    container.appendChild(wrap);          // append BEFORE h337.create
+    heat = h337.create({container: wrap, ...HEAT_CFG});
+
+    const posCanvas = document.createElement('canvas');
+    posCanvas.id = 'pos-overlay';
+    posCanvas.width = MAP_SIZE; posCanvas.height = MAP_SIZE;
+    posCanvas.style.cssText = 'position:absolute;top:0;left:0;z-index:11;pointer-events:none;';
+    wrap.appendChild(posCanvas);
+
+    maxTime = 0;
+    allData.players['1'].positions.forEach(p => { if (p.length >= 3) maxTime = Math.max(maxTime, p[2]); });
+    const maxSec = Math.ceil(maxTime / 1000);
+
+    const sl = document.createElement('div');
+    sl.className = 'time-slider-section';
+    const q1 = Math.round(maxSec/4), q2 = Math.round(maxSec/2), q3 = Math.round(3*maxSec/4);
+    sl.innerHTML = `
+      <div class="time-slider-label">
+        <span>Línea de tiempo <span style="color:#4b5563;font-size:.65rem;">(±30s)</span></span>
+        <span class="time-current" id="time-display">— todo</span>
+      </div>
+      <input type="range" id="time-slider" min="0" max="${maxSec}" value="0" step="5">
+      <div class="time-slider-ticks">
+        <span>0:00</span><span>${fmtTime(q1)}</span><span>${fmtTime(q2)}</span><span>${fmtTime(q3)}</span><span>${fmtTime(maxSec)}</span>
+      </div>`;
+    container.appendChild(sl);
+
+    document.getElementById('time-slider').addEventListener('input', function () {
+      const sec = parseInt(this.value);
+      sliderTime = sec * 1000;
+      sliderMode = true;
+      document.getElementById('time-display').textContent = fmtTime(sec);
+      render();
+    });
+
+    render();
+  }
+
+  // Inicializar directamente con datos embebidos (sin fetch)
+  document.addEventListener('DOMContentLoaded', buildUI);
+})();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -110,10 +110,21 @@ class StatsJugador(models.Model):
 
 # ── Scouting ──────────────────────────────────────────────────────────────────
 
+ROLE_CHOICES = [
+	('',        'Todos los roles'),
+	('TOP',     'Top'),
+	('JUNGLE',  'Jungla'),
+	('MIDDLE',  'Mid'),
+	('BOTTOM',  'Bot (ADC)'),
+	('UTILITY', 'Support'),
+]
+
+
 class ScoutedPlayer(models.Model):
-	identifier = models.CharField(max_length=100, unique=True)
-	notes      = models.TextField(blank=True)
-	created_at = models.DateTimeField(auto_now_add=True)
+	identifier     = models.CharField(max_length=100, unique=True)
+	preferred_role = models.CharField(max_length=20, blank=True, choices=ROLE_CHOICES)
+	notes          = models.TextField(blank=True)
+	created_at     = models.DateTimeField(auto_now_add=True)
 
 	class Meta:
 		ordering            = ['identifier']
@@ -123,10 +134,14 @@ class ScoutedPlayer(models.Model):
 	def __str__(self):
 		return self.identifier
 
+	@property
+	def role_label(self):
+		return dict(ROLE_CHOICES).get(self.preferred_role, 'Todos los roles')
+
 
 class PlayerAccount(models.Model):
 	player       = models.ForeignKey(ScoutedPlayer, on_delete=models.CASCADE, related_name='accounts')
-	riot_id      = models.CharField(max_length=100)   # "GameName#TAG"
+	riot_id      = models.CharField(max_length=100)
 	puuid        = models.CharField(max_length=200, blank=True)
 	is_main      = models.BooleanField(default=False)
 	last_fetched = models.DateTimeField(null=True, blank=True)
@@ -137,18 +152,17 @@ class PlayerAccount(models.Model):
 		verbose_name_plural = 'Cuentas'
 
 	def __str__(self):
-		suffix = ' (main)' if self.is_main else ''
-		return f'{self.riot_id}{suffix}'
+		return f'{self.riot_id}{" (main)" if self.is_main else ""}'
 
 
 class ScoutedMatch(models.Model):
 	account       = models.ForeignKey(PlayerAccount, on_delete=models.CASCADE, related_name='scouted_matches')
 	match_id      = models.CharField(max_length=50)
-	game_start    = models.BigIntegerField(default=0)   # epoch ms
-	game_duration = models.IntegerField(default=0)      # seconds
+	game_start    = models.BigIntegerField(default=0)
+	game_duration = models.IntegerField(default=0)
 	queue_id      = models.IntegerField(default=0)
 	champion_name = models.CharField(max_length=50)
-	role          = models.CharField(max_length=20, blank=True)  # teamPosition
+	role          = models.CharField(max_length=20, blank=True)
 	team_id       = models.IntegerField(default=100)
 	win           = models.BooleanField(default=False)
 	kills         = models.IntegerField(default=0)
@@ -158,10 +172,8 @@ class ScoutedMatch(models.Model):
 	vision_score  = models.IntegerField(default=0)
 	damage_dealt  = models.IntegerField(default=0)
 	gold_earned   = models.IntegerField(default=0)
-	# Jungle-only: positions [[x,y,t],...] + analysis stats
 	position_data = models.JSONField(null=True, blank=True)
 	jungle_stats  = models.JSONField(null=True, blank=True)
-	# Lightweight participant list for cross-reference
 	participants  = models.JSONField(null=True, blank=True)
 
 	class Meta:
@@ -181,3 +193,4 @@ class ScoutedMatch(models.Model):
 	def game_start_dt(self):
 		from datetime import datetime
 		return datetime.fromtimestamp(self.game_start / 1000) if self.game_start else None
+

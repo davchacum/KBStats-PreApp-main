@@ -1,27 +1,13 @@
 {% extends 'Cinturones/base.html' %}
 {% block extra_css %}
 <style>
-.scout-card {
-  background: #0b1220;
-  border: 1px solid #1f2937;
-  border-radius: .6rem;
-  padding: 1.1rem 1.25rem;
-  transition: border-color .15s;
-}
-.scout-card:hover { border-color: #22d3ee; }
-.scout-id { font-size: 1.05rem; font-weight: 600; color: #e5e7eb; }
-.scout-meta { font-size: .75rem; color: #6b7280; margin-top: .25rem; }
-.badge-account {
-  display: inline-block;
-  background: #111827;
-  border: 1px solid #374151;
-  border-radius: .3rem;
-  padding: .15rem .5rem;
-  font-size: .72rem;
-  color: #9ca3af;
-  margin: .15rem .2rem 0 0;
-}
-.badge-account.main { border-color: #22d3ee; color: #22d3ee; }
+.scout-card { background:#0b1220; border:1px solid #1f2937; border-radius:.6rem; padding:1.1rem 1.25rem; transition:border-color .15s; }
+.scout-card:hover { border-color:#22d3ee; }
+.scout-id { font-size:1.05rem; font-weight:600; color:#e5e7eb; }
+.scout-meta { font-size:.75rem; color:#6b7280; margin-top:.25rem; }
+.badge-account { display:inline-block; background:#111827; border:1px solid #374151; border-radius:.3rem; padding:.15rem .5rem; font-size:.72rem; color:#9ca3af; margin:.15rem .2rem 0 0; }
+.badge-account.main { border-color:#22d3ee; color:#22d3ee; }
+.role-tag { display:inline-block; background:#1e1b4b; border:1px solid #4338ca; border-radius:.3rem; padding:.1rem .45rem; font-size:.68rem; color:#a5b4fc; margin-left:.25rem; }
 </style>
 {% endblock %}
 
@@ -37,10 +23,11 @@
   <div class="col-12 col-md-6 col-lg-4">
     <a href="{% url 'scouting_detail' p.pk %}" class="text-decoration-none">
       <div class="scout-card">
-        <div class="scout-id">{{ p.identifier }}</div>
-        <div class="scout-meta">
-          {{ p.match_count }} partida{{ p.match_count|pluralize }} cargada{{ p.match_count|pluralize }}
+        <div class="scout-id">
+          {{ p.identifier }}
+          {% if p.preferred_role %}<span class="role-tag">{{ p.role_label }}</span>{% endif %}
         </div>
+        <div class="scout-meta">{{ p.match_count }} partida{{ p.match_count|pluralize }} cargada{{ p.match_count|pluralize }}</div>
         <div class="mt-2">
           {% for acc in p.accounts.all %}
             <span class="badge-account {% if acc.is_main %}main{% endif %}">
@@ -48,9 +35,7 @@
             </span>
           {% endfor %}
         </div>
-        {% if p.notes %}
-          <div class="mt-2" style="font-size:.73rem;color:#4b5563;">{{ p.notes }}</div>
-        {% endif %}
+        {% if p.notes %}<div class="mt-2" style="font-size:.73rem;color:#4b5563;">{{ p.notes }}</div>{% endif %}
       </div>
     </a>
   </div>
@@ -58,7 +43,7 @@
 </div>
 {% else %}
 <div class="text-center" style="color:#4b5563;padding:3rem 0;">
-  <p style="font-size:1rem;">No hay jugadores scouted todavía.</p>
+  <p>No hay jugadores scouted todavía.</p>
   <a href="{% url 'scouting_add' %}" class="btn btn-primary mt-2">Añadir el primero</a>
 </div>
 {% endif %}
