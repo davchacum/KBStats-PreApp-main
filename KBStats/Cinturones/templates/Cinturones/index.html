@@ -57,19 +57,42 @@
     <a
       class="btn btn-lg px-4"
       href="{% url 'kblix:index' %}"
-      style="background:#1f6feb; color:#fff; font-weight:700; letter-spacing:2px;"
+      style="
+        background: #1f6feb;
+        color: #fff;
+        font-weight: 700;
+        letter-spacing: 2px;
+      "
     >
       KBLIX
     </a>
 
-    <!-- FUNCIONALIDAD DE AÑADIR PARTIDA DESACTIVADA POR SEGURIDAD -->
-    <!--
-    {% if request.user.is_superuser %}
+    <a
+      class="btn btn-lg px-5 mt-3 d-block mx-auto"
+      href="{% url 'ladder' %}"
+      style="
+        background: linear-gradient(90deg, #22d3ee, #6366f1);
+        color: #fff;
+        font-weight: 800;
+        font-size: 1.3rem;
+        letter-spacing: 3px;
+        border: none;
+        border-radius: 0.6rem;
+        box-shadow:
+          0 0 24px rgba(34, 211, 238, 0.35),
+          0 0 48px rgba(99, 102, 241, 0.2);
+        max-width: 320px;
+      "
+    >
+      🏆 LADDER
+    </a>
+
+    {% comment %} FUNCIONALIDAD DE AÑADIR PARTIDA DESACTIVADA POR SEGURIDAD {%
+    if request.user.is_superuser %}
     <a class="btn btn-success btn-lg px-4" href="{% url 'add_partida' %}">
       Añadir partida (admin)
     </a>
-    {% endif %}
-    -->
+    {% endif %} {% endcomment %}
   </div>
 </div>
 {% endblock %}

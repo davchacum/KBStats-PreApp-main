@@ -50,14 +50,12 @@ ALLOWED_HOSTS = ['kbstats-preapp-main.onrender.com', 'www.kbstats.es', 'kbstats.
 
 
 # Application definition
-# APPS DE ADMIN/AUTH DESACTIVADAS POR SEGURIDAD - Aplicación totalmente estática
 INSTALLED_APPS = [
-    'daphne',  # ASGI server — debe ir primero para reemplazar runserver
-    # 'django.contrib.admin',  # DESACTIVADO
-    # 'django.contrib.auth',  # DESACTIVADO
+    'daphne',
+    'django.contrib.auth',
     'django.contrib.contenttypes',
-    # 'django.contrib.sessions',  # DESACTIVADO
-    # 'django.contrib.messages',  # DESACTIVADO
+    'django.contrib.sessions',
+    'django.contrib.messages',
     'django.contrib.staticfiles',
     'channels',
     'KBStats.Cinturones',
@@ -67,11 +65,11 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
-    # 'django.contrib.sessions.middleware.SessionMiddleware',  # DESACTIVADO
+    'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
-    # 'django.contrib.auth.middleware.AuthenticationMiddleware',  # DESACTIVADO
-    # 'django.contrib.messages.middleware.MessageMiddleware',  # DESACTIVADO
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
@@ -85,8 +83,8 @@ TEMPLATES = [
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.request',
-                # 'django.contrib.auth.context_processors.auth',  # DESACTIVADO
-                # 'django.contrib.messages.context_processors.messages',  # DESACTIVADO
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
             ],
         },
     },
@@ -134,6 +132,10 @@ DATABASES = {
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
+
+LOGIN_URL          = '/login/'
+LOGIN_REDIRECT_URL = '/ladder/configurar/'
+LOGOUT_REDIRECT_URL = '/'
 
 LANGUAGE_CODE = 'en-us'
 

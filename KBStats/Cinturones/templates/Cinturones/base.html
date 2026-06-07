@@ -34,6 +34,14 @@
         <div class="d-flex gap-3 ms-auto align-items-center">
           <a class="nav-link text-secondary" href="{% url 'promedios_jugadores' %}?format=html" style="font-size:0.85rem;">Promedios</a>
           <a class="nav-link text-secondary" href="{% url 'tier_list' %}" style="font-size:0.85rem;">Tier List</a>
+          <a class="nav-link text-secondary" href="{% url 'ladder' %}" style="font-size:0.85rem;">Ladder</a>
+          {% if user.is_superuser %}
+          <a class="nav-link" href="{% url 'ladder_config' %}" style="font-size:0.85rem;color:#22d3ee;">⚙ Admin</a>
+          <form method="post" action="{% url 'logout' %}" style="display:inline;margin:0;">
+            {% csrf_token %}
+            <button type="submit" class="nav-link btn btn-link" style="font-size:0.82rem;color:#6b7280;padding:0;border:none;background:none;cursor:pointer;">Salir</button>
+          </form>
+          {% endif %}
         </div>
       </div>
     </nav>

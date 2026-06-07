@@ -1,0 +1,159 @@
+{% extends 'Cinturones/base.html' %}
+{% block extra_css %}
+<style>
+.section-card { background:#0b1220; border:1px solid #1f2937; border-radius:.6rem; padding:1.25rem; margin-bottom:1.5rem; }
+.ladder-table { width:100%; border-collapse:collapse; font-size:.82rem; }
+.ladder-table th { color:#4b5563; font-weight:500; text-transform:uppercase; font-size:.65rem; letter-spacing:.07em; padding:.45rem .75rem; border-bottom:2px solid #1f2937; white-space:nowrap; }
+.ladder-table td { padding:.5rem .75rem; border-bottom:1px solid #0d1424; color:#d1d5db; vertical-align:middle; }
+.ladder-table tr:hover td { background:#0f1828; }
+.pos-cell { font-weight:700; font-size:.9rem; min-width:36px; text-align:center; }
+.pos-1 { color:#fbbf24; } .pos-2 { color:#9ca3af; } .pos-3 { color:#b45309; }
+.tier-badge { display:inline-flex; align-items:center; gap:.4rem; font-weight:600; font-size:.83rem; }
+.tier-dot { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+.tier-CHALLENGER  { color:#fbbf24; } .dot-CHALLENGER  { background:#fbbf24; box-shadow:0 0 6px #fbbf24; }
+.tier-GRANDMASTER { color:#f43f5e; } .dot-GRANDMASTER { background:#f43f5e; }
+.tier-MASTER      { color:#c084fc; } .dot-MASTER      { background:#c084fc; }
+.tier-DIAMOND     { color:#818cf8; } .dot-DIAMOND     { background:#818cf8; }
+.tier-EMERALD     { color:#22c55e; } .dot-EMERALD     { background:#22c55e; }
+.tier-PLATINUM    { color:#14b8a6; } .dot-PLATINUM    { background:#14b8a6; }
+.tier-GOLD        { color:#d97706; } .dot-GOLD        { background:#d97706; }
+.tier-SILVER      { color:#94a3b8; } .dot-SILVER      { background:#94a3b8; }
+.tier-BRONZE      { color:#a16207; } .dot-BRONZE      { background:#92400e; }
+.tier-IRON        { color:#6b7280; } .dot-IRON        { background:#6b7280; }
+.tier-UNRANKED    { color:#374151; } .dot-UNRANKED    { background:#374151; }
+.tier-none        { color:#1f2937; } .dot-none        { background:#1f2937; }
+.wr-good { color:#4ade80; font-weight:600; }
+.wr-ok   { color:#facc15; font-weight:600; }
+.wr-bad  { color:#f87171; font-weight:600; }
+.rol-badge { display:inline-block; border-radius:.25rem; padding:.1rem .4rem; font-size:.68rem; font-weight:600; letter-spacing:.04em; }
+.rol-TOP     { background:#1e1b4b; color:#a78bfa; border:1px solid #4338ca; }
+.rol-JUNGLE  { background:#052e16; color:#4ade80; border:1px solid #16a34a; }
+.rol-MID     { background:#713f12; color:#fcd34d; border:1px solid #d97706; }
+.rol-ADC     { background:#450a0a; color:#f87171; border:1px solid #dc2626; }
+.rol-SUPPORT { background:#0c4a6e; color:#7dd3fc; border:1px solid #0284c7; }
+.filter-select { background:#111827; border:1px solid #374151; color:#e5e7eb; border-radius:.3rem; padding:.3rem .65rem; font-size:.78rem; cursor:pointer; }
+.filter-select:focus { outline:none; border-color:#22d3ee; }
+.update-bar { height:4px; border-radius:2px; background:linear-gradient(90deg,#22d3ee,#6366f1); transition:width .4s; }
+.update-bar-track { height:4px; background:#1f2937; border-radius:2px; overflow:hidden; }
+.name-cell { font-weight:600; color:#e5e7eb; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Header -->
+<div class="d-flex align-items-start justify-content-between flex-wrap gap-2 mb-4">
+  <div>
+    <h2 class="text-gradient mb-1" style="font-size:1.6rem;">Ladder KB</h2>
+    <div style="font-size:.78rem;color:#6b7280;">Ranked Solo/Duo · EUW</div>
+  </div>
+  <div class="d-flex align-items-center gap-3">
+    <div style="text-align:right;">
+      <div id="update-label" style="font-size:.72rem;margin-bottom:.3rem;color:{% if state.is_updating %}#22d3ee{% else %}#4b5563{% endif %};">
+        {% if state.is_updating %}Actualizando… {{ state.update_progress }}%
+        {% elif state.last_update %}Actualizado {{ state.last_update|timesince }} ago
+        {% else %}Sin actualizar aún{% endif %}
+      </div>
+      <div id="upd-bar-track" style="width:180px;display:{% if state.is_updating %}''{% else %}none{% endif %};" class="update-bar-track">
+        <div class="update-bar" id="upd-bar" style="width:{{ state.update_progress }}%;"></div>
+      </div>
+    </div>
+    {% if user.is_superuser %}<a href="{% url 'ladder_config' %}" class="btn btn-sm" style="border:1px solid #374151;color:#9ca3af;background:transparent;font-size:.75rem;">⚙ Configurar</a>{% endif %}
+  </div>
+</div>
+
+<!-- Filtros + ordenación -->
+<form method="get" class="d-flex align-items-center flex-wrap gap-2 mb-3" id="filter-form">
+  <input type="hidden" name="sort" value="{{ sort }}">
+  <input type="hidden" name="dir"  value="{{ sort_dir }}">
+  <select name="equipo" class="filter-select" onchange="this.form.submit()">
+    <option value="">Todos los equipos</option>
+    {% for e in all_teams %}
+    <option value="{{ e }}" {% if equipo_filter == e %}selected{% endif %}>{{ e }}</option>
+    {% endfor %}
+  </select>
+  <select name="rol" class="filter-select" onchange="this.form.submit()">
+    <option value="">Todos los roles</option>
+    {% for val, label in rol_choices %}
+    <option value="{{ val }}" {% if rol_filter == val %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  {% if equipo_filter or rol_filter or sort != 'rank' %}
+  <a href="{% url 'ladder' %}" style="font-size:.75rem;color:#6b7280;">✕ Limpiar</a>
+  {% endif %}
+  <span style="font-size:.72rem;color:#4b5563;margin-left:auto;">{{ players|length }} jugador{{ players|length|pluralize }}</span>
+</form>
+
+<!-- Tabla -->
+{% if players %}
+<div class="section-card" style="padding:.75rem;">
+  <div style="overflow-x:auto;">
+    <table class="ladder-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Jugador</th>
+          <th>{% include 'Kblix/_sort_th.html' with col='rank' label='Tier' %}</th>
+          <th>{% include 'Kblix/_sort_th.html' with col='wins' label='V' %} / {% include 'Kblix/_sort_th.html' with col='losses' label='D' %}</th>
+          <th>{% include 'Kblix/_sort_th.html' with col='games' label='Partidas' %}</th>
+          <th>{% include 'Kblix/_sort_th.html' with col='winrate' label='WR' %}</th>
+          <th>Equipo</th>
+          <th>Rol</th>
+        </tr>
+      </thead>
+      <tbody id="ladder-tbody">
+        {% include 'Kblix/_ladder_rows.html' %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="section-card" style="color:#6b7280;text-align:center;padding:2.5rem;">
+  {% if equipo_filter or rol_filter %}
+  No hay jugadores con los filtros seleccionados.
+  {% else %}
+  Aún no hay jugadores en el ladder. <a href="{% url 'ladder_config' %}" style="color:#22d3ee;">Configurar →</a>
+  {% endif %}
+</div>
+{% endif %}
+
+<script>
+(function () {
+  const PARTIAL_QS = '?sort={{ sort }}&dir={{ sort_dir }}{% if equipo_filter %}&equipo={{ equipo_filter|urlencode }}{% endif %}{% if rol_filter %}&rol={{ rol_filter }}{% endif %}';
+
+  function setLabel(text, color) {
+    const el = document.getElementById('update-label');
+    if (el) { el.textContent = text; el.style.color = color; }
+  }
+  function setBar(pct, visible) {
+    const track = document.getElementById('upd-bar-track');
+    const bar   = document.getElementById('upd-bar');
+    if (track) track.style.display = visible ? '' : 'none';
+    if (bar)   bar.style.width = pct + '%';
+  }
+  async function refreshTable() {
+    try {
+      const r = await fetch('/ladder/partial/' + PARTIAL_QS);
+      if (r.ok) document.getElementById('ladder-tbody').innerHTML = await r.text();
+    } catch {}
+  }
+
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const ws = new WebSocket(proto + '//' + location.host + '/ws/ladder/');
+
+  ws.onmessage = async function (e) {
+    const d = JSON.parse(e.data);
+    if (d.done) {
+      await refreshTable();
+      setLabel('Actualizado ✓', '#4ade80');
+      setBar(100, false);
+      setTimeout(() => setLabel('Actualizado hace un momento', '#4b5563'), 3000);
+    } else {
+      setLabel(`Actualizando… ${d.progress}% — ${d.nombre}`, '#22d3ee');
+      setBar(d.progress, true);
+      await refreshTable();
+    }
+  };
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,35 @@
+{% for p in players %}
+{% with tier=p.tier|default:"none" pos=forloop.counter %}
+<tr>
+  <td class="pos-cell {% if pos == 1 %}pos-1{% elif pos == 2 %}pos-2{% elif pos == 3 %}pos-3{% endif %}">{{ pos }}</td>
+  <td class="name-cell">{{ p.nombre }}</td>
+  <td>
+    <span class="tier-badge tier-{{ tier }}">
+      <span class="tier-dot dot-{{ tier }}"></span>
+      {{ p.rank_display }}
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    {% if p.tier and p.tier != 'UNRANKED' %}
+    <span style="color:#4ade80;">{{ p.wins }}V</span> / <span style="color:#f87171;">{{ p.losses }}D</span>
+    {% else %}—{% endif %}
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    {% if p.tier and p.tier != 'UNRANKED' %}{{ p.total_games }}{% else %}—{% endif %}
+  </td>
+  <td>
+    {% if p.winrate is not None %}
+    <span class="{% if p.winrate >= 55 %}wr-good{% elif p.winrate >= 48 %}wr-ok{% else %}wr-bad{% endif %}">{{ p.winrate }}%</span>
+    {% else %}—{% endif %}
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">{{ p.display_team }}</td>
+  <td>
+    {% if p.display_rol %}
+    <span class="rol-badge rol-{{ p.display_rol }}">{{ p.display_rol }}</span>
+    {% else %}<span style="color:#374151;font-size:.72rem;">—</span>{% endif %}
+  </td>
+</tr>
+{% endwith %}
+{% empty %}
+<tr><td colspan="8" style="text-align:center;color:#6b7280;padding:2rem;">Sin resultados para los filtros seleccionados.</td></tr>
+{% endfor %}

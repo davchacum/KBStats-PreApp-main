@@ -1,0 +1,74 @@
+{% extends 'Cinturones/base.html' %}
+{% block extra_css %}
+<style>
+.login-card {
+  background: #0b1220;
+  border: 1px solid #1f2937;
+  border-radius: .75rem;
+  padding: 2.5rem;
+  max-width: 380px;
+  margin: 4rem auto;
+}
+.login-input {
+  width: 100%;
+  background: #111827;
+  border: 1px solid #374151;
+  color: #e5e7eb;
+  border-radius: .4rem;
+  padding: .55rem .85rem;
+  font-size: .9rem;
+  transition: border-color .15s;
+}
+.login-input:focus {
+  outline: none;
+  border-color: #22d3ee;
+  box-shadow: 0 0 0 3px rgba(34,211,238,.1);
+}
+.login-label {
+  display: block;
+  font-size: .72rem;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: #6b7280;
+  margin-bottom: .4rem;
+}
+.errorlist { list-style: none; padding: 0; margin: 0 0 .75rem; }
+.errorlist li { font-size: .8rem; color: #f87171; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="login-card">
+  <div class="text-center mb-4">
+    <h2 class="text-gradient mb-1" style="font-size:1.6rem;">KBStats</h2>
+    <div style="font-size:.78rem;color:#6b7280;">Acceso restringido</div>
+  </div>
+
+  {% if form.non_field_errors %}
+  <div style="background:#450a0a;border:1px solid #dc2626;border-radius:.4rem;padding:.6rem .9rem;margin-bottom:1rem;font-size:.82rem;color:#f87171;">
+    {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+  </div>
+  {% endif %}
+
+  <form method="post">
+    {% csrf_token %}
+    <div class="mb-3">
+      <label class="login-label" for="id_username">Usuario</label>
+      <input id="id_username" name="username" type="text" class="login-input"
+        autocomplete="username" autofocus required
+        value="{{ form.username.value|default:'' }}">
+      {% if form.username.errors %}<ul class="errorlist">{% for e in form.username.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+    </div>
+    <div class="mb-4">
+      <label class="login-label" for="id_password">Contraseña</label>
+      <input id="id_password" name="password" type="password" class="login-input"
+        autocomplete="current-password" required>
+      {% if form.password.errors %}<ul class="errorlist">{% for e in form.password.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+    </div>
+    <input type="hidden" name="next" value="{{ next }}">
+    <button type="submit" class="btn btn-primary w-100" style="font-weight:600;letter-spacing:.04em;">
+      Iniciar sesión
+    </button>
+  </form>
+</div>
+{% endblock %}

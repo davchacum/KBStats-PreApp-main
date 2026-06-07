@@ -204,3 +204,24 @@ class GameConsumer(AsyncWebsocketConsumer):
             'type': 'rematch',
             'room_id': event['room_id'],
         }))
+
+
+class LadderConsumer(AsyncWebsocketConsumer):
+    """Empuja actualizaciones del ladder a todos los clientes conectados."""
+    GROUP = 'ladder_updates'
+
+    async def connect(self):
+        await self.channel_layer.group_add(self.GROUP, self.channel_name)
+        await self.accept()
+
+    async def disconnect(self, close_code):
+        await self.channel_layer.group_discard(self.GROUP, self.channel_name)
+
+    # El nombre del método = type del evento con '.' → '_'
+    async def ladder_update(self, event):
+        await self.send(text_data=json.dumps({
+            'progress': event['progress'],
+            'total':    event['total'],
+            'nombre':   event.get('nombre', ''),
+            'done':     event.get('done', False),
+        }))

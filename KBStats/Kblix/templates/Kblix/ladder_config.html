@@ -1,0 +1,638 @@
+{% extends 'Cinturones/base.html' %} {% block extra_css %}
+<style>
+  .section-card {
+    background: #0b1220;
+    border: 1px solid #1f2937;
+    border-radius: 0.6rem;
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+  }
+  .section-title {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #6b7280;
+    margin-bottom: 0.9rem;
+  }
+  .cfg-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+  }
+  .cfg-table th {
+    color: #4b5563;
+    font-weight: 500;
+    text-transform: uppercase;
+    font-size: 0.65rem;
+    letter-spacing: 0.07em;
+    padding: 0.4rem 0.65rem;
+    border-bottom: 2px solid #1f2937;
+    white-space: nowrap;
+  }
+  .cfg-table td {
+    padding: 0.45rem 0.65rem;
+    border-bottom: 1px solid #0d1424;
+    color: #d1d5db;
+    vertical-align: middle;
+  }
+  .cfg-table tr:hover td {
+    background: #0f1828;
+  }
+  .rol-badge {
+    display: inline-block;
+    border-radius: 0.25rem;
+    padding: 0.08rem 0.38rem;
+    font-size: 0.67rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+  }
+  .rol-TOP {
+    background: #1e1b4b;
+    color: #a78bfa;
+    border: 1px solid #4338ca;
+  }
+  .rol-JUNGLE {
+    background: #052e16;
+    color: #4ade80;
+    border: 1px solid #16a34a;
+  }
+  .rol-MID {
+    background: #713f12;
+    color: #fcd34d;
+    border: 1px solid #d97706;
+  }
+  .rol-ADC {
+    background: #450a0a;
+    color: #f87171;
+    border: 1px solid #dc2626;
+  }
+  .rol-SUPPORT {
+    background: #0c4a6e;
+    color: #7dd3fc;
+    border: 1px solid #0284c7;
+  }
+  .tier-badge-sm {
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  .tier-CHALLENGER {
+    color: #fbbf24;
+  }
+  .tier-GRANDMASTER {
+    color: #f43f5e;
+  }
+  .tier-MASTER {
+    color: #c084fc;
+  }
+  .tier-DIAMOND {
+    color: #818cf8;
+  }
+  .tier-EMERALD {
+    color: #22c55e;
+  }
+  .tier-PLATINUM {
+    color: #14b8a6;
+  }
+  .tier-GOLD {
+    color: #d97706;
+  }
+  .tier-SILVER {
+    color: #94a3b8;
+  }
+  .tier-BRONZE {
+    color: #a16207;
+  }
+  .tier-IRON {
+    color: #6b7280;
+  }
+  .tier-UNRANKED {
+    color: #374151;
+  }
+  .form-field {
+    width: 100%;
+    background: #111827;
+    border: 1px solid #374151;
+    color: #e5e7eb;
+    border-radius: 0.3rem;
+    padding: 0.38rem 0.65rem;
+    font-size: 0.82rem;
+  }
+  .form-field:focus {
+    outline: none;
+    border-color: #22d3ee;
+  }
+  .form-label {
+    font-size: 0.7rem;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    display: block;
+    margin-bottom: 0.3rem;
+  }
+  .btn-icon {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.15rem 0.3rem;
+    border-radius: 0.2rem;
+    transition: color 0.15s;
+    font-size: 0.85rem;
+  }
+  .btn-icon-edit {
+    color: #4b5563;
+  }
+  .btn-icon-edit:hover {
+    color: #22d3ee;
+  }
+  .btn-icon-refresh {
+    color: #4b5563;
+  }
+  .btn-icon-refresh:hover {
+    color: #facc15;
+  }
+  .btn-icon-delete {
+    color: #4b5563;
+  }
+  .btn-icon-delete:hover {
+    color: #f87171;
+  }
+  .riot-id-cell {
+    font-size: 0.75rem;
+    color: #6b7280;
+    font-family: monospace;
+  }
+</style>
+{% endblock %} {% block content %}
+
+<!-- Header -->
+<div
+  class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4"
+>
+  <div>
+    <a href="{% url 'ladder' %}" style="font-size: 0.82rem; color: #6b7280"
+      >← Ladder</a
+    >
+    <h2 class="text-gradient mb-0 mt-1" style="font-size: 1.5rem">
+      Configuración del Ladder
+    </h2>
+  </div>
+  <div class="d-flex gap-2 flex-wrap align-items-center">
+    <!-- Exportar CSV -->
+    <a
+      href="{% url 'ladder_export_csv' %}"
+      class="btn btn-sm px-3"
+      style="border: 1px solid #374151; color: #22d3ee; background: transparent"
+    >
+      ⬇ Exportar CSV
+    </a>
+    <!-- Importar CSV -->
+    <form
+      method="post"
+      action="{% url 'ladder_import_csv' %}"
+      enctype="multipart/form-data"
+      class="d-flex gap-1 align-items-center"
+    >
+      {% csrf_token %}
+      <label
+        style="
+          font-size: 0.75rem;
+          color: #9ca3af;
+          background: #111827;
+          border: 1px solid #374151;
+          border-radius: 0.3rem;
+          padding: 0.28rem 0.65rem;
+          cursor: pointer;
+        "
+      >
+        ⬆ Importar CSV
+        <input
+          type="file"
+          name="csv_file"
+          accept=".csv"
+          style="display: none"
+          onchange="this.form.submit()"
+        />
+      </label>
+    </form>
+    <!-- Forzar actualización -->
+    <button
+      id="btn-force-update"
+      class="btn btn-sm px-3"
+      style="border: 1px solid #374151; color: #22d3ee; background: transparent"
+      onclick="forceUpdate()"
+    >
+      ↻ Forzar actualización
+    </button>
+    <!-- Sincronizar Riot IDs desde nombre -->
+    <form
+      method="post"
+      action="{% url 'ladder_sync_riot_ids' %}"
+      style="display: inline"
+    >
+      {% csrf_token %}
+      <button
+        type="submit"
+        class="btn btn-sm px-3"
+        style="
+          border: 1px solid #374151;
+          color: #facc15;
+          background: transparent;
+        "
+        title="Copia el nombre como riot_id para jugadores con GameName#TAG y riot_id vacío"
+      >
+        🔗 Sincronizar Riot IDs
+      </button>
+    </form>
+    <!-- Importar desde stats -->
+    <form
+      method="post"
+      action="{% url 'ladder_import_from_stats' %}"
+      style="display: inline"
+    >
+      {% csrf_token %}
+      <button
+        type="submit"
+        class="btn btn-sm px-3"
+        style="
+          background: linear-gradient(90deg, #22d3ee, #6366f1);
+          color: #fff;
+          border: none;
+        "
+        onclick="
+          return confirm(
+            '¿Importar todos los jugadores de estadísticas que no estén ya en el ladder?',
+          );
+        "
+      >
+        ⬇ Poblar desde estadísticas
+      </button>
+    </form>
+    <!-- Añadir jugador -->
+    <button class="btn btn-primary btn-sm px-3" onclick="openAddModal()">
+      + Añadir jugador
+    </button>
+  </div>
+</div>
+
+<!-- Tabla de jugadores -->
+<div class="section-card" style="padding: 0.75rem">
+  <div style="overflow-x: auto">
+    {% if players %}
+    <table class="cfg-table">
+      <thead>
+        <tr>
+          <th>Jugador</th>
+          <th>Riot ID</th>
+          <th>Rol</th>
+          <th>Equipo (override)</th>
+          <th>Rango actual</th>
+          <th>Actualizado</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in players %}
+        <tr id="cfgrow-{{ p.pk }}">
+          <td style="font-weight: 600; color: #e5e7eb">{{ p.nombre }}</td>
+          <td class="riot-id-cell">{{ p.riot_id|default:"—" }}</td>
+          <td>
+            {% if p.rol %}
+            <span class="rol-badge rol-{{ p.rol }}">{{ p.rol }}</span>
+            {% else %}<span style="color: #374151">—</span>{% endif %}
+          </td>
+          <td style="font-size: 0.78rem; color: #9ca3af">
+            {{ p.equipo|default:"—" }}
+          </td>
+          <td>
+            {% if p.tier and p.tier != 'UNRANKED' %}
+            <span class="tier-badge-sm tier-{{ p.tier }}"
+              >{{ p.rank_display }}</span
+            >
+            {% elif p.tier == 'UNRANKED' %}
+            <span style="color: #374151; font-size: 0.75rem"
+              >Sin clasificar</span
+            >
+            {% else %}
+            <span style="color: #374151; font-size: 0.75rem">Sin datos</span>
+            {% endif %}
+          </td>
+          <td style="font-size: 0.72rem; color: #4b5563">
+            {% if p.last_updated %}{{ p.last_updated|timesince }} ago{% else
+            %}—{% endif %}
+          </td>
+          <td style="white-space: nowrap">
+            <button
+              class="btn-icon btn-icon-refresh"
+              title="Forzar actualización individual"
+              onclick="forcePlayerUpdate({{ p.pk }}, '{{ p.nombre|escapejs }}')"
+            >
+              ↻
+            </button>
+            <button
+              class="btn-icon btn-icon-edit"
+              title="Editar"
+              onclick="openEditModal({{ p.pk }},'{{ p.nombre|escapejs }}','{{ p.riot_id|escapejs }}','{{ p.rol }}','{{ p.equipo|escapejs }}')"
+            >
+              ✎
+            </button>
+            <button
+              class="btn-icon btn-icon-delete"
+              title="Eliminar"
+              onclick="deletePlayer({{ p.pk }},'{{ p.nombre|escapejs }}')"
+            >
+              🗑
+            </button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div style="color: #6b7280; text-align: center; padding: 2rem">
+      No hay jugadores. Añade uno con el botón de arriba o importa un CSV.
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Nota sobre CSV -->
+<div
+  style="
+    font-size: 0.72rem;
+    color: #374151;
+    margin-top: -0.5rem;
+    margin-bottom: 1.5rem;
+  "
+>
+  Formato CSV:
+  <code style="color: #4b5563"
+    >nombre, riot_id, rol, equipo, tier, rank, lp, wins, losses</code
+  >
+  — las columnas de rango son opcionales (se rellenan desde la API
+  automáticamente).
+</div>
+
+<!-- Modal añadir / editar -->
+<div class="modal fade" id="playerModal" tabindex="-1">
+  <div class="modal-dialog">
+    <form method="post" id="playerForm">
+      {% csrf_token %}
+      <div
+        class="modal-content"
+        style="background: #0b1220; border: 1px solid #1f2937"
+      >
+        <div
+          class="modal-header"
+          style="border-color: #1f2937; padding: 0.75rem 1rem"
+        >
+          <h6 class="modal-title text-gradient mb-0" id="modalTitle">
+            Añadir jugador
+          </h6>
+          <button
+            type="button"
+            class="btn-close btn-close-white btn-sm"
+            data-bs-dismiss="modal"
+          ></button>
+        </div>
+        <div class="modal-body" style="padding: 1.1rem">
+          <div class="mb-3">
+            <label class="form-label">Nombre del jugador</label>
+            <input
+              type="text"
+              name="nombre"
+              id="fNombre"
+              class="form-field"
+              placeholder="Ej: Dara"
+              list="available-players-list"
+              required
+            />
+            <datalist id="available-players-list">
+              {% for n in available %}
+              <option value="{{ n }}">{% endfor %}</option>
+            </datalist>
+            <div style="font-size: 0.65rem; color: #4b5563; margin-top: 0.2rem">
+              Debe coincidir con el nombre en estadísticas
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Riot ID</label>
+            <input
+              type="text"
+              name="riot_id"
+              id="fRiotId"
+              class="form-field"
+              placeholder="GameName#TAG"
+            />
+          </div>
+          <div class="row g-2">
+            <div class="col-6">
+              <label class="form-label">Rol (manual)</label>
+              <select name="rol" id="fRol" class="form-field">
+                <option value="">Auto (desde stats)</option>
+                {% for val, label in rol_choices %}
+                <option value="{{ val }}">{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-6">
+              <label class="form-label">Equipo (override)</label>
+              <input
+                type="text"
+                name="equipo"
+                id="fEquipo"
+                class="form-field"
+                placeholder="Ej: Kaiju"
+              />
+              <div
+                style="font-size: 0.63rem; color: #4b5563; margin-top: 0.2rem"
+              >
+                Vacío = último equipo de stats
+              </div>
+            </div>
+          </div>
+        </div>
+        <div
+          class="modal-footer"
+          style="border-color: #1f2937; padding: 0.6rem 1rem"
+        >
+          <button
+            type="button"
+            class="btn btn-sm"
+            data-bs-dismiss="modal"
+            style="
+              border: 1px solid #374151;
+              color: #9ca3af;
+              background: transparent;
+            "
+          >
+            Cancelar
+          </button>
+          <button type="submit" class="btn btn-primary btn-sm px-3">
+            Guardar
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Barra de progreso de actualización -->
+<div
+  id="update-status"
+  style="display: none"
+  class="section-card"
+  style="padding: 0.9rem 1.25rem"
+>
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <span style="font-size: 0.78rem; color: #22d3ee">Actualizando rangos…</span>
+    <span
+      id="upd-pct"
+      style="
+        font-size: 0.78rem;
+        color: #22d3ee;
+        font-variant-numeric: tabular-nums;
+      "
+      >0%</span
+    >
+  </div>
+  <div
+    style="
+      height: 5px;
+      background: #1f2937;
+      border-radius: 3px;
+      overflow: hidden;
+    "
+  >
+    <div
+      id="upd-bar-cfg"
+      style="
+        height: 100%;
+        border-radius: 3px;
+        background: linear-gradient(90deg, #22d3ee, #6366f1);
+        width: 0%;
+        transition: width 0.4s;
+      "
+    ></div>
+  </div>
+  <div
+    id="upd-detail"
+    style="font-size: 0.7rem; color: #4b5563; margin-top: 0.4rem"
+  ></div>
+</div>
+
+<!-- Form delete (oculto) -->
+<form method="post" id="deleteForm" style="display: none">
+  {% csrf_token %}
+</form>
+
+<script>
+  let playerModal = null;
+
+  function openAddModal() {
+    document.getElementById("modalTitle").textContent = "Añadir jugador";
+    document.getElementById("playerForm").action =
+      '{% url "ladder_player_add" %}';
+    document.getElementById("fNombre").value = "";
+    document.getElementById("fNombre").readOnly = false;
+    document.getElementById("fRiotId").value = "";
+    document.getElementById("fRol").value = "";
+    document.getElementById("fEquipo").value = "";
+    if (!playerModal)
+      playerModal = new bootstrap.Modal(document.getElementById("playerModal"));
+    playerModal.show();
+  }
+
+  function openEditModal(id, nombre, riotId, rol, equipo) {
+    document.getElementById("modalTitle").textContent = "Editar — " + nombre;
+    document.getElementById("playerForm").action = `/ladder/${id}/edit/`;
+    document.getElementById("fNombre").value = nombre;
+    document.getElementById("fNombre").readOnly = true;
+    document.getElementById("fRiotId").value = riotId;
+    document.getElementById("fRol").value = rol;
+    document.getElementById("fEquipo").value = equipo;
+    if (!playerModal)
+      playerModal = new bootstrap.Modal(document.getElementById("playerModal"));
+    playerModal.show();
+  }
+
+  function deletePlayer(id, nombre) {
+    if (!confirm(`¿Eliminar "${nombre}" del ladder?`)) return;
+    const form = document.getElementById("deleteForm");
+    form.action = `/ladder/${id}/delete/`;
+    form.submit();
+  }
+
+  const CSRF = document.cookie.match(/csrftoken=([^;]+)/)?.[1] ?? "";
+
+  async function forceUpdate() {
+    const btn = document.getElementById("btn-force-update");
+    btn.disabled = true;
+    btn.textContent = "Iniciando…";
+
+    try {
+      const r = await fetch('{% url "ladder_force_update" %}', {
+        method: "POST",
+        headers: { "X-CSRFToken": CSRF },
+      });
+      const d = await r.json();
+      if (!d.ok) {
+        alert(d.reason || "No se pudo iniciar la actualización.");
+        btn.disabled = false;
+        btn.textContent = "↻ Forzar actualización";
+        return;
+      }
+      document.getElementById("update-status").style.display = "";
+      pollUpdate();
+    } catch {
+      btn.disabled = false;
+      btn.textContent = "↻ Forzar actualización";
+    }
+  }
+
+  async function forcePlayerUpdate(id, nombre) {
+    if (!confirm(`¿Actualizar ahora solo el perfil de "${nombre}"?`)) return;
+
+    try {
+      const r = await fetch(`/ladder/${id}/forzar-update/`, {
+        method: "POST",
+        headers: { "X-CSRFToken": CSRF },
+      });
+      const d = await r.json();
+      if (!d.ok) {
+        alert(d.reason || "No se pudo actualizar el perfil.");
+        return;
+      }
+      location.reload();
+    } catch {
+      alert("No se pudo actualizar el perfil.");
+    }
+  }
+
+  function pollUpdate() {
+    setTimeout(async function () {
+      try {
+        const r = await fetch('{% url "ladder_status" %}');
+        const d = await r.json();
+        const bar = document.getElementById("upd-bar-cfg");
+        const pct = document.getElementById("upd-pct");
+        const det = document.getElementById("upd-detail");
+        bar.style.width = d.progress + "%";
+        pct.textContent = d.progress + "%";
+        det.textContent = d.total
+          ? `${Math.round((d.progress * d.total) / 100)} / ${d.total} jugadores`
+          : "";
+        if (!d.is_updating) {
+          document.getElementById("btn-force-update").textContent =
+            "✓ Actualizado";
+          det.textContent = "Completado. Recargando…";
+          setTimeout(() => location.reload(), 1200);
+          return;
+        }
+        pollUpdate();
+      } catch {
+        pollUpdate();
+      }
+    }, 3000);
+  }
+</script>
+{% endblock %}

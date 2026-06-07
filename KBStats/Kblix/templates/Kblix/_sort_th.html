@@ -1,0 +1,17 @@
+{% comment %}Uso: {% include 'Kblix/_sort_th.html' with col='winrate' label='WR' %}{% endcomment %}
+{% if sort == col %}
+  {% if sort_dir == 'desc' %}
+    {% with next_dir='asc' arrow='▼' %}
+    <a href="?sort={{ col }}&dir={{ next_dir }}{% if equipo_filter %}&equipo={{ equipo_filter }}{% endif %}{% if rol_filter %}&rol={{ rol_filter }}{% endif %}"
+       style="color:#22d3ee;text-decoration:none;white-space:nowrap;">{{ label }} {{ arrow }}</a>
+    {% endwith %}
+  {% else %}
+    {% with next_dir='desc' arrow='▲' %}
+    <a href="?sort={{ col }}&dir={{ next_dir }}{% if equipo_filter %}&equipo={{ equipo_filter }}{% endif %}{% if rol_filter %}&rol={{ rol_filter }}{% endif %}"
+       style="color:#22d3ee;text-decoration:none;white-space:nowrap;">{{ label }} {{ arrow }}</a>
+    {% endwith %}
+  {% endif %}
+{% else %}
+  <a href="?sort={{ col }}&dir=desc{% if equipo_filter %}&equipo={{ equipo_filter }}{% endif %}{% if rol_filter %}&rol={{ rol_filter }}{% endif %}"
+     style="color:#4b5563;text-decoration:none;white-space:nowrap;">{{ label }}</a>
+{% endif %}

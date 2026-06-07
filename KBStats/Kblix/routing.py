@@ -3,4 +3,5 @@ from . import consumers
 
 websocket_urlpatterns = [
     re_path(r'ws/kblix/(?P<room_id>\w+)/$', consumers.GameConsumer.as_asgi()),
+    re_path(r'ws/ladder/$',                  consumers.LadderConsumer.as_asgi()),
 ]
