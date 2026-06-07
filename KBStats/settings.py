@@ -48,6 +48,17 @@ DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 RIOT_API_KEY = os.environ.get('RIOT_API_KEY') or None
 ALLOWED_HOSTS = ['kbstats-preapp-main.onrender.com', 'www.kbstats.es', 'kbstats.es', 'localhost', '127.0.0.1']
 
+# Requerido en Django 4.0+ para validar el header Origin en peticiones POST
+CSRF_TRUSTED_ORIGINS = [
+    'https://kbstats.es',
+    'https://www.kbstats.es',
+    'https://kbstats-preapp-main.onrender.com',
+]
+
+# Render (y la mayoría de proxies) terminan SSL antes de llegar a Django.
+# Sin esto, Django cree que la petición es HTTP y el CSRF cookie no llega.
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
 
 # Application definition
 INSTALLED_APPS = [
