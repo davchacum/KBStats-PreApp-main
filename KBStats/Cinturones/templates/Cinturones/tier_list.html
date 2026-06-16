@@ -146,6 +146,17 @@
           {% endfor %}
         </select>
       </div>
+      {% if numeros_disponibles %}
+      <div class="col-md-1">
+        <label for="numero_partida" class="form-label mb-1">Game</label>
+        <select name="numero_partida" id="numero_partida" class="form-select">
+          <option value="">Todos</option>
+          {% for n in numeros_disponibles %}
+            <option value="{{ n }}" {% if numero_partida|stringformat:"s" == n|stringformat:"s" %}selected{% endif %}>G{{ n }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      {% endif %}
       <div class="col-md-2 d-grid">
         <button class="btn btn-primary">Aplicar</button>
       </div>

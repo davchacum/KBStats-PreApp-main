@@ -57,7 +57,7 @@
 <div class="container-fluid py-4">
 
   <h1 class="page-title mb-3">
-    Promedios por Jugador{% if jornada %} — Jornada {{ jornada }}{% endif %}
+    Promedios por Jugador{% if jornada %} — Jornada {{ jornada }}{% if numero_partida %} · Game {{ numero_partida }}{% endif %}{% endif %}
   </h1>
 
   <div class="filter-card">
@@ -94,6 +94,18 @@
           {% endfor %}
         </select>
       </div>
+
+      {% if numeros_disponibles %}
+      <div class="col-md-1">
+        <label for="numero_partida" class="form-label mb-1">Game</label>
+        <select name="numero_partida" id="numero_partida" class="form-select">
+          <option value="">Todos</option>
+          {% for n in numeros_disponibles %}
+            <option value="{{ n }}" {% if numero_partida|stringformat:"s" == n|stringformat:"s" %}selected{% endif %}>G{{ n }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      {% endif %}
 
       <div class="col-md-3">
         <label for="sort" class="form-label mb-1">Ordenar por</label>

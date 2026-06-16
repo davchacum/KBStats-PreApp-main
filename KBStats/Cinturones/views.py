@@ -509,14 +509,22 @@ def promedios_jugadores(request):
 							 .distinct()
 							 .order_by('jornada'))
 	jornada = request.GET.get('jornada')
+	numero_partida = request.GET.get('numero_partida')
 	jugador_q = request.GET.get('jugador')
 	rol_q = request.GET.get('rol')
 	sort = request.GET.get('sort')
 	order = request.GET.get('order', 'desc')
 
+	numeros_qs = Partida.objects.exclude(numero_partida__isnull=True).exclude(numero_partida__exact='')
+	if jornada:
+		numeros_qs = numeros_qs.filter(jornada=jornada)
+	numeros_disponibles = list(numeros_qs.values_list('numero_partida', flat=True).distinct().order_by('numero_partida'))
+
 	qs = StatsJugador.objects.all()
 	if jornada:
 		qs = qs.filter(partida__jornada=jornada)
+	if numero_partida:
+		qs = qs.filter(partida__numero_partida=numero_partida)
 	if jugador_q:
 		qs = qs.filter(jugador__nombre__icontains=jugador_q)
 	if rol_q:
@@ -530,16 +538,11 @@ def promedios_jugadores(request):
 		if jid not in rol_principal:
 			rol_principal[jid] = r['rol'] or ''
 
-	def calcular_kda(kills, muertes, asistencias):
-		if muertes == 0:
-			return (kills + asistencias) * 1.0
-		return ((kills + asistencias) * 1.0) / muertes
-
 	agregados = qs.values('jugador__id', 'jugador__nombre').annotate(
 		avg_kills=Sum('kills'),
 		avg_muertes=Sum('muertes'),
 		avg_asistencias=Sum('asistencias'),
-		avg_kda=calcular_kda(Sum('kills'), Sum('muertes'), Sum('asistencias')),
+		avg_kda=Avg('kda'),
 		avg_kp=Avg('kp_porcentaje'),
 		avg_oro_min=Avg('oro_min'),
 		avg_dano_oro=Avg('dano_oro'),
@@ -660,11 +663,13 @@ def promedios_jugadores(request):
 		return render(request, 'Cinturones/promedios_jugadores.html', {
 			'jugadores': resultados,
 			'jornada': jornada,
+			'numero_partida': numero_partida,
 			'filtro_jugador': jugador_q,
 			'filtro_rol': rol_q,
 			'sort': sort,
 			'order': order,
 			'jornadas_disponibles': list(jornadas_disponibles),
+			'numeros_disponibles': numeros_disponibles,
 		})
 	return JsonResponse({'jugadores': resultados, 'jornadas_disponibles': list(jornadas_disponibles)})
 
@@ -756,10 +761,18 @@ def tier_list(request):
 		.exclude(jornada__isnull=True).exclude(jornada__exact='')
 		.values_list('jornada', flat=True).distinct().order_by('jornada'))
 	jornada = request.GET.get('jornada')
+	numero_partida = request.GET.get('numero_partida')
+
+	numeros_qs = Partida.objects.exclude(numero_partida__isnull=True).exclude(numero_partida__exact='')
+	if jornada:
+		numeros_qs = numeros_qs.filter(jornada=jornada)
+	numeros_disponibles = list(numeros_qs.values_list('numero_partida', flat=True).distinct().order_by('numero_partida'))
 
 	qs = StatsJugador.objects.all()
 	if jornada:
 		qs = qs.filter(partida__jornada=jornada)
+	if numero_partida:
+		qs = qs.filter(partida__numero_partida=numero_partida)
 
 	# ── Rol principal por jugador ──────────────────────────────────────────
 	roles_qs = qs.values('jugador__id', 'rol').annotate(rol_count=Count('rol')).order_by('jugador__id', '-rol_count')
@@ -770,17 +783,12 @@ def tier_list(request):
 			rol_principal[jid] = r['rol'] or ''
 
 	# ── Agregación solo por rol principal de cada jugador ─────────────────
-	def calcular_kda(kills, muertes, asistencias):
-		if muertes == 0:
-			return (kills + asistencias) * 1.0
-		return ((kills + asistencias) * 1.0) / muertes
-
 	# Group by (jugador, rol) — in Python we keep only the main-role row per player
 	agregados = qs.values('jugador__id', 'jugador__nombre', 'rol').annotate(
 		avg_kills=Sum('kills'),
 		avg_muertes=Sum('muertes'),
 		avg_asistencias=Sum('asistencias'),
-		avg_kda=calcular_kda(Sum('kills'), Sum('muertes'), Sum('asistencias')),
+		avg_kda=Avg('kda'),
 		avg_kp=Avg('kp_porcentaje'),
 		avg_oro_min=Avg('oro_min'),
 		avg_dano_oro=Avg('dano_oro'),
@@ -895,7 +903,9 @@ def tier_list(request):
 		'roles': roles_display,
 		'tiers': tiers_list,
 		'jornada': jornada,
+		'numero_partida': numero_partida,
 		'jornadas_disponibles': list(jornadas_disponibles),
+		'numeros_disponibles': numeros_disponibles,
 	})
 
 
