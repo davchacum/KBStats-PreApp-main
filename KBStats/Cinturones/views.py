@@ -774,115 +774,138 @@ def tier_list(request):
 	if numero_partida:
 		qs = qs.filter(partida__numero_partida=numero_partida)
 
-	# ── Rol principal por jugador ──────────────────────────────────────────
-	roles_qs = qs.values('jugador__id', 'rol').annotate(rol_count=Count('rol')).order_by('jugador__id', '-rol_count')
-	rol_principal = {}
-	for r in roles_qs:
-		jid = r['jugador__id']
-		if jid not in rol_principal:
-			rol_principal[jid] = r['rol'] or ''
+	# ── Helper: agrega un queryset y devuelve jugadores con score+tier ─────
+	GAMES_MIN_FACTOR = 0.90
 
-	# ── Agregación solo por rol principal de cada jugador ─────────────────
-	# Group by (jugador, rol) — in Python we keep only the main-role row per player
-	agregados = qs.values('jugador__id', 'jugador__nombre', 'rol').annotate(
-		avg_kills=Sum('kills'),
-		avg_muertes=Sum('muertes'),
-		avg_asistencias=Sum('asistencias'),
-		avg_kda=Avg('kda'),
-		avg_kp=Avg('kp_porcentaje'),
-		avg_oro_min=Avg('oro_min'),
-		avg_dano_oro=Avg('dano_oro'),
-		avg_porcentaje_dano_equipo=Avg('porcentaje_dano_equipo'),
-		avg_dano_min=Avg('dano_min'),
-		avg_dano_recibido=Avg('dano_recibido'),
-		avg_cs=Avg('cs'),
-		avg_cs_min=Avg('cs_min'),
-		avg_vision_min=Avg('vision_min'),
-		avg_wpm=Avg('wpm'),
-		avg_cwpm=Avg('cwpm'),
-		avg_wcpm=Avg('wcpm'),
-		avg_double=Sum('double_kills'),
-		avg_triple=Sum('triple_kills'),
-		avg_quadra=Sum('quadra_kills'),
-		avg_penta=Sum('penta_kills'),
-		avg_game_time=Avg('game_time'),
-		games_played=Count('partida__id'),
-	).order_by('jugador__nombre')
+	def _compute_scores(score_qs):
+		rp_qs = score_qs.values('jugador__id', 'rol').annotate(rol_count=Count('rol')).order_by('jugador__id', '-rol_count')
+		rp = {}
+		for r in rp_qs:
+			jid = r['jugador__id']
+			if jid not in rp:
+				rp[jid] = r['rol'] or ''
 
-	# ── Construir lista de jugadores con su rol ────────────────────────────
-	jugadores = []
-	for a in agregados:
-		jid = a['jugador__id']
-		rol = a['rol'] or ''
-		# Skip rows that are not the player's main role
-		if rol != rol_principal.get(jid, ''):
-			continue
-		jugadores.append({
-			'jugador_id': a['jugador__id'],
-			'jugador_nombre': a['jugador__nombre'],
-			'rol': rol,
-			'avg_kills': float(a['avg_kills'] or 0),
-			'avg_muertes': float(a['avg_muertes'] or 0),
-			'avg_asistencias': float(a['avg_asistencias'] or 0),
-			'avg_kda': float(a['avg_kda'] or 0),
-			'avg_kp': float(a['avg_kp'] or 0),
-			'avg_oro_min': float(a['avg_oro_min'] or 0),
-			'avg_dano_oro': float(a['avg_dano_oro'] or 0),
-			'avg_porcentaje_dano_equipo': float(a['avg_porcentaje_dano_equipo'] or 0),
-			'avg_dano_min': float(a['avg_dano_min'] or 0),
-			'avg_dano_recibido': float(a['avg_dano_recibido'] or 0),
-			'avg_cs': float(a['avg_cs'] or 0),
-			'avg_cs_min': float(a['avg_cs_min'] or 0),
-			'avg_vision_min': float(a['avg_vision_min'] or 0),
-			'avg_wpm': float(a['avg_wpm'] or 0),
-			'avg_cwpm': float(a['avg_cwpm'] or 0),
-			'avg_wcpm': float(a['avg_wcpm'] or 0),
-			'avg_double': float(a['avg_double'] or 0),
-			'avg_triple': float(a['avg_triple'] or 0),
-			'avg_quadra': float(a['avg_quadra'] or 0),
-			'avg_penta': float(a['avg_penta'] or 0),
-			'avg_game_time': float(a['avg_game_time'] or 0),
-			'games_played': a['games_played'],
-		})
+		agg = score_qs.values('jugador__id', 'jugador__nombre', 'rol').annotate(
+			avg_kills=Sum('kills'),
+			avg_muertes=Sum('muertes'),
+			avg_asistencias=Sum('asistencias'),
+			avg_kda=Avg('kda'),
+			avg_kp=Avg('kp_porcentaje'),
+			avg_oro_min=Avg('oro_min'),
+			avg_dano_oro=Avg('dano_oro'),
+			avg_porcentaje_dano_equipo=Avg('porcentaje_dano_equipo'),
+			avg_dano_min=Avg('dano_min'),
+			avg_dano_recibido=Avg('dano_recibido'),
+			avg_cs=Avg('cs'),
+			avg_cs_min=Avg('cs_min'),
+			avg_vision_min=Avg('vision_min'),
+			avg_wpm=Avg('wpm'),
+			avg_cwpm=Avg('cwpm'),
+			avg_wcpm=Avg('wcpm'),
+			avg_double=Sum('double_kills'),
+			avg_triple=Sum('triple_kills'),
+			avg_quadra=Sum('quadra_kills'),
+			avg_penta=Sum('penta_kills'),
+			avg_game_time=Avg('game_time'),
+			games_played=Count('partida__id'),
+		).order_by('jugador__nombre')
 
-	# ── Scoring por grupo de rol ───────────────────────────────────────────
-	by_role = {}
-	for j in jugadores:
-		by_role.setdefault(j['rol'], []).append(j)
+		jgs = []
+		for a in agg:
+			jid = a['jugador__id']
+			rol = a['rol'] or ''
+			if rol != rp.get(jid, ''):
+				continue
+			jgs.append({
+				'jugador_id': jid,
+				'jugador_nombre': a['jugador__nombre'],
+				'rol': rol,
+				'avg_kills': float(a['avg_kills'] or 0),
+				'avg_muertes': float(a['avg_muertes'] or 0),
+				'avg_asistencias': float(a['avg_asistencias'] or 0),
+				'avg_kda': float(a['avg_kda'] or 0),
+				'avg_kp': float(a['avg_kp'] or 0),
+				'avg_oro_min': float(a['avg_oro_min'] or 0),
+				'avg_dano_oro': float(a['avg_dano_oro'] or 0),
+				'avg_porcentaje_dano_equipo': float(a['avg_porcentaje_dano_equipo'] or 0),
+				'avg_dano_min': float(a['avg_dano_min'] or 0),
+				'avg_dano_recibido': float(a['avg_dano_recibido'] or 0),
+				'avg_cs': float(a['avg_cs'] or 0),
+				'avg_cs_min': float(a['avg_cs_min'] or 0),
+				'avg_vision_min': float(a['avg_vision_min'] or 0),
+				'avg_wpm': float(a['avg_wpm'] or 0),
+				'avg_cwpm': float(a['avg_cwpm'] or 0),
+				'avg_wcpm': float(a['avg_wcpm'] or 0),
+				'avg_double': float(a['avg_double'] or 0),
+				'avg_triple': float(a['avg_triple'] or 0),
+				'avg_quadra': float(a['avg_quadra'] or 0),
+				'avg_penta': float(a['avg_penta'] or 0),
+				'avg_game_time': float(a['avg_game_time'] or 0),
+				'games_played': a['games_played'],
+			})
 
-	for rol, group in by_role.items():
-		weights = SCORE_WEIGHTS.get(rol)
-		if not weights:
-			for j in group:
+		by_role = {}
+		for j in jgs:
+			by_role.setdefault(j['rol'], []).append(j)
+
+		for rol, group in by_role.items():
+			weights = SCORE_WEIGHTS.get(rol)
+			if not weights:
+				for j in group:
+					j['raw_score'] = 0.0
+				continue
+			normalised = {}
+			for skey, fkey in FIELD_MAP.items():
+				if skey not in weights:
+					continue
+				vals = [p[fkey] for p in group]
+				normalised[skey] = _normalize(vals)
+			for idx, j in enumerate(group):
+				j['raw_score'] = round(
+					sum(normalised[sk][idx] * weights[sk] for sk in normalised) * 100, 1
+				)
+
+		all_g = [j['games_played'] for j in jgs if 'raw_score' in j]
+		g_max = max(all_g) if all_g else 1
+		for j in jgs:
+			if 'raw_score' not in j:
 				j['score'] = 0.0
 				j['tier'] = 'D'
-			continue
-		normalised = {}
-		for skey, fkey in FIELD_MAP.items():
-			if skey not in weights:
 				continue
-			vals = [p[fkey] for p in group]
-			norm = _normalize(vals)
-			normalised[skey] = norm
-		for idx, j in enumerate(group):
-			score = sum(normalised[sk][idx] * weights[sk] for sk in normalised) * 100
-			j['raw_score'] = round(score, 1)
+			games_norm = j['games_played'] / g_max if g_max > 0 else 1.0
+			factor = GAMES_MIN_FACTOR + (1.0 - GAMES_MIN_FACTOR) * games_norm
+			s = min(100.0, j['raw_score'] * factor)
+			j['score'] = round(s, 1)
+			j['tier'] = _assign_tier(s)
 
-	# ── Factor multiplicador por partidas (global, no por rol) ───────────
-	# Min partidas → ×1.00 · max partidas → ×1.20 (sin penalización)
-	GAMES_MIN_FACTOR = 0.90  # pocas partidas → ×0.90, máximas → ×1.00
-	all_games = [j['games_played'] for j in jugadores if 'raw_score' in j]
-	g_max = max(all_games) if all_games else 1
-	for j in jugadores:
-		if 'raw_score' not in j:
-			j['score'] = 0.0
-			j['tier'] = 'D'
-			continue
-		games_norm = j['games_played'] / g_max if g_max > 0 else 1.0
-		factor = GAMES_MIN_FACTOR + (1.0 - GAMES_MIN_FACTOR) * games_norm
-		score = min(100.0, j['raw_score'] * factor)
-		j['score'] = round(score, 1)
-		j['tier'] = _assign_tier(score)
+		return jgs
+
+	# ── Calcular puntuaciones ─────────────────────────────────────────────
+	# Cuando hay varios games en la jornada y no se filtra por game concreto,
+	# calculamos la puntuación por game individual y promediamos los scores.
+	# Esto evita que el promedio de stats + renormalización dé resultados
+	# inconsistentes con las puntuaciones individuales de cada game.
+	if jornada and len(numeros_disponibles) > 1 and not numero_partida:
+		game_scores = {}   # jugador_id -> [score_g1, score_g2, ...]
+		game_info   = {}   # jugador_id -> dict con datos del jugador
+		for num in numeros_disponibles:
+			game_qs = StatsJugador.objects.filter(
+				partida__jornada=jornada,
+				partida__numero_partida=num,
+			)
+			for j in _compute_scores(game_qs):
+				pid = j['jugador_id']
+				game_scores.setdefault(pid, []).append(j['score'])
+				game_info[pid] = j
+		jugadores = []
+		for pid, scores in game_scores.items():
+			j = game_info[pid].copy()
+			avg = round(sum(scores) / len(scores), 1)
+			j['score'] = avg
+			j['tier'] = _assign_tier(avg)
+			jugadores.append(j)
+	else:
+		jugadores = _compute_scores(qs)
 
 	# ── Agrupar por tier y rol para el template ───────────────────────────
 	TIER_ORDER = ['S+', 'S', 'A', 'B', 'C', 'D']
