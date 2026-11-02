@@ -5,7 +5,7 @@ from django import template
 from django.conf import settings
 from django.templatetags.static import static
 
-from KBStats.Cinturones.ddragon import HECHIZOS, RUNAS
+from KBStats.Cinturones.ddragon import HECHIZOS, OBJETOS_RETIRADOS, RUNAS
 from KBStats.Cinturones.scoring import color_nota
 
 register = template.Library()
@@ -23,10 +23,13 @@ def icono_perfil(icon_id):
 
 @register.filter
 def icono_objeto(item_id):
-    """Icono de objeto; vacío si el hueco no tiene objeto."""
+    """Icono de objeto; vacío si el hueco no tiene objeto. Los objetos retirados del juego usan
+    la última versión de Data Dragon en la que existían."""
     if not item_id:
         return ''
-    return f'{DDRAGON}/{settings.DDRAGON_VERSION}/img/item/{item_id}.png'
+    retirado = OBJETOS_RETIRADOS.get(item_id)
+    version = retirado[0] if retirado else settings.DDRAGON_VERSION
+    return f'{DDRAGON}/{version}/img/item/{item_id}.png'
 
 
 @register.filter

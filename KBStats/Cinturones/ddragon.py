@@ -1,6 +1,12 @@
 """Datos de Data Dragon (Riot) para iconos de hechizos de invocador y runas. Generado a partir de
 summoner.json y runesReforged.json (versión 16.21.1, es_ES)."""
 
+# Objetos que Riot ha quitado del juego y ya no están en la versión de Data Dragon configurada:
+# id → (última versión en la que existen, nombre). `python manage.py comprobar_objetos` encuentra los que falten.
+OBJETOS_RETIRADOS = {
+    3097: ('16.16.1', 'Navaja de asalto'),
+}
+
 # id de hechizo → (imagen, nombre)
 HECHIZOS = {
     1: ('SummonerBoost.png', 'Limpiar'),

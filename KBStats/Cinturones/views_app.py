@@ -11,7 +11,7 @@ from django.urls import reverse
 from . import scoring
 from .models import Equipo, Jugador, Partida, StatsJugador, Temporada
 from .temporadas import temporada_de
-from .templatetags.kb import icono_campeon, icono_perfil, rol_corto
+from .templatetags.kb import icono_campeon, icono_perfil, jornada_txt, nota_clase, rol_corto
 from .views import calcular_clasificacion, orden_partida, partidas_de
 
 
@@ -93,7 +93,7 @@ def _temporada_perfil(request, partidas_qs):
 # ─────────────────────────── portada ───────────────────────────
 
 def inicio(request):
-    partidas = sorted(partidas_de(request).select_related('equipo_azul', 'equipo_rojo', 'ganador_equipo'), key=orden_partida)
+    partidas = sorted(partidas_de(request).select_related('equipo_azul', 'equipo_rojo', 'ganador_equipo', 'temporada'), key=orden_partida)
     resultados, por_partida = _puntuar_partidas(partidas)
 
     ultima_jornada = partidas[-1].jornada if partidas else None
@@ -167,7 +167,7 @@ def buscar(request):
         # Primero los que empiezan por lo buscado
         candidatos.sort(key=lambda j: (not j.nombre.lower().startswith(q.lower()), j.nombre.lower()))
         candidatos = candidatos[:8]
-        stats = StatsJugador.objects.filter(jugador__in=candidatos).select_related('partida')
+        stats = StatsJugador.objects.filter(jugador__in=candidatos).select_related('partida__temporada')
         info = defaultdict(lambda: {'roles': Counter(), 'campeones': Counter(), 'equipo': '', 'orden': None, 'perfil': None})
         for s in stats:
             d = info[s.jugador_id]
@@ -217,7 +217,7 @@ def jugador(request, nombre):
     qs_propias = StatsJugador.objects.filter(jugador=j)
     if t:
         qs_propias = qs_propias.filter(partida__temporada=t)
-    propias = list(qs_propias.select_related('partida__equipo_azul', 'partida__equipo_rojo', 'partida__ganador_equipo'))
+    propias = list(qs_propias.select_related('partida__equipo_azul', 'partida__equipo_rojo', 'partida__ganador_equipo', 'partida__temporada'))
     propias.sort(key=lambda s: orden_partida(s.partida))
     partidas = [s.partida for s in propias]
     resultados, por_partida = _puntuar_partidas(partidas)
@@ -293,18 +293,34 @@ def jugador(request, nombre):
             'url': reverse('detalle_partida', args=[p.match_id]),
         })
 
-    # Evolución de la nota (gráfico de línea en SVG)
+    # Evolución de la nota: línea en SVG y un punto por partida con su ficha al pasar el ratón.
+    # El SVG se estira al ancho de la tarjeta, así que los puntos van en HTML (en %) para que sigan redondos.
     evolucion = None
     if len(notas) >= 2:
-        ancho, alto = 300, 64
-        paso = ancho / (len(notas) - 1)
-        puntos = [(round(i * paso, 1), round(alto - 4 - (v / 100) * (alto - 8), 1)) for i, v in enumerate(notas)]
+        ancho, alto, mx, my = 300, 64, 6, 6   # márgenes para que los puntos de los extremos no se corten
+        paso = (ancho - 2 * mx) / (len(notas) - 1)
+        y_de = lambda v: round(alto - my - (v / 100) * (alto - 2 * my), 1)
+        puntos = [(round(mx + i * paso, 1), y_de(v)) for i, v in enumerate(notas)]
+        hist_de = {h['s'].id: h for h in historial}
+        fichas = []
+        for s, (x, y), v in zip(propias, puntos, notas):
+            r = resultados[s.id]
+            h = hist_de[s.id]
+            fichas.append({
+                'id': s.id, 'x': round(100 * x / ancho, 2), 'y': round(100 * y / alto, 2),
+                'nota': round(v), 'clase': nota_clase(v), 'url': h['url'],
+                'temporada': s.partida.temporada.nombre if s.partida.temporada else '',
+                'jornada': jornada_txt(s.partida.jornada), 'g': s.partida.numero_partida,
+                'campeon': s.campeon or '', 'rival': h['rival'], 'victoria': bool(s.victoria),
+                'kda': f'{s.kills or 0}/{s.muertes or 0}/{s.asistencias or 0}',
+                'insignia': r.get('insignia') or '', 'puesto': r.get('puesto'),
+            })
         evolucion = {
             'ancho': ancho, 'alto': alto,
             'linea': ' '.join(f'{x},{y}' for x, y in puntos),
-            'area': f'0,{alto} ' + ' '.join(f'{x},{y}' for x, y in puntos) + f' {ancho},{alto}',
-            'puntos': [{'x': x, 'y': y, 'v': v, 'j': propias[i].partida.jornada} for i, ((x, y), v) in enumerate(zip(puntos, notas))],
-            'media_y': round(alto - 4 - ((sum(notas) / len(notas)) / 100) * (alto - 8), 1),
+            'area': f'{mx},{alto} ' + ' '.join(f'{x},{y}' for x, y in puntos) + f' {ancho - mx},{alto}',
+            'puntos': fichas,
+            'media_y': y_de(sum(notas) / len(notas)),
         }
 
     equipo_actual = propias[-1].equipo_nombre if propias else ''
@@ -334,7 +350,7 @@ def equipo(request, nombre):
     t, temporadas_propias, ver_todas = _temporada_perfil(request, del_equipo)
     if t:
         del_equipo = del_equipo.filter(temporada=t)
-    partidas = sorted(del_equipo.select_related('equipo_azul', 'equipo_rojo', 'ganador_equipo'), key=orden_partida)
+    partidas = sorted(del_equipo.select_related('equipo_azul', 'equipo_rojo', 'ganador_equipo', 'temporada'), key=orden_partida)
     resultados, por_partida = _puntuar_partidas(partidas)
 
     victorias = sum(1 for p in partidas if p.ganador_equipo_id == e.id)

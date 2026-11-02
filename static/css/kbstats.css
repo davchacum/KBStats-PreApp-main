@@ -225,6 +225,24 @@ img { max-width: 100%; }
 .oro-tabla .tabla-wrap { max-height: 320px; overflow: auto; border-top: 1px solid var(--border); }
 .oro-tabla thead th { position: sticky; top: 0; z-index: 1; }
 
+/* Nota por partida (perfil de jugador): un punto por partida y ficha al pasar el ratón */
+.card-app.evol { overflow: visible; }
+.evol-plot { position: relative; height: 104px; border-radius: 4px; outline: none; cursor: pointer; touch-action: pan-y; }
+.evol-plot:focus-visible { box-shadow: 0 0 0 2px var(--gold-2); }
+.evol-plot svg { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
+.evol-pt { position: absolute; width: 8px; height: 8px; margin: -4px 0 0 -4px; padding: 0; border: 0; border-radius: 50%; background: var(--gold); box-shadow: 0 0 0 2px var(--surface); cursor: pointer; transition: transform .12s var(--ease); }
+.evol-pt.on { z-index: 1; transform: scale(1.5); }
+.evol-guia { position: absolute; top: 0; bottom: 0; width: 1px; margin-left: -.5px; background: var(--border-2); pointer-events: none; }
+.evol-ejes { display: flex; justify-content: space-between; margin-top: 6px; font-size: 12px; color: var(--text-3); }
+.evol-tip { min-width: 0; white-space: nowrap; }
+.evol-tip .t { display: flex; justify-content: space-between; gap: 14px; }
+.evol-tip .t b { font-weight: 600; }
+.evol-tip .cab { display: flex; align-items: center; gap: 8px; margin: 4px 0 3px; }
+.evol-tip .cab b { color: var(--text); font-weight: 600; }
+.evol-tip .cab .puesto { color: var(--text-2); }
+.evol-tip .sub { color: var(--text-2); font-variant-numeric: tabular-nums; }
+.evol-tip .pista { margin-top: 6px; padding-top: 5px; border-top: 1px solid var(--border-2); color: var(--text-3); font-size: 11.5px; }
+
 /* ---------- Pestañas dentro de una tarjeta ---------- */
 .card-app > .h.pestanas-h { padding: 0 12px 0 4px; align-items: stretch; min-height: 44px; }
 .pestanas { display: flex; align-items: stretch; gap: 2px; min-width: 0; overflow-x: auto; scrollbar-width: none; }

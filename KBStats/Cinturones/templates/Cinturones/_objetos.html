@@ -1,4 +1,4 @@
-{% load kb %}{# Los 6 objetos y el trinket. Espera `ex` (riot_extra). #}
+{% load kb %}{# Los 6 objetos y el trinket. Espera `ex` (riot_extra). Si un icono no carga, queda el hueco vacío en vez de la imagen rota. #}
 <span class="objetos">
-  {% for it in ex.objetos %}{% if it %}<img class="{% if forloop.last %}trinket{% endif %}" src="{{ it|icono_objeto }}" alt="" loading="lazy">{% else %}<i class="{% if forloop.last %}trinket{% endif %}"></i>{% endif %}{% endfor %}
+  {% for it in ex.objetos %}{% if it %}<img class="{% if forloop.last %}trinket{% endif %}" src="{{ it|icono_objeto }}" alt="" loading="lazy" onerror="const h=document.createElement('i');h.className=this.className;this.replaceWith(h)">{% else %}<i class="{% if forloop.last %}trinket{% endif %}"></i>{% endif %}{% endfor %}
 </span>

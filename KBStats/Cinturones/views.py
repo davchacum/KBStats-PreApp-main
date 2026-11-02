@@ -47,9 +47,11 @@ def orden_jornada(j):
 
 
 def orden_partida(p):
-	"""Clave de orden cronológico de una partida: jornada y game."""
+	"""Clave de orden cronológico de una partida: temporada, jornada y game.
+	Conviene traer la temporada con select_related('temporada') para no hacer una consulta por partida."""
 	n = (p.numero_partida or '').strip()
-	return (orden_jornada(p.jornada), int(n) if n.isdigit() else 0, p.id)
+	temporada = p.temporada.orden if p.temporada_id else 0
+	return (temporada, orden_jornada(p.jornada), int(n) if n.isdigit() else 0, p.id)
 
 
 def clasificacion_grupos(request):
@@ -61,7 +63,7 @@ def clasificacion_grupos(request):
 	# Solo cuentan las mismas partidas que la clasificación: las de equipos que están en algún grupo.
 	en_grupos = {eq['equipo'] for g in clasificaciones for eq in g['equipos']}
 	resultados = {}
-	for p in sorted(partidas_de(request).select_related('equipo_azul', 'equipo_rojo', 'ganador_equipo'), key=orden_partida):
+	for p in sorted(partidas_de(request).select_related('equipo_azul', 'equipo_rojo', 'ganador_equipo', 'temporada'), key=orden_partida):
 		if not p.ganador_equipo or not p.equipo_azul or not p.equipo_rojo or es_playoff(p.jornada):
 			continue
 		if p.equipo_azul.nombre not in en_grupos or p.equipo_rojo.nombre not in en_grupos:
@@ -351,7 +353,7 @@ def buscar_partidos_form(request):
 	jornada = request.GET.get('jornada') or ''
 	equipo = request.GET.get('equipo') or ''
 
-	todas = sorted(partidas_de(request).select_related('equipo_azul', 'equipo_rojo', 'ganador_equipo'), key=orden_partida)
+	todas = sorted(partidas_de(request).select_related('equipo_azul', 'equipo_rojo', 'ganador_equipo', 'temporada'), key=orden_partida)
 	jornadas = []
 	for p in todas:
 		if p.jornada not in jornadas:

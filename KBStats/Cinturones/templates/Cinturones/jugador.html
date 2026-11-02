@@ -28,7 +28,6 @@
   @media (max-width: 1100px) { .partida .objetos { display: none; } }
   @media (max-width: 640px) { .partida .rival, .partida .cargas { display: none; } }
 
-  .evol svg { width: 100%; height: 72px; display: block; }
   .roles-barra { display: flex; height: 8px; border-radius: 4px; overflow: hidden; gap: 2px; margin: 4px 0 12px; }
   .roles-barra i { display: block; }
 </style>
@@ -127,17 +126,112 @@
     <section class="card-app evol">
       <div class="h"><h3>Nota por partida</h3><span class="muted" style="font-size:12.5px;">media {{ resumen.nota|floatformat:0 }}</span></div>
       <div class="b">
-        <svg viewBox="0 0 {{ evolucion.ancho }} {{ evolucion.alto }}" preserveAspectRatio="none" role="img" aria-label="Nota en cada partida">
-          <defs><linearGradient id="relleno-nota" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#EBD28A" stop-opacity=".28"/><stop offset="1" stop-color="#EBD28A" stop-opacity="0"/></linearGradient></defs>
-          <line x1="0" x2="{{ evolucion.ancho }}" y1="{{ evolucion.media_y }}" y2="{{ evolucion.media_y }}" stroke="#958C7D" stroke-dasharray="3 4" stroke-width="1" vector-effect="non-scaling-stroke"/>
-          <polygon points="{{ evolucion.area }}" fill="url(#relleno-nota)"/>
-          <polyline points="{{ evolucion.linea }}" fill="none" stroke="#EBD28A" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>
-        </svg>
-        <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-3);margin-top:4px;">
-          <span>{{ evolucion.puntos.0.j|jornada_txt }}</span><span>{{ evolucion.puntos|last|get:'j'|jornada_txt }}</span>
+        <div class="evol-plot" id="evol-plot" tabindex="0" role="img" aria-label="Nota en cada partida. Usa las flechas para recorrerlas e Intro para abrir la partida.">
+          <svg viewBox="0 0 {{ evolucion.ancho }} {{ evolucion.alto }}" preserveAspectRatio="none" aria-hidden="true">
+            <defs><linearGradient id="relleno-nota" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#EBD28A" stop-opacity=".28"/><stop offset="1" stop-color="#EBD28A" stop-opacity="0"/></linearGradient></defs>
+            <line x1="0" x2="{{ evolucion.ancho }}" y1="{{ evolucion.media_y }}" y2="{{ evolucion.media_y }}" stroke="#958C7D" stroke-dasharray="3 4" stroke-width="1" vector-effect="non-scaling-stroke"/>
+            <polygon points="{{ evolucion.area }}" fill="url(#relleno-nota)"/>
+            <polyline points="{{ evolucion.linea }}" fill="none" stroke="#EBD28A" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>
+          </svg>
+          <span class="evol-guia" id="evol-guia" hidden></span>
+          {% for p in evolucion.puntos %}<a class="evol-pt" href="{{ p.url }}" tabindex="-1" style="left:{{ p.x|stringformat:'s' }}%;top:{{ p.y|stringformat:'s' }}%;" aria-label="{% if p.temporada %}{{ p.temporada }}, {% endif %}{{ p.jornada }} G{{ p.g }}: nota {{ p.nota }}"></a>{% endfor %}
+          <div class="oro-tip evol-tip" id="evol-tip" hidden></div>
+        </div>
+        <div class="evol-ejes">
+          {% with ultimo=evolucion.puntos|last %}
+          <span>{% if ver_todas and evolucion.puntos.0.temporada %}{{ evolucion.puntos.0.temporada }} · {% endif %}{{ evolucion.puntos.0.jornada }}</span>
+          <span>{% if ver_todas and ultimo.temporada %}{{ ultimo.temporada }} · {% endif %}{{ ultimo.jornada }}</span>
+          {% endwith %}
         </div>
       </div>
     </section>
+    {{ evolucion.puntos|json_script:"evol-datos" }}
+    <script>
+    (function () {
+      const P = JSON.parse(document.getElementById('evol-datos').textContent);
+      const caja = document.getElementById('evol-plot');
+      const tip = document.getElementById('evol-tip');
+      const guia = document.getElementById('evol-guia');
+      const puntos = caja.querySelectorAll('.evol-pt');
+      let indice = null, tactil = false, tragarClic = false;
+
+      const nodo = (tag, clase, texto) => { const e = document.createElement(tag); if (clase) e.className = clase; if (texto != null) e.textContent = texto; return e; };
+
+      function cercano(clientX) {
+        const r = caja.getBoundingClientRect();
+        const x = (clientX - r.left) / r.width * 100;
+        let mejor = 0;
+        P.forEach((p, i) => { if (Math.abs(p.x - x) < Math.abs(P[mejor].x - x)) mejor = i; });
+        return mejor;
+      }
+
+      function mostrar(i) {
+        if (indice !== null) puntos[indice].classList.remove('on');
+        indice = i;
+        const p = P[i];
+        puntos[i].classList.add('on');
+        guia.style.left = p.x + '%';
+        guia.hidden = false;
+
+        tip.textContent = '';
+        const t = nodo('div', 't');
+        t.append(nodo('span', '', (p.temporada ? p.temporada + ' · ' : '') + p.jornada + ' · G' + p.g), nodo('b', p.victoria ? 'res-v' : 'res-d', p.victoria ? 'Victoria' : 'Derrota'));
+        const cab = nodo('div', 'cab');
+        cab.append(nodo('span', 'nota ' + p.clase, p.nota), nodo('b', '', p.campeon));
+        if (p.insignia) cab.append(nodo('span', 'ins ins-' + p.insignia, p.insignia));
+        else if (p.puesto) cab.append(nodo('span', 'puesto', p.puesto + 'º de 10'));
+        tip.append(t, cab, nodo('div', 'sub', (p.rival ? 'vs ' + p.rival + ' · ' : '') + p.kda));
+        tip.append(nodo('div', 'pista', tactil ? 'Toca otra vez para ver la partida' : 'Clic para ver la partida'));
+        tip.hidden = false;
+
+        // Al lado del punto si cabe; si no, debajo de la gráfica
+        const ancho = caja.clientWidth, w = tip.offsetWidth, px = p.x / 100 * ancho;
+        let izq, arriba = '-4px';
+        if (px + 14 + w <= ancho) izq = px + 14;
+        else if (px - 14 - w >= 0) izq = px - 14 - w;
+        else { izq = Math.min(Math.max(0, px - w / 2), ancho - w); arriba = 'calc(100% + 26px)'; }
+        tip.style.left = izq + 'px';
+        tip.style.top = arriba;
+      }
+
+      function ocultar() {
+        if (indice !== null) puntos[indice].classList.remove('on');
+        indice = null;
+        tip.hidden = true;
+        guia.hidden = true;
+      }
+
+      caja.addEventListener('pointermove', e => { if (e.pointerType === 'mouse') { tactil = false; const i = cercano(e.clientX); if (i !== indice) mostrar(i); } });
+      caja.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') ocultar(); });
+      // En móvil, el primer toque enseña la ficha y el segundo abre el desglose
+      caja.addEventListener('pointerdown', e => {
+        if (e.pointerType === 'mouse') return;
+        tactil = true;
+        const i = cercano(e.clientX);
+        tragarClic = i !== indice;
+        if (tragarClic) mostrar(i);
+      });
+      document.addEventListener('pointerdown', e => { if (!caja.contains(e.target)) ocultar(); });
+      caja.addEventListener('click', e => {
+        if (tragarClic) { tragarClic = false; e.preventDefault(); return; }
+        if (e.target.closest('.evol-pt')) return;   // el propio punto ya es un enlace a la partida
+        location.href = P[cercano(e.clientX)].url;
+      });
+
+      // Teclado: flechas para recorrer las partidas, Intro para abrir la partida
+      caja.addEventListener('focus', () => { if (indice === null) mostrar(P.length - 1); });
+      caja.addEventListener('blur', ocultar);
+      caja.addEventListener('keydown', e => {
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+          e.preventDefault();
+          mostrar(Math.min(P.length - 1, Math.max(0, (indice ?? P.length - 1) + (e.key === 'ArrowRight' ? 1 : -1))));
+        } else if ((e.key === 'Enter' || e.key === ' ') && indice !== null) {
+          e.preventDefault();
+          location.href = P[indice].url;
+        }
+      });
+    })();
+    </script>
     {% endif %}
 
     <section class="card-app">
