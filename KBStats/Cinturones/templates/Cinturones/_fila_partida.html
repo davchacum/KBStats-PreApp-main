@@ -1,0 +1,23 @@
+{% load kb %}{# Una partida entre dos equipos. Espera `f` (de views_app._resumen_partidas). #}
+<a class="fila-partida" href="{{ f.url }}">
+  <span class="meta"><b>{{ f.p.jornada|jornada_txt }} · Game {{ f.p.numero_partida }}</b>{{ f.duracion }}</span>
+  <span class="enfrentamiento">
+    <span class="eq {% if f.gana_azul %}gana{% else %}pierde{% endif %}">
+      <span class="equipo-ini">{{ f.ini_azul }}</span><span class="n">{{ f.azul }}</span>
+      {% if f.gana_azul %}<span class="gana-marca" title="Ganador">V</span>{% endif %}
+    </span>
+    <span class="marcador"><span class="txt-azul">{{ f.k_azul }}</span><span class="sep">–</span><span class="txt-rojo">{{ f.k_rojo }}</span></span>
+    <span class="eq der {% if f.gana_rojo %}gana{% else %}pierde{% endif %}">
+      {% if f.gana_rojo %}<span class="gana-marca" title="Ganador">V</span>{% endif %}
+      <span class="n">{{ f.rojo }}</span><span class="equipo-ini">{{ f.ini_rojo }}</span>
+    </span>
+  </span>
+  <span class="mvp">
+    {% if f.mvp %}
+      <span class="ins ins-MVP">MVP</span>
+      <img class="camp s" src="{{ f.mvp.campeon|icono_campeon }}" alt="{{ f.mvp.campeon }}" loading="lazy">
+      <span class="n">{{ f.mvp.jugador.nombre|nombre_juego }}</span>
+      <span class="nota {{ f.mvp_nota|nota_clase }}">{{ f.mvp_nota|floatformat:0 }}</span>
+    {% endif %}
+  </span>
+</a>

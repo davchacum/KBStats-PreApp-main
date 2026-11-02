@@ -1,0 +1,54 @@
+{% load kb %}{# Tabla de un equipo en el detalle de partida. Espera `eq`, `lista` y `max_dano`. #}
+<section class="card-app marcador-eq {{ eq.lado }}">
+  <div class="h">
+    <h2>
+      <span class="{% if eq.gana %}res-v{% else %}res-d{% endif %}">{% if eq.gana %}Victoria{% else %}Derrota{% endif %}</span>
+      <span class="muted-2" style="font-weight:400;"> · </span>
+      <a href="{% url 'equipo' eq.nombre %}">{{ eq.nombre }}</a>
+      <span class="muted" style="font-weight:500;font-size:13px;margin-left:6px;">{% if eq.lado == 'azul' %}Lado azul{% else %}Lado rojo{% endif %}</span>
+    </h2>
+    <span class="muted num" style="font-size:13px;">{{ eq.kills }} / {{ eq.muertes }} / {{ eq.asistencias }} · {{ eq.oro|miles }} oro</span>
+  </div>
+  <div class="b flush tabla-wrap">
+    <table class="tabla">
+      <thead>
+        <tr><th>Jugador</th><th>KDA</th><th>Daño</th><th class="c">Oro</th><th class="c">CS</th><th class="c">Visión</th><th>Objetos</th><th class="r">Nota<span class="ayuda" title="Nota de rendimiento de 0 a 100. Pulsa una nota para ver su desglose. MVP: mejor del equipo ganador. ACE: mejor del perdedor.">?</span></th></tr>
+      </thead>
+      <tbody>
+        {% for s in lista %}
+        <tr data-href="{% url 'jugador' s.jugador_nombre %}">
+          <td>
+            <span style="display:inline-flex;align-items:center;gap:8px;">
+              <span class="camp-wrap">
+                <img class="camp" src="{{ s.campeon|icono_campeon }}" alt="{{ s.campeon }}" title="{{ s.campeon }}" loading="lazy" style="width:36px;height:36px;">
+                {% if s.extra.champLevel %}<span class="lvl">{{ s.extra.champLevel }}</span>{% endif %}
+              </span>
+              {% include 'Cinturones/_cargas.html' with ex=s.extra %}
+              {% rol s.rol %}
+              <a class="jug" href="{% url 'jugador' s.jugador_nombre %}"><span class="nom">{{ s.jugador_nombre|nombre_juego }}</span></a>
+            </span>
+          </td>
+          <td>
+            <span class="fuerte">{{ s.kills }} / <span class="txt-mal">{{ s.muertes }}</span> / {{ s.asistencias }}</span>
+            <span class="sub-valor">{{ s.kda|floatformat:2 }} KDA · KP {{ s.kp_porcentaje|floatformat:0 }}%</span>
+          </td>
+          <td>
+            <span class="num">{{ s.dano_infligido|miles }}</span>
+            <span class="barra-mini {{ eq.lado }}" style="display:block;width:72px;margin-top:4px;"><i style="width:{{ s.dano_infligido|pct:max_dano }}%"></i></span>
+          </td>
+          <td class="c">{{ s.oro|miles }}</td>
+          <td class="c">{{ s.cs }}<span class="sub-valor">{{ s.cs_min|floatformat:1 }}/min</span></td>
+          <td class="c">{% if s.vision is not None %}{{ s.vision }}{% else %}{{ s.vision_min|floatformat:1 }}/min{% endif %}</td>
+          <td>{% include 'Cinturones/_objetos.html' with ex=s.extra %}</td>
+          <td class="r">
+            <span style="display:inline-flex;align-items:center;gap:6px;">
+              {% if s.insignia %}<span class="ins ins-{{ s.insignia }}">{{ s.insignia }}</span>{% elif s.puesto %}<span class="muted" style="font-size:12.5px;" title="Puesto en la partida">{{ s.puesto }}º</span>{% endif %}
+              {% if s.nota is not None %}<button type="button" class="nota {{ s.nota|nota_clase }}" data-desglose="{{ s.stats_id }}" title="Ver el desglose de la nota">{{ s.nota|floatformat:0 }}</button>{% endif %}
+            </span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>

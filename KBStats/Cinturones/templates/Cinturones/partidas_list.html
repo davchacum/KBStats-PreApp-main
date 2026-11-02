@@ -1,23 +1,30 @@
-{% extends 'Cinturones/base.html' %} {% block content %}
-<h1>Partidas - Jornada {{ jornada }}</h1>
+{% extends 'Cinturones/base.html' %}
+
+{% block content %}
+<header class="cabecera">
+  <div>
+    <h1>Partidas · Jornada {{ jornada }}</h1>
+  </div>
+</header>
+
 {% if partidas %}
-<div class="list-group">
-  {% for p in partidas %}
-  <a
-    href="/partida/{{ p.match_id }}/?format=html"
-    class="list-group-item list-group-item-action"
-  >
-    <div class="d-flex w-100 justify-content-between">
-      <h5 class="mb-1">{{ p.equipo_azul }} vs {{ p.equipo_rojo }}</h5>
-      <small>Duración: {{ p.duracion_segundos }}s</small>
-    </div>
-    <p class="mb-1">
-      Match ID: {{ p.match_id }} — Ganador: {{ p.ganador_equipo }}
-    </p>
-    <small>Stats jugadores: {{ p.stats_jugadores|length }} jugadores</small>
-  </a>
-  {% endfor %}
+<div class="card card-jornada">
+  <div class="list-group list-group-flush list-group-kb">
+    {% for p in partidas %}
+    <a href="/partida/{{ p.match_id }}/?format=html" class="list-group-item list-group-item-action list-group-item-kb">
+      <div class="d-flex w-100 justify-content-between align-items-center gap-3 flex-wrap">
+        <span class="partida-title">{{ p.equipo_azul }}<span class="vs">vs</span>{{ p.equipo_rojo }}</span>
+        <span class="partida-meta">Duración: {{ p.duracion_segundos }}</span>
+      </div>
+      <div class="d-flex w-100 justify-content-between gap-3 flex-wrap mt-1">
+        <span class="partida-meta">{{ p.match_id }} · Ganador: <strong>{{ p.ganador_equipo }}</strong></span>
+        <span class="partida-meta">Stats de {{ p.stats_jugadores|length }} jugadores</span>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
 </div>
 {% else %}
-<p>No se encontraron partidas para la jornada indicada.</p>
-{% endif %} {% endblock %}
+<div class="aviso">No se encontraron partidas para la jornada indicada.</div>
+{% endif %}
+{% endblock %}

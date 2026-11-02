@@ -8,39 +8,92 @@ from django.db.models import Avg, Count, Sum
 # from django.contrib import messages  # DESACTIVADO
 
 from .models import Partida, StatsJugador
-from .utils import calculate_jungler_proximity
+from .temporadas import temporada_de
+from .utils import calculate_jungler_proximity, annotate_player_roles
 # from .forms import AddPartidaForm  # DESACTIVADO
 # from .utils import extract_match_data, save_to_django  # DESACTIVADO
 
 
-def _leer_grupos_desde_seed():
-	"""Lee `seed_grupos.csv` y devuelve [{nombre, equipos}, ...]."""
-	seed_path = settings.BASE_DIR / 'seed_grupos.csv'
-	grupos = []
+def partidas_de(request):
+	"""Partidas de la temporada que se está viendo (todas si aún no hay temporadas)."""
+	t = temporada_de(request)
+	return Partida.objects.filter(temporada=t) if t else Partida.objects.all()
 
-	if not seed_path.exists():
-		return grupos
 
-	with seed_path.open(mode='r', encoding='utf-8', newline='') as csv_file:
-		reader = csv.reader(csv_file)
-		for row in reader:
-			if not row:
-				continue
-			nombre_grupo = row[0].strip()
-			equipos = [equipo.strip() for equipo in row[1:] if equipo and equipo.strip()]
-			if nombre_grupo and equipos:
-				grupos.append({'nombre': nombre_grupo, 'equipos': equipos})
+def stats_de(request):
+	"""Estadísticas de jugador de la temporada que se está viendo."""
+	t = temporada_de(request)
+	return StatsJugador.objects.filter(partida__temporada=t) if t else StatsJugador.objects.all()
 
-	return grupos
+
+def es_playoff(jornada):
+	"""Rondas eliminatorias (no cuentan para la clasificación)."""
+	j = (jornada or '').strip().upper()
+	return j.startswith('PLAYOFF') or j in ('FINAL', 'SEMIFINAL', 'CUARTOS')
+
+
+def orden_jornada(j):
+	"""Orden cronológico de una jornada: 1, 2, ... · SUIZO 1, 2, ... · cuartos · semifinal · final."""
+	j = (j or '').strip().upper()
+	if j.isdigit():
+		return (0, int(j))
+	if j.startswith('SUIZO'):
+		resto = j.replace('SUIZO', '').strip()
+		return (1, int(resto) if resto.isdigit() else 0)
+	for i, clave in enumerate(('CUARTOS', 'SEMIFINAL', 'FINAL')):
+		if j.endswith(clave):
+			return (2, i)
+	return (3, 0)
+
+
+def orden_partida(p):
+	"""Clave de orden cronológico de una partida: jornada y game."""
+	n = (p.numero_partida or '').strip()
+	return (orden_jornada(p.jornada), int(n) if n.isdigit() else 0, p.id)
 
 
 def clasificacion_grupos(request):
-	"""Muestra clasificación por grupo: PJ, V y D."""
-	grupos = _leer_grupos_desde_seed()
+	"""Muestra clasificación por grupo: PJ, V, D, % de victorias y racha de las últimas partidas."""
+	temporada = temporada_de(request)
+	clasificaciones = calcular_clasificacion(temporada)
+
+	# Racha: resultados de cada equipo en orden cronológico (las 5 últimas).
+	# Solo cuentan las mismas partidas que la clasificación: las de equipos que están en algún grupo.
+	en_grupos = {eq['equipo'] for g in clasificaciones for eq in g['equipos']}
+	resultados = {}
+	for p in sorted(partidas_de(request).select_related('equipo_azul', 'equipo_rojo', 'ganador_equipo'), key=orden_partida):
+		if not p.ganador_equipo or not p.equipo_azul or not p.equipo_rojo or es_playoff(p.jornada):
+			continue
+		if p.equipo_azul.nombre not in en_grupos or p.equipo_rojo.nombre not in en_grupos:
+			continue
+		for eq in (p.equipo_azul, p.equipo_rojo):
+			if eq:
+				resultados.setdefault(eq.nombre, []).append('v' if eq.id == p.ganador_equipo_id else 'd')
+	for grupo in clasificaciones:
+		for i, eq in enumerate(grupo['equipos'], start=1):
+			eq['pos'] = i
+			eq['racha'] = resultados.get(eq['equipo'], [])[-5:]
+			eq['winrate'] = round(100 * eq['victorias'] / eq['jugados']) if eq['jugados'] else 0
+
+	return render(request, 'Cinturones/clasificacion_grupos.html', {
+		'clasificaciones': clasificaciones, 'con_grupos': bool(temporada and temporada.grupos),
+	})
+
+
+def calcular_clasificacion(temporada=None):
+	"""
+	Clasificación de cada grupo de la temporada, con los desempates de la liga. Sin contar los playoffs.
+	Si la temporada no tiene grupos, una sola tabla con todos sus equipos.
+	"""
+	partidas = Partida.objects.filter(temporada=temporada) if temporada else Partida.objects.all()
+	partidas = [p for p in partidas.select_related('equipo_azul', 'equipo_rojo', 'ganador_equipo') if not es_playoff(p.jornada)]
+	grupos = list(temporada.grupos) if temporada and temporada.grupos else []
+	if not grupos:
+		equipos = sorted({p.equipo_azul.nombre for p in partidas} | {p.equipo_rojo.nombre for p in partidas})
+		grupos = [{'nombre': 'Liga', 'equipos': equipos}] if equipos else []
 
 	if not grupos:
-		# messages.warning(request, 'No se encontró información de grupos en seed_grupos.csv.')  # DESACTIVADO
-		return render(request, 'Cinturones/clasificacion_grupos.html', {'clasificaciones': []})
+		return []
 
 	# Índice rápido para saber en qué grupo está cada equipo.
 	equipo_a_grupo = {}
@@ -90,10 +143,6 @@ def clasificacion_grupos(request):
 		for grupo in grupos
 	}
 
-	partidas = (Partida.objects
-		.select_related('equipo_azul', 'equipo_rojo', 'ganador_equipo')
-		.all())
-
 	for partida in partidas:
 		nombre_azul = partida.equipo_azul.nombre if partida.equipo_azul else None
 		nombre_rojo = partida.equipo_rojo.nombre if partida.equipo_rojo else None
@@ -103,7 +152,7 @@ def clasificacion_grupos(request):
 		grupo_azul = equipo_a_grupo.get(nombre_azul)
 		grupo_rojo = equipo_a_grupo.get(nombre_rojo)
 
-		# Solo ignorar partidas con equipos no presentes en seed_grupos.csv.
+		# Solo ignorar partidas con equipos que no están en ningún grupo.
 		if not grupo_azul or not grupo_rojo:
 			continue
 
@@ -213,11 +262,7 @@ def clasificacion_grupos(request):
 			'equipos': equipos_ordenados,
 		})
 
-	return render(
-		request,
-		'Cinturones/clasificacion_grupos.html',
-		{'clasificaciones': clasificaciones_render},
-	)
+	return clasificaciones_render
 
 
 def buscar_partidos_por_jornada(request):
@@ -236,7 +281,7 @@ def buscar_partidos_por_jornada(request):
 			return render(request, 'Cinturones/buscar_partidos_form.html')
 		return JsonResponse({'error': 'Parámetro "jornada" requerido.'}, status=400)
 
-	partidas = (Partida.objects
+	partidas = (partidas_de(request)
 				.filter(jornada=jornada)
 				.select_related('equipo_azul', 'equipo_rojo', 'ganador_equipo')
 				.prefetch_related('stats_jugadores__jugador'))
@@ -299,94 +344,63 @@ def buscar_partidos_por_jornada(request):
 	return JsonResponse({'partidas': resultado})
 
 
-def index(request):
-	"""Página de inicio sencilla con enlaces a las vistas principales."""
-	context = {
-		'total_partidas': Partida.objects.count(),
-		'total_jugadores': StatsJugador.objects.values_list('jugador', flat=True).distinct().count(),
-	}
-	return render(request, 'Cinturones/index.html', context)
-
-
 def buscar_partidos_form(request):
-	"""Muestra un formulario simple para introducir la jornada y buscar partidas.
+	"""Lista de partidas agrupadas por jornada (la más reciente primero), con filtro por jornada y equipo."""
+	from .views_app import _puntuar_partidas, _resumen_partidas
 
-	Envía una petición GET a la vista `buscar_partidos_por_jornada`.
+	jornada = request.GET.get('jornada') or ''
+	equipo = request.GET.get('equipo') or ''
+
+	todas = sorted(partidas_de(request).select_related('equipo_azul', 'equipo_rojo', 'ganador_equipo'), key=orden_partida)
+	jornadas = []
+	for p in todas:
+		if p.jornada not in jornadas:
+			jornadas.append(p.jornada)
+	equipos = sorted({p.equipo_azul.nombre for p in todas if p.equipo_azul} | {p.equipo_rojo.nombre for p in todas if p.equipo_rojo})
+
+	partidas = [p for p in todas if not jornada or p.jornada == jornada]
+	if equipo:
+		partidas = [p for p in partidas if equipo in ((p.equipo_azul.nombre if p.equipo_azul else ''), (p.equipo_rojo.nombre if p.equipo_rojo else ''))]
+
+	resultados, por_partida = _puntuar_partidas(partidas)
+	filas = _resumen_partidas(partidas, resultados, por_partida)
+
+	grupos = []
+	for f in reversed(filas):
+		if not grupos or grupos[-1]['jornada'] != f['p'].jornada:
+			grupos.append({'jornada': f['p'].jornada, 'partidas': []})
+		grupos[-1]['partidas'].append(f)
+	for g in grupos:
+		g['partidas'].reverse()   # dentro de la jornada, en orden de game
+
+	return render(request, 'Cinturones/buscar_partidos_form.html', {
+		'grupos': grupos, 'jornadas': jornadas, 'jornada': jornada,
+		'equipos': equipos, 'equipo': equipo,
+		'total': len(partidas), 'total_partidas': len(todas),
+	})
+
+
+def _grafica_oro(stats_azul, stats_rojo, extras, nombre_azul, nombre_rojo):
 	"""
-	jornada = request.GET.get('jornada')
-	sort = request.GET.get('sort')
-	order = request.GET.get('order', 'asc')
-	# Si se pasa jornada, filtrar por ella; si no, devolver todas las partidas
-	# Mapa de campos permitidos para ordenar
-	sort_map = {
-		'jornada': 'jornada',
-		'numero': 'numero_partida',
-		'duracion': 'duracion_segundos',
-		'equipo_azul': 'equipo_azul__nombre',
-		'equipo_rojo': 'equipo_rojo__nombre',
-		'ganador': 'ganador_equipo__nombre',
-		'created': 'created_at',
-	}
-	if jornada:
-		partidas_qs = (Partida.objects
-			.filter(jornada=jornada)
-			.select_related('equipo_azul', 'equipo_rojo', 'ganador_equipo'))
-		# orden por defecto: numero_partida
-		default_order = ['numero_partida']
-	else:
-		partidas_qs = (Partida.objects
-			.all()
-			.select_related('equipo_azul', 'equipo_rojo', 'ganador_equipo'))
-		# orden por defecto: jornada, numero_partida
-		default_order = ['jornada', 'numero_partida']
-
-	# Aplicar orden si se solicita y es válido
-	if sort in sort_map:
-		field = sort_map[sort]
-		if order == 'desc':
-			field = f'-{field}'
-		partidas_qs = partidas_qs.order_by(field)
-	else:
-		partidas_qs = partidas_qs.order_by(*default_order)
-
-	# Construir estructura agrupada por jornada: lista de {jornada, partidas: [...]}
-	partidas_result = []
-	for p in partidas_qs:
-		partidas_result.append({
-			'id': p.id,
-			'match_id': p.match_id,
-			'jornada': p.jornada,
-			'numero_partida': p.numero_partida,
-			'equipo_azul': p.equipo_azul.nombre if p.equipo_azul else None,
-			'equipo_rojo': p.equipo_rojo.nombre if p.equipo_rojo else None,
-			'ganador_equipo': p.ganador_equipo.nombre if p.ganador_equipo else None,
-			'duracion_segundos': f"{p.duracion_segundos//60}:{p.duracion_segundos%60:02}",
-		})
-
-	groups = []
-	if jornada:
-		# Si se filtró por jornada, crear un único grupo
-		groups = [{
-			'jornada': jornada,
-			'partidas': partidas_result,
-		}]
-	else:
-		# Agrupar por jornada en orden
-		current_j = None
-		for p in partidas_result:
-			if p['jornada'] != current_j:
-				current_j = p['jornada']
-				groups.append({'jornada': current_j, 'partidas': [p]})
-			else:
-				groups[-1]['partidas'].append(p)
-
-	total_partidas = Partida.objects.count()
-
-	return render(
-		request,
-		'Cinturones/buscar_partidos_form.html',
-		{'groups': groups, 'jornada': jornada, 'total_partidas': total_partidas},
-	)
+	Oro de cada equipo y de cada jugador minuto a minuto (sale del timeline, ver cargar_datos_avanzados).
+	`extras` es {jugador_id: riot_extra}. Devuelve None si a algún jugador le faltan los datos.
+	"""
+	curvas = {s['jugador_id']: extras.get(s['jugador_id']) or {} for s in stats_azul + stats_rojo}
+	if len(curvas) != 10 or not all(c.get('oro_t') and c.get('frames_s') for c in curvas.values()):
+		return None
+	segundos = next(iter(curvas.values()))['frames_s']
+	n = min([len(segundos)] + [len(c['oro_t']) for c in curvas.values()])
+	datos = {'t': segundos[:n], 'equipos': {}, 'roles': {}}
+	for lado, lista, nombre in (('azul', stats_azul, nombre_azul), ('rojo', stats_rojo, nombre_rojo)):
+		datos['equipos'][lado] = {'nombre': nombre, 'oro': [sum(curvas[s['jugador_id']]['oro_t'][i] for s in lista) for i in range(n)]}
+		for s in lista:
+			datos['roles'].setdefault((s.get('rol') or '').upper(), {})[lado] = {
+				'nombre': s['jugador_nombre'].split('#')[0], 'campeon': s['campeon'],
+				'oro': curvas[s['jugador_id']]['oro_t'][:n],
+			}
+	# Solo los roles con un jugador en cada lado, en el orden de siempre
+	datos['roles'] = {r: datos['roles'][r] for r in ('TOP', 'JGL', 'MID', 'ADC', 'SUP') if len(datos['roles'].get(r, {})) == 2}
+	return datos
 
 
 def detalle_partida(request, match_id=None):
@@ -469,16 +483,70 @@ def detalle_partida(request, match_id=None):
 		if partida.position_data and any(team_roles.values()):
 			proximity = calculate_jungler_proximity(partida.position_data, team_roles)
 
+		# Nota de rendimiento de cada jugador
+		from . import scoring
+		from .views_app import iniciales_equipo
+		objs = {s.id: s for s in partida.stats_jugadores.all()}
+		resultados = scoring.puntuar_stats(list(objs.values()))
+		desgloses = {}
+		for lista in (stats_azul, stats_rojo):
+			for st in lista:
+				obj = next((o for o in objs.values() if o.jugador_id == st['jugador_id']), None)
+				r = resultados.get(obj.id) if obj else None
+				if not r:
+					continue
+				st['stats_id'] = obj.id
+				st['nota'] = r['nota']
+				st['puesto'] = r.get('puesto')
+				st['insignia'] = r.get('insignia')
+				ex = obj.riot_extra or {}
+				st['extra'] = ex
+				st['oro'] = ex.get('goldEarned') or round((st['oro_min'] or 0) * (obj.game_time or 0))
+				st['vision'] = ex.get('visionScore')
+				st['victoria'] = obj.victoria
+				desgloses[obj.id] = {
+					'nombre': st['jugador_nombre'], 'campeon': st['campeon'], 'rol': st['rol'],
+					'nota': r['nota'], 'total': r['total'], 'ajuste': r['ajuste'], 'victoria': r['victoria'],
+					'puesto': r.get('puesto'), 'insignia': r.get('insignia'), 'bloques': r['bloques'],
+				}
+
+		def resumen_equipo(lista, nombre, lado):
+			gana = bool(partida.ganador_equipo and partida.ganador_equipo.nombre == nombre)
+			suf = 'azul' if lado == 'azul' else 'rojo'
+			return {
+				'nombre': nombre, 'ini': iniciales_equipo(nombre), 'gana': gana, 'lado': lado,
+				'kills': sum(s['kills'] for s in lista), 'muertes': sum(s['muertes'] for s in lista),
+				'asistencias': sum(s['asistencias'] for s in lista),
+				'oro': sum(s.get('oro') or 0 for s in lista),
+				'dano': sum(s['dano_infligido'] for s in lista),
+				'dragones': getattr(partida, f'dragones_{suf}'), 'barones': getattr(partida, f'barones_{suf}'),
+				'heraldos': getattr(partida, f'heraldos_{suf}'), 'elders': getattr(partida, f'elders_{suf}'),
+				'atakhan': getattr(partida, f'atakhan_{suf}'),
+			}
+
+		oro_grafica = _grafica_oro(stats_azul, stats_rojo, {o.jugador_id: o.riot_extra for o in objs.values()},
+								   equipo_azul_nombre, equipo_rojo_nombre)
+
+		equipo_az = resumen_equipo(stats_azul, equipo_azul_nombre, 'azul')
+		equipo_ro = resumen_equipo(stats_rojo, equipo_rojo_nombre, 'rojo')
+		max_dano = max([s['dano_infligido'] for s in stats_azul + stats_rojo] or [1]) or 1
+
 		return render(
 			request,
 			'Cinturones/partida_detail.html',
 			{
 				'partida': data,
+				'partida_obj': partida,
 				'equipo_azul': equipo_azul_nombre,
 				'equipo_rojo': equipo_rojo_nombre,
 				'ganador_equipo': partida.ganador_equipo.nombre if partida.ganador_equipo else None,
 				'stats_azul': stats_azul,
 				'stats_rojo': stats_rojo,
+				'eq_azul': equipo_az,
+				'eq_rojo': equipo_ro,
+				'max_dano': max_dano,
+				'desgloses': desgloses,
+				'oro_grafica': oro_grafica,
 				'proximity': proximity,
 			},
 		)
@@ -491,36 +559,153 @@ def heatmap_data(request, match_id):
 	partida = get_object_or_404(Partida, match_id=match_id)
 	if not partida.position_data:
 		return JsonResponse({'error': 'No hay datos de posición para esta partida. Reimporta la partida con seed_partidas.'}, status=404)
-	return JsonResponse(partida.position_data)
+	stats = StatsJugador.objects.filter(partida=partida).select_related('jugador')
+	data = dict(partida.position_data)
+	data['players'] = annotate_player_roles(data.get('players', {}), stats)
+	return JsonResponse(data)
 
 
-def promedios_jugadores(request):
+# Columnas de la página Jugadores: (clave, cabecera, título, formato, vistas en las que sale, sentido)
+# sentido: 1 = más es mejor, -1 = menos es mejor, 0 = sin colorear
+VISTAS_JUGADORES = [
+	('resumen', 'Resumen'), ('combate', 'Combate'), ('farmeo', 'Farmeo'), ('dano', 'Daño'),
+	('vision', 'Visión'), ('early', 'Early game'), ('equipo', 'Equipo'),
+]
+COLUMNAS_JUGADORES = [
+	{'clave': 'win_rate', 'cab': '% WR', 'titulo': 'Porcentaje de victorias', 'fmt': 'pct0', 'vistas': 'resumen equipo', 'sentido': 1},
+	{'clave': 'mvp', 'cab': 'MVP', 'titulo': 'Veces mejor jugador del equipo ganador', 'fmt': 'f0', 'vistas': 'equipo', 'sentido': 2},
+	{'clave': 'ace', 'cab': 'ACE', 'titulo': 'Veces mejor jugador del equipo perdedor', 'fmt': 'f0', 'vistas': 'equipo', 'sentido': 2},
+	{'clave': 'avg_kda', 'cab': 'KDA', 'titulo': 'KDA medio', 'fmt': 'f2', 'vistas': 'resumen combate', 'sentido': 1},
+	{'clave': 'k_pg', 'cab': 'K', 'titulo': 'Kills por partida', 'fmt': 'f1', 'vistas': 'combate', 'sentido': 1},
+	{'clave': 'd_pg', 'cab': 'D', 'titulo': 'Muertes por partida', 'fmt': 'f1', 'vistas': 'combate', 'sentido': -1},
+	{'clave': 'a_pg', 'cab': 'A', 'titulo': 'Asistencias por partida', 'fmt': 'f1', 'vistas': 'combate', 'sentido': 1},
+	{'clave': 'avg_kp', 'cab': 'KP', 'titulo': 'Participación en kills', 'fmt': 'pct0', 'vistas': 'resumen combate', 'sentido': 1},
+	{'clave': 'fb_rate', 'cab': 'First blood', 'titulo': 'Partidas con participación en la primera sangre', 'fmt': 'pct0', 'vistas': 'combate early', 'sentido': 1},
+	{'clave': 'avg_double', 'cab': '2K', 'titulo': 'Dobles kills (total)', 'fmt': 'f0', 'vistas': 'combate', 'sentido': 1},
+	{'clave': 'avg_triple', 'cab': '3K', 'titulo': 'Triples kills (total)', 'fmt': 'f0', 'vistas': 'combate', 'sentido': 1},
+	{'clave': 'avg_quadra', 'cab': '4K', 'titulo': 'Cuádruples kills (total)', 'fmt': 'f0', 'vistas': 'combate', 'sentido': 1},
+	{'clave': 'avg_penta', 'cab': '5K', 'titulo': 'Pentakills (total)', 'fmt': 'f0', 'vistas': 'combate', 'sentido': 1},
+	{'clave': 'avg_cs', 'cab': 'CS', 'titulo': 'CS por partida', 'fmt': 'f0', 'vistas': 'farmeo', 'sentido': 1},
+	{'clave': 'avg_cs_min', 'cab': 'CS/min', 'titulo': 'CS por minuto', 'fmt': 'f1', 'vistas': 'resumen farmeo', 'sentido': 1},
+	{'clave': 'avg_oro_min', 'cab': 'Oro/min', 'titulo': 'Oro por minuto', 'fmt': 'f0', 'vistas': 'resumen farmeo', 'sentido': 1},
+	{'clave': 'avg_gold_pct', 'cab': '% oro', 'titulo': 'Porcentaje del oro del equipo', 'fmt': 'pct1', 'vistas': 'farmeo equipo', 'sentido': 1},
+	{'clave': 'avg_cs15', 'cab': 'CS @15', 'titulo': 'CS al minuto 15', 'fmt': 'f1', 'vistas': 'farmeo early', 'sentido': 1},
+	{'clave': 'avg_dano_min', 'cab': 'Daño/min', 'titulo': 'Daño a campeones por minuto', 'fmt': 'f0', 'vistas': 'resumen dano', 'sentido': 1},
+	{'clave': 'avg_porcentaje_dano_equipo', 'cab': '% daño', 'titulo': 'Porcentaje del daño del equipo', 'fmt': 'pct1', 'vistas': 'resumen dano', 'sentido': 1},
+	{'clave': 'avg_dano_recibido', 'cab': 'Recibido', 'titulo': 'Daño recibido por partida', 'fmt': 'miles', 'vistas': 'dano', 'sentido': 0},
+	{'clave': 'avg_dano_oro', 'cab': 'Daño/oro', 'titulo': 'Daño por cada unidad de oro', 'fmt': 'f2', 'vistas': 'dano', 'sentido': 1},
+	{'clave': 'avg_vision_min', 'cab': 'Visión/min', 'titulo': 'Puntuación de visión por minuto', 'fmt': 'f2', 'vistas': 'resumen vision', 'sentido': 1},
+	{'clave': 'avg_wpm', 'cab': 'Wards/min', 'titulo': 'Wards colocados por minuto', 'fmt': 'f2', 'vistas': 'vision', 'sentido': 1},
+	{'clave': 'avg_cwpm', 'cab': 'Pinks/min', 'titulo': 'Pinks comprados por minuto', 'fmt': 'f2', 'vistas': 'vision', 'sentido': 1},
+	{'clave': 'avg_wcpm', 'cab': 'Destruidos/min', 'titulo': 'Wards destruidos por minuto', 'fmt': 'f2', 'vistas': 'vision', 'sentido': 1},
+	{'clave': 'avg_gd15', 'cab': 'Dif. oro @15', 'titulo': 'Diferencia de oro con el rival al minuto 15', 'fmt': 'signo0', 'vistas': 'early', 'sentido': 1},
+	{'clave': 'avg_csd15', 'cab': 'Dif. CS @15', 'titulo': 'Diferencia de CS con el rival al minuto 15', 'fmt': 'signo1', 'vistas': 'early', 'sentido': 1},
+	{'clave': 'avg_xpd15', 'cab': 'Dif. XP @15', 'titulo': 'Diferencia de experiencia con el rival al minuto 15', 'fmt': 'signo0', 'vistas': 'early', 'sentido': 1},
+	{'clave': 'avg_ka15', 'cab': 'K+A @15', 'titulo': 'Kills y asistencias antes del minuto 15', 'fmt': 'f1', 'vistas': 'early', 'sentido': 1},
+	{'clave': 'avg_death_share', 'cab': '% muertes', 'titulo': 'Porcentaje de las muertes del equipo', 'fmt': 'pct1', 'vistas': 'equipo', 'sentido': -1},
+	{'clave': 'avg_game_time', 'cab': 'Duración', 'titulo': 'Duración media de sus partidas', 'fmt': 'min', 'vistas': 'equipo', 'sentido': 0},
+]
+# Los multikills son totales y casi siempre 0: solo se destaca el máximo (sentido 2)
+for _c in COLUMNAS_JUGADORES:
+	if _c['clave'] in ('avg_double', 'avg_triple', 'avg_quadra', 'avg_penta'):
+		_c['sentido'] = 2
+
+
+def _formato_celda(v, fmt):
+	if v is None:
+		return '—'
+	if fmt == 'pct0':
+		return f'{v:.0f}%'
+	if fmt == 'pct1':
+		return f'{v:.1f}%'
+	if fmt == 'f0':
+		return f'{v:.0f}'
+	if fmt == 'f1':
+		return f'{v:.1f}'
+	if fmt == 'f2':
+		return f'{v:.2f}'
+	if fmt == 'signo0':
+		return f'{v:+.0f}' if round(v) else '0'
+	if fmt == 'signo1':
+		return f'{v:+.1f}' if round(v, 1) else '0'
+	if fmt == 'miles':
+		from .templatetags.kb import miles
+		return miles(v)
+	if fmt == 'min':
+		m, s = divmod(int(round(v * 60)), 60)
+		return f'{m}:{s:02d}'
+	return str(v)
+
+
+def _clasificador(resultados, col):
+	"""Devuelve una función valor → clase según su puesto en la columna:
+	p-mejor (el mejor), p-alto (20 % mejor), p-bajo (20 % peor), p-peor (el peor) o ''.
+	El mejor y el peor solo se marcan si no están empatados con más de MAX_EMPATE_EXTREMO jugadores
+	(p. ej. muchos con 0 % de first blood): si no, se quedan en p-alto / p-bajo."""
+	sentido, k = col['sentido'], col['clave']
+	signo = -1 if sentido == -1 else 1
+	vals = sorted(r[k] * signo for r in resultados if r.get(k) is not None)
+	if not sentido or len(vals) < 5 or vals[0] == vals[-1]:
+		return lambda v: ''
+	unico_mejor = vals.count(vals[-1]) <= MAX_EMPATE_EXTREMO
+	unico_peor = vals.count(vals[0]) <= MAX_EMPATE_EXTREMO
+	if sentido == 2:
+		return lambda v: 'p-mejor' if v == vals[-1] and unico_mejor else ('p-cero' if not v else '')
+	n = len(vals)
+	alto, bajo = vals[min(n - 1, int(n * 0.8))], vals[max(0, int(n * 0.2) - 1)]
+	if alto <= bajo:
+		return lambda v: ''
+
+	def clase(v):
+		x = v * signo
+		if x == vals[-1] and unico_mejor:
+			return 'p-mejor'
+		if x == vals[0] and unico_peor:
+			return 'p-peor'
+		if x >= alto:
+			return 'p-alto'
+		if x <= bajo:
+			return 'p-bajo'
+		return ''
+	return clase
+
+
+MAX_EMPATE_EXTREMO = 2
+
+
+def jugadores_html(request):
+	"""Página de Jugadores (tabla de promedios) siempre en HTML."""
+	return promedios_jugadores(request, forzar_html=True)
+
+
+def promedios_jugadores(request, jugador_nombre=None, campeon=None, forzar_html=False):
 	"""Devuelve el promedio de las estadísticas por jugador.
 
 	Parámetros GET opcionales:
 	- jornada: filtrar stats por `partida__jornada` antes de agregar
 	- jugador: nombre (contiene) para filtrar jugadores específicos
 	"""
+	if jugador_nombre:
+		# Las rutas antiguas por jugador llevan a su perfil
+		from django.shortcuts import redirect
+		return redirect('jugador', nombre=jugador_nombre)
 	# Obtener las jornadas directamente desde la tabla Partida (evita duplicados nulos/vacíos)
-	jornadas_disponibles = (Partida.objects
-							 .exclude(jornada__isnull=True)
-							 .exclude(jornada__exact='')
-							 .values_list('jornada', flat=True)
-							 .distinct()
-							 .order_by('jornada'))
+	jornadas_disponibles = sorted(
+		set(partidas_de(request).exclude(jornada__isnull=True).exclude(jornada__exact='').values_list('jornada', flat=True)),
+		key=orden_jornada)
 	jornada = request.GET.get('jornada')
 	numero_partida = request.GET.get('numero_partida')
 	jugador_q = request.GET.get('jugador')
 	rol_q = request.GET.get('rol')
-	sort = request.GET.get('sort')
+	sort = request.GET.get('sort') or 'nota'   # por defecto, los de mejor nota primero
 	order = request.GET.get('order', 'desc')
 
-	numeros_qs = Partida.objects.exclude(numero_partida__isnull=True).exclude(numero_partida__exact='')
+	numeros_qs = partidas_de(request).exclude(numero_partida__isnull=True).exclude(numero_partida__exact='')
 	if jornada:
 		numeros_qs = numeros_qs.filter(jornada=jornada)
 	numeros_disponibles = list(numeros_qs.values_list('numero_partida', flat=True).distinct().order_by('numero_partida'))
 
-	qs = StatsJugador.objects.all()
+	qs = stats_de(request)
 	if jornada:
 		qs = qs.filter(partida__jornada=jornada)
 	if numero_partida:
@@ -617,6 +802,30 @@ def promedios_jugadores(request):
 	else:
 		agregados = agregados.order_by('jugador__nombre')
 
+	# Nota media de rendimiento (cada partida se puntúa con sus 10 jugadores)
+	from . import scoring
+	stats_filtradas = list(qs.only('id', 'jugador_id', 'partida_id'))
+	todas = list(StatsJugador.objects.filter(partida_id__in={s.partida_id for s in stats_filtradas}))
+	notas_res = scoring.puntuar_stats(todas)
+	notas_jug = {}
+	insignias_jug = {}   # {jugador_id: {'MVP': n, 'ACE': n}}
+	for s in stats_filtradas:
+		if s.id in notas_res:
+			notas_jug.setdefault(s.jugador_id, []).append(notas_res[s.id]['nota'])
+			ins = notas_res[s.id].get('insignia')
+			if ins in ('MVP', 'ACE'):
+				d = insignias_jug.setdefault(s.jugador_id, {})
+				d[ins] = d.get(ins, 0) + 1
+	perfil = {}
+	for jid, extra in qs.order_by('partida_id').values_list('jugador_id', 'riot_extra'):
+		if extra and extra.get('profileIcon') is not None:
+			perfil[jid] = extra['profileIcon']
+	campeon_fav = {}
+	for jid, camp in (qs.values_list('jugador_id', 'campeon')):
+		if camp:
+			campeon_fav.setdefault(jid, {}).setdefault(camp, 0)
+			campeon_fav[jid][camp] += 1
+
 	resultados = []
 	for a in agregados:
 		resultados.append({
@@ -656,11 +865,85 @@ def promedios_jugadores(request):
 			'avg_game_time': float(a['avg_game_time'] or 0.0),
 			'games_played': a['games_played'],
 			'rol_principal': rol_principal.get(a['jugador__id'], ''),
+			'nota': round(sum(notas_jug[a['jugador__id']]) / len(notas_jug[a['jugador__id']]), 1) if notas_jug.get(a['jugador__id']) else None,
+			'campeon_fav': max(campeon_fav[a['jugador__id']], key=campeon_fav[a['jugador__id']].get) if campeon_fav.get(a['jugador__id']) else None,
+			'perfil': perfil.get(a['jugador__id']),
+			'mvp': insignias_jug.get(a['jugador__id'], {}).get('MVP', 0),
+			'ace': insignias_jug.get(a['jugador__id'], {}).get('ACE', 0),
 		})
 
-	wants_html = request.GET.get('format') == 'html' or 'text/html' in request.META.get('HTTP_ACCEPT', '')
+	if sort == 'nota':
+		resultados.sort(key=lambda r: (r['nota'] is None, -(r['nota'] or 0) if order == 'desc' else (r['nota'] or 0)))
+
+	wants_html = forzar_html or request.GET.get('format') == 'html' or 'text/html' in request.META.get('HTTP_ACCEPT', '')
 	if wants_html:
+		# K / D / A por partida (los agregados son totales)
+		for r in resultados:
+			n = r['games_played'] or 1
+			r['k_pg'] = r['avg_kills'] / n
+			r['d_pg'] = r['avg_muertes'] / n
+			r['a_pg'] = r['avg_asistencias'] / n
+
+		# Mínimo de partidas
+		try:
+			minimo = max(1, int(request.GET.get('min') or 1))
+		except ValueError:
+			minimo = 1
+		resultados = [r for r in resultados if r['games_played'] >= minimo]
+
+		# Orden por cualquier columna (los valores vacíos, al final)
+		validas = {c['clave'] for c in COLUMNAS_JUGADORES} | {'nota', 'games_played', 'jugador_nombre', 'rol_principal'}
+		clave = {'nombre': 'jugador_nombre', 'games': 'games_played'}.get(sort, sort)
+		clave = clave if clave in validas else sort_map.get(sort, 'nota')
+		if clave not in validas:
+			clave = 'nota'
+		con_valor = [r for r in resultados if r.get(clave) is not None]
+		sin_valor = [r for r in resultados if r.get(clave) is None]
+		if clave in ('jugador_nombre', 'rol_principal'):
+			con_valor.sort(key=lambda r: r[clave].lower(), reverse=(order == 'desc'))
+		else:
+			con_valor.sort(key=lambda r: r[clave], reverse=(order == 'desc'))
+		resultados = con_valor + sin_valor
+
+		# Celdas ya formateadas y coloreadas según su puesto en la columna, comparando con los de su rol
+		# (un support no sale en rojo por farmear poco); con menos de 5 en el rol, con todos
+		columnas = [dict(c, vcls=' '.join('v-' + v for v in c['vistas'].split())) for c in COLUMNAS_JUGADORES]
+		por_rol = {}
+		for r in resultados:
+			por_rol.setdefault(r['rol_principal'], []).append(r)
+		clasificadores = {
+			rol: [_clasificador(grupo if len(grupo) >= 5 else resultados, c) for c in columnas]
+			for rol, grupo in por_rol.items()
+		}
+		for r in resultados:
+			r['celdas'] = [{
+				'txt': _formato_celda(r.get(c['clave']), c['fmt']),
+				'cls': clase(r[c['clave']]) if r.get(c['clave']) is not None else 'p-cero',
+				'vcls': c['vcls'],
+				'ord': c['clave'] == clave,
+			} for c, clase in zip(columnas, clasificadores[r['rol_principal']])]
+
+		vista = request.GET.get('vista')
+		if vista not in {v for v, _ in VISTAS_JUGADORES}:
+			vista = 'resumen'
+
+		# Parámetros actuales sin orden (para las cabeceras), sin rol (para las pestañas de rol) y sin vista
+		def sin(*claves):
+			p = request.GET.copy()
+			for k in claves + ('format',):
+				p.pop(k, None)
+			return p.urlencode()
 		return render(request, 'Cinturones/promedios_jugadores.html', {
+			'qs_sin_orden': sin('sort', 'order'),
+			'qs_sin_rol': sin('rol'),
+			'qs_sin_vista': sin('vista'),
+			'roles_filtro': [('TOP', 'TOP'), ('JGL', 'JG'), ('MID', 'MID'), ('ADC', 'ADC'), ('SUP', 'SUP')],
+			'columnas': columnas,
+			'vistas': VISTAS_JUGADORES,
+			'vista': vista,
+			'sort_activo': clave,
+			'minimo': minimo,
+			'minimos': [1, 2, 3, 5],
 			'jugadores': resultados,
 			'jornada': jornada,
 			'numero_partida': numero_partida,
@@ -675,267 +958,101 @@ def promedios_jugadores(request):
 
 
 def tier_list(request):
-	# ── Estructura de ponderaciones (para el modal visual) ─────────────────
-	DISPLAY_WEIGHTS = {
-		'TOP': [
-			('Combate',    [('KDA',16,False),('KP %',10,False)]),
-			('Farmeo',     [('CS/min',20,False),('Oro/min',12,False)]),
-			('Daño',       [('Dmg/min',16,False),('Dmg/Oro',8,False),('% Dmg',6,False)]),
-			('Visión',     [('Visión/min',8,False)]),
-			('Multi-kill', [('2 kills',2,False),('3 kills',2,False)]),
-		],
-		'JGL': [
-			('Combate',    [('KDA',18,False),('KP %',20,False)]),
-			('Farmeo',     [('CS/min',15,False),('Oro/min',10,False)]),
-			('Daño',       [('Dmg/min',9,False),('Dmg/Oro',6,False),('% Dmg',3,False)]),
-			('Visión',     [('Visión/min',8,False)]),
-			('Multi-kill', [('2 kills',4,False),('3 kills',4,False),('4 kills',2,False),('5 kills',1,False)]),
-		],
-		'MID': [
-			('Combate',    [('KDA',17,False),('KP %',14,False)]),
-			('Farmeo',     [('CS/min',14,False),('Oro/min',10,False)]),
-			('Daño',       [('Dmg/min',17,False),('Dmg/Oro',9,False),('% Dmg',7,False)]),
-			('Visión',     [('Visión/min',5,False)]),
-			('Multi-kill', [('2 kills',2,False),('3 kills',2,False),('4 kills',2,False),('5 kills',1,False)]),
-		],
-		'ADC': [
-			('Combate',    [('KDA',19,False),('KP %',9,False)]),
-			('Farmeo',     [('CS/min',20,False),('Oro/min',9,False)]),
-			('Daño',       [('Dmg/min',17,False),('Dmg/Oro',10,False),('% Dmg',8,False)]),
-			('Visión',     [('Visión/min',3,False)]),
-			('Multi-kill', [('2 kills',2,False),('3 kills',1,False),('4 kills',1,False),('5 kills',1,False)]),
-		],
-		'SUP': [
-			('Combate',    [('KDA',20,False),('KP %',33,False)]),
-			('Daño',       [('Dmg/min',6,False),('% Dmg',4,False)]),
-			('Economía',   [('Oro/min',7,False)]),
-			('Visión',     [('Wards/min',8,False),('CW/min',12,False),('WC/min',10,False)]),
-		],
-	}
-	max_pct = 33
-	roles_display = []
-	for role, cats in DISPLAY_WEIGHTS.items():
-		categories = []
-		for cat_name, stats in cats:
-			categories.append({
-				'name': cat_name,
-				'stats': [{'label': s[0], 'pct': s[1], 'pct_scaled': round(s[1] / max_pct * 100), 'inverse': s[2]} for s in stats],
-			})
-		roles_display.append({'role': role, 'categories': categories})
+	"""
+	Tier list por rol con la nota de rendimiento (ver scoring.py).
+	La nota de cada jugador es la media de sus partidas en su rol principal.
+	"""
+	from . import scoring
+	from .views_app import _campeones_favoritos
 
-	# ── Ponderaciones numéricas para scoring ───────────────────────────────
-	SCORE_WEIGHTS = {
-		'TOP': {'kda':.16,'kp':.10,'cs_min':.20,'oro_min':.12,'dmg_min':.16,'dmg_oro':.08,'pct_dmg':.06,'vision_min':.08,'double':.02,'triple':.02},
-		'JGL': {'kda':.18,'kp':.20,'cs_min':.15,'oro_min':.10,'vision_min':.08,'dmg_min':.09,'dmg_oro':.06,'pct_dmg':.03,'double':.04,'triple':.04,'quadra':.02,'penta':.01},
-		'MID': {'kda':.17,'kp':.14,'dmg_min':.17,'dmg_oro':.09,'pct_dmg':.07,'cs_min':.14,'oro_min':.10,'vision_min':.05,'double':.02,'triple':.02,'quadra':.02,'penta':.01},
-		'ADC': {'kda':.19,'kp':.09,'dmg_min':.17,'dmg_oro':.10,'pct_dmg':.08,'cs_min':.20,'oro_min':.09,'vision_min':.03,'double':.02,'triple':.01,'quadra':.01,'penta':.01},
-		'SUP': {'kda':.20,'kp':.33,'wpm':.08,'cwpm':.12,'wcpm':.10,'dmg_min':.06,'pct_dmg':.04,'oro_min':.07},
-	}
-	# clave scoring → campo en resultados
-	FIELD_MAP = {
-		'k':'avg_kills','d':'avg_muertes','a':'avg_asistencias','kda':'avg_kda',
-		'kp':'avg_kp','oro_min':'avg_oro_min','dmg_oro':'avg_dano_oro',
-		'pct_dmg':'avg_porcentaje_dano_equipo','dmg_min':'avg_dano_min',
-		'dmg_rec':'avg_dano_recibido','cs':'avg_cs','cs_min':'avg_cs_min',
-		'vision_min':'avg_vision_min',
-		'wpm':'avg_wpm','cwpm':'avg_cwpm','wcpm':'avg_wcpm',
-		'double':'avg_double','triple':'avg_triple',
-		'quadra':'avg_quadra','penta':'avg_penta',
-	}
-	def _normalize(values):
-		mn, mx = min(values), max(values)
-		if mx == mn:
-			return [0.5] * len(values)
-		return [(v - mn) / (mx - mn) for v in values]
+	jornadas_disponibles = sorted(
+		set(partidas_de(request).exclude(jornada__isnull=True).exclude(jornada__exact='').values_list('jornada', flat=True)),
+		key=orden_jornada,
+	)
+	jornada = request.GET.get('jornada') or ''
+	numero_partida = request.GET.get('numero_partida') or ''
 
-	def _assign_tier(score):
-		if score >= 90: return 'S+'
-		if score >= 80: return 'S'
-		if score >= 70: return 'A'
-		if score >= 60: return 'B'
-		if score >= 50: return 'C'
-		return 'D'
-
-	# ── Filtros ────────────────────────────────────────────────────────────
-	jornadas_disponibles = (Partida.objects
-		.exclude(jornada__isnull=True).exclude(jornada__exact='')
-		.values_list('jornada', flat=True).distinct().order_by('jornada'))
-	jornada = request.GET.get('jornada')
-	numero_partida = request.GET.get('numero_partida')
-
-	numeros_qs = Partida.objects.exclude(numero_partida__isnull=True).exclude(numero_partida__exact='')
+	numeros_qs = partidas_de(request).exclude(numero_partida__isnull=True).exclude(numero_partida__exact='')
 	if jornada:
 		numeros_qs = numeros_qs.filter(jornada=jornada)
 	numeros_disponibles = list(numeros_qs.values_list('numero_partida', flat=True).distinct().order_by('numero_partida'))
 
-	qs = StatsJugador.objects.all()
+	qs = stats_de(request).select_related('jugador')
 	if jornada:
 		qs = qs.filter(partida__jornada=jornada)
 	if numero_partida:
 		qs = qs.filter(partida__numero_partida=numero_partida)
+	stats = list(qs)
 
-	# ── Helper: agrega un queryset y devuelve jugadores con score+tier ─────
-	GAMES_MIN_FACTOR = 0.90
+	# Cada partida se puntúa con sus 10 jugadores (hace falta el rival de cada uno)
+	todas = list(StatsJugador.objects.filter(partida_id__in={s.partida_id for s in stats}).select_related('jugador'))
+	resultados = scoring.puntuar_stats(todas)
+	ranking = scoring.ranking_jugadores(stats, resultados)
 
-	def _compute_scores(score_qs):
-		rp_qs = score_qs.values('jugador__id', 'rol').annotate(rol_count=Count('rol')).order_by('jugador__id', '-rol_count')
-		rp = {}
-		for r in rp_qs:
-			jid = r['jugador__id']
-			if jid not in rp:
-				rp[jid] = r['rol'] or ''
+	# Mínimo de partidas en su rol principal (las de la nota). Se filtra después de puntuar
+	# para que la media del rol, que usa la contracción, no cambie al ocultar jugadores.
+	try:
+		minimo = max(1, int(request.GET.get('min') or 1))
+	except ValueError:
+		minimo = 1
+	ranking = [f for f in ranking if f['partidas'] >= minimo]
 
-		agg = score_qs.values('jugador__id', 'jugador__nombre', 'rol').annotate(
-			avg_kills=Sum('kills'),
-			avg_muertes=Sum('muertes'),
-			avg_asistencias=Sum('asistencias'),
-			avg_kda=Avg('kda'),
-			avg_kp=Avg('kp_porcentaje'),
-			avg_oro_min=Avg('oro_min'),
-			avg_dano_oro=Avg('dano_oro'),
-			avg_porcentaje_dano_equipo=Avg('porcentaje_dano_equipo'),
-			avg_dano_min=Avg('dano_min'),
-			avg_dano_recibido=Avg('dano_recibido'),
-			avg_cs=Avg('cs'),
-			avg_cs_min=Avg('cs_min'),
-			avg_vision_min=Avg('vision_min'),
-			avg_wpm=Avg('wpm'),
-			avg_cwpm=Avg('cwpm'),
-			avg_wcpm=Avg('wcpm'),
-			avg_double=Sum('double_kills'),
-			avg_triple=Sum('triple_kills'),
-			avg_quadra=Sum('quadra_kills'),
-			avg_penta=Sum('penta_kills'),
-			avg_game_time=Avg('game_time'),
-			games_played=Count('partida__id'),
-		).order_by('jugador__nombre')
+	favoritos = _campeones_favoritos(stats)
+	for f in ranking:
+		f['campeon_fav'] = favoritos.get(f['jugador_id'])
 
-		jgs = []
-		for a in agg:
-			jid = a['jugador__id']
-			rol = a['rol'] or ''
-			if rol != rp.get(jid, ''):
-				continue
-			jgs.append({
-				'jugador_id': jid,
-				'jugador_nombre': a['jugador__nombre'],
-				'rol': rol,
-				'avg_kills': float(a['avg_kills'] or 0),
-				'avg_muertes': float(a['avg_muertes'] or 0),
-				'avg_asistencias': float(a['avg_asistencias'] or 0),
-				'avg_kda': float(a['avg_kda'] or 0),
-				'avg_kp': float(a['avg_kp'] or 0),
-				'avg_oro_min': float(a['avg_oro_min'] or 0),
-				'avg_dano_oro': float(a['avg_dano_oro'] or 0),
-				'avg_porcentaje_dano_equipo': float(a['avg_porcentaje_dano_equipo'] or 0),
-				'avg_dano_min': float(a['avg_dano_min'] or 0),
-				'avg_dano_recibido': float(a['avg_dano_recibido'] or 0),
-				'avg_cs': float(a['avg_cs'] or 0),
-				'avg_cs_min': float(a['avg_cs_min'] or 0),
-				'avg_vision_min': float(a['avg_vision_min'] or 0),
-				'avg_wpm': float(a['avg_wpm'] or 0),
-				'avg_cwpm': float(a['avg_cwpm'] or 0),
-				'avg_wcpm': float(a['avg_wcpm'] or 0),
-				'avg_double': float(a['avg_double'] or 0),
-				'avg_triple': float(a['avg_triple'] or 0),
-				'avg_quadra': float(a['avg_quadra'] or 0),
-				'avg_penta': float(a['avg_penta'] or 0),
-				'avg_game_time': float(a['avg_game_time'] or 0),
-				'games_played': a['games_played'],
-			})
+	# Más MVP y más ACE: en todas sus partidas (no solo en su rol principal), entre los jugadores del ranking
+	from collections import Counter
+	jugadas = Counter(s.jugador_id for s in stats)
+	insignias = {'MVP': Counter(), 'ACE': Counter()}
+	for s in stats:
+		ins = (resultados.get(s.id) or {}).get('insignia')
+		if ins in insignias:
+			insignias[ins][s.jugador_id] += 1
 
-		by_role = {}
-		for j in jgs:
-			by_role.setdefault(j['rol'], []).append(j)
-
-		for rol, group in by_role.items():
-			weights = SCORE_WEIGHTS.get(rol)
-			if not weights:
-				for j in group:
-					j['raw_score'] = 0.0
-				continue
-			normalised = {}
-			for skey, fkey in FIELD_MAP.items():
-				if skey not in weights:
-					continue
-				vals = [p[fkey] for p in group]
-				normalised[skey] = _normalize(vals)
-			for idx, j in enumerate(group):
-				j['raw_score'] = round(
-					sum(normalised[sk][idx] * weights[sk] for sk in normalised) * 100, 1
-				)
-
-		all_g = [j['games_played'] for j in jgs if 'raw_score' in j]
-		g_max = max(all_g) if all_g else 1
-		for j in jgs:
-			if 'raw_score' not in j:
-				j['score'] = 0.0
-				j['tier'] = 'D'
-				continue
-			games_norm = j['games_played'] / g_max if g_max > 0 else 1.0
-			factor = GAMES_MIN_FACTOR + (1.0 - GAMES_MIN_FACTOR) * games_norm
-			s = min(100.0, j['raw_score'] * factor)
-			j['score'] = round(s, 1)
-			j['tier'] = _assign_tier(s)
-
-		return jgs
-
-	# ── Calcular puntuaciones ─────────────────────────────────────────────
-	# Cuando hay varios games en la jornada y no se filtra por game concreto,
-	# calculamos la puntuación por game individual y promediamos los scores.
-	# Esto evita que el promedio de stats + renormalización dé resultados
-	# inconsistentes con las puntuaciones individuales de cada game.
-	if jornada and len(numeros_disponibles) > 1 and not numero_partida:
-		game_scores = {}   # jugador_id -> [score_g1, score_g2, ...]
-		game_info   = {}   # jugador_id -> dict con datos del jugador
-		for num in numeros_disponibles:
-			game_qs = StatsJugador.objects.filter(
-				partida__jornada=jornada,
-				partida__numero_partida=num,
-			)
-			for j in _compute_scores(game_qs):
-				pid = j['jugador_id']
-				game_scores.setdefault(pid, []).append(j['score'])
-				game_info[pid] = j
-		jugadores = []
-		for pid, scores in game_scores.items():
-			j = game_info[pid].copy()
-			avg = round(sum(scores) / len(scores), 1)
-			j['score'] = avg
-			j['tier'] = _assign_tier(avg)
-			jugadores.append(j)
-	else:
-		jugadores = _compute_scores(qs)
-
-	# ── Agrupar por tier y rol para el template ───────────────────────────
-	TIER_ORDER = ['S+', 'S', 'A', 'B', 'C', 'D']
-	ROL_ORDER  = ['TOP', 'JGL', 'MID', 'ADC', 'SUP']
-	tiers = {t: {r: [] for r in ROL_ORDER} for t in TIER_ORDER}
-	for j in jugadores:
-		rol = j['rol'] if j['rol'] in ROL_ORDER else 'TOP'
-		tiers[j['tier']][rol].append(j)
-	for t in TIER_ORDER:
-		for r in ROL_ORDER:
-			tiers[t][r].sort(key=lambda x: -x['score'])
-	tiers_list = [
-		{'tier': t, 'roles': [{'rol': r, 'jugadores': tiers[t][r]} for r in ROL_ORDER]}
-		for t in TIER_ORDER
+	def top_insignia(clave):
+		filas = [dict(f, n=insignias[clave][f['jugador_id']], jugadas=jugadas[f['jugador_id']])
+				 for f in ranking if insignias[clave][f['jugador_id']]]
+		# Empates: antes el que lo consigue en menos partidas, luego por nota
+		filas.sort(key=lambda f: (-f['n'], f['jugadas'], -f['nota']))
+		return filas[:5]
+	premios = [
+		{'clave': 'MVP', 'sub': 'Mejor jugador del equipo ganador', 'filas': top_insignia('MVP')},
+		{'clave': 'ACE', 'sub': 'Mejor jugador del equipo perdedor', 'filas': top_insignia('ACE')},
 	]
 
+	TIER_ORDER = ['S+', 'S', 'A', 'B', 'C', 'D']
+	tiers = {t: {r: [] for r in scoring.ROLES} for t in TIER_ORDER}
+	for f in ranking:
+		if f['rol'] in scoring.ROLES:
+			tiers[f['tier']][f['rol']].append(f)
+	tiers_list = [
+		{'tier': t, 'clase': t.replace('+', 'P'), 'roles': [{'rol': r, 'jugadores': tiers[t][r]} for r in scoring.ROLES]}
+		for t in TIER_ORDER
+	]
+	cortes = [{'tier': t, 'desde': u} for t, u in scoring.TIERS]
+
 	return render(request, 'Cinturones/tier_list.html', {
-		'roles': roles_display,
 		'tiers': tiers_list,
+		'ranking': ranking,
+		'premios': premios,
+		'roles': scoring.ROLES,
+		'cortes': cortes,
+		'ajustes': scoring.ajustes_rol(),
 		'jornada': jornada,
 		'numero_partida': numero_partida,
-		'jornadas_disponibles': list(jornadas_disponibles),
+		'jornadas_disponibles': jornadas_disponibles,
 		'numeros_disponibles': numeros_disponibles,
+		'minimo': minimo,
+		'minimos': [1, 2, 3, 5],
+		'total_jugadores': len(ranking),
 	})
 
 
 def exportar_csv_jugadores(request):
 	"""Exporta los promedios de jugadores como CSV. Acepta ?jornada= para filtrar."""
 	jornada = request.GET.get('jornada')
-	qs = StatsJugador.objects.all()
+	qs = stats_de(request)
 	if jornada:
 		qs = qs.filter(partida__jornada=jornada)
 

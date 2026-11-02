@@ -1,0 +1,203 @@
+{% load kb %}{# Diferencia de oro minuto a minuto. Necesita `oro_grafica` (ver views._grafica_oro). #}
+{{ oro_grafica|json_script:"oro-datos" }}
+<section class="card-app graf-oro">
+  <div class="h">
+    <h2>Diferencia de oro</h2>
+    <nav class="chips" id="oro-sel" aria-label="Comparar">
+      <button type="button" data-k="equipo" aria-pressed="true">Equipos</button>
+      {% for r in oro_grafica.roles %}<button type="button" data-k="{{ r }}" aria-pressed="false">{% rol r 'corto' %}</button>{% endfor %}
+    </nav>
+  </div>
+  <div class="b">
+    <div class="oro-plot" id="oro-plot" tabindex="0" role="img" aria-label="Diferencia de oro minuto a minuto. Usa las flechas para recorrerla.">
+      <svg id="oro-svg" aria-hidden="true"></svg>
+      <div class="oro-tip" id="oro-tip" hidden></div>
+    </div>
+  </div>
+  <details class="oro-tabla">
+    <summary>Ver minuto a minuto</summary>
+    <div class="tabla-wrap"><table class="tabla compacta" id="oro-tabla"></table></div>
+  </details>
+</section>
+
+<script>
+(function () {
+  const D = JSON.parse(document.getElementById('oro-datos').textContent);
+  const caja = document.getElementById('oro-plot');
+  const svg = document.getElementById('oro-svg');
+  const tip = document.getElementById('oro-tip');
+  const NS = 'http://www.w3.org/2000/svg';
+  const T = D.t.map(s => s / 60);   // minutos
+  const ALTO = 280, M = { l: 44, r: 50, t: 14, b: 28 };
+  let modo = 'equipo', geo = null, indice = null;
+
+  /* Formatos: 12.345 / 2,5k / 31:20 */
+  const exacto = v => String(Math.round(v)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  const corto = v => { const a = Math.abs(v); return a >= 1000 ? (a / 1000).toFixed(1).replace(/\.0$/, '').replace('.', ',') + 'k' : String(Math.round(a)); };
+  const reloj = s => Math.floor(s / 60) + ':' + String(Math.round(s % 60)).padStart(2, '0');
+
+  function serie() {
+    const s = modo === 'equipo' ? D.equipos : D.roles[modo];
+    const nombre = l => modo === 'equipo' ? l.nombre : l.nombre + ' (' + l.campeon + ')';
+    return {
+      az: { nombre: nombre(s.azul), oro: s.azul.oro },
+      ro: { nombre: nombre(s.rojo), oro: s.rojo.oro },
+      dif: s.azul.oro.map((v, i) => v - s.rojo.oro[i]),
+    };
+  }
+
+  function el(tag, attrs, padre) {
+    const e = document.createElementNS(NS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    (padre || svg).appendChild(e);
+    return e;
+  }
+
+  function dibujar() {
+    const ancho = caja.clientWidth;
+    if (!ancho) return;
+    const s = serie();
+    const pw = ancho - M.l - M.r, ph = ALTO - M.t - M.b;
+    const maxAbs = Math.max(250, ...s.dif.map(Math.abs));
+    const paso = [250, 500, 1000, 2000, 2500, 5000, 10000, 20000].find(p => p >= maxAbs / 3) || 20000;
+    const tope = Math.ceil(maxAbs / paso) * paso;
+    const fin = T[T.length - 1] || 1;
+    const x = t => M.l + t / fin * pw;
+    const y = v => M.t + (tope - v) / (2 * tope) * ph;
+    geo = { x, y, s };
+
+    svg.textContent = '';
+    svg.setAttribute('viewBox', `0 0 ${ancho} ${ALTO}`);
+
+    // Rejilla y eje Y (valor absoluto: el lado lo dice la etiqueta de cada mitad)
+    for (let v = -tope; v <= tope; v += paso) {
+      el('line', { x1: M.l, x2: M.l + pw, y1: y(v), y2: y(v), class: v === 0 ? 'rej cero' : 'rej' });
+      el('text', { x: M.l - 8, y: y(v) + 4, 'text-anchor': 'end' }).textContent = corto(v);
+    }
+    // Eje X: cada 5 minutos (cada 10 si no cabe)
+    const cada = pw < 420 ? 10 : 5;
+    for (let m = 0; m <= fin; m += cada) {
+      el('text', { x: x(m), y: ALTO - 8, 'text-anchor': 'middle' }).textContent = m + ' min';
+    }
+
+    // Quién va por delante en cada mitad
+    const lado = (texto, clase, yy) => {
+      el('rect', { x: M.l + 10, y: yy - 5, width: 12, height: 3, rx: 1.5, class: 'key ' + clase });
+      el('text', { x: M.l + 28, y: yy, class: 'lado' }).textContent = texto + ' por delante';
+    };
+    lado(s.az.nombre, 'az', M.t + 14);
+    lado(s.ro.nombre, 'ro', M.t + ph - 8);
+
+    // Línea y área: azul por encima de 0, roja por debajo
+    const defs = el('defs', {});
+    const clip = (id, y1, y2) => { const c = el('clipPath', { id }, defs); el('rect', { x: 0, y: y1, width: ancho, height: Math.max(0, y2 - y1) }, c); };
+    clip('oro-arriba', 0, y(0));
+    clip('oro-abajo', y(0), ALTO);
+    const linea = T.map((t, i) => (i ? 'L' : 'M') + x(t).toFixed(1) + ',' + y(s.dif[i]).toFixed(1)).join('');
+    const area = linea + `L${x(fin).toFixed(1)},${y(0)}L${x(0)},${y(0)}Z`;
+    for (const [c, id] of [['az', 'oro-arriba'], ['ro', 'oro-abajo']]) {
+      el('path', { d: area, class: 'area ' + c, 'clip-path': `url(#${id})` });
+      el('path', { d: linea, class: 'linea ' + c, 'clip-path': `url(#${id})` });
+    }
+
+    // Valor final
+    const ult = s.dif[s.dif.length - 1];
+    el('circle', { cx: x(fin), cy: y(ult), r: 4, class: 'punto ' + (ult >= 0 ? 'az' : 'ro') });
+    el('text', { x: x(fin) + 9, y: y(ult) + 4, class: 'fin' }).textContent = corto(ult);
+
+    // Capa de hover
+    geo.guia = el('line', { y1: M.t, y2: M.t + ph, class: 'guia', visibility: 'hidden' });
+    geo.punto = el('circle', { r: 4, class: 'punto', visibility: 'hidden' });
+    const capa = el('rect', { x: 0, y: 0, width: ancho, height: ALTO, fill: 'transparent' });   // más ancha que el trazo
+    capa.addEventListener('pointermove', e => {
+      const r = svg.getBoundingClientRect();
+      const t = (e.clientX - r.left - M.l) / pw * fin;
+      let mejor = 0;
+      T.forEach((tt, i) => { if (Math.abs(tt - t) < Math.abs(T[mejor] - t)) mejor = i; });
+      mostrar(mejor);
+    });
+    capa.addEventListener('pointerleave', ocultar);
+    if (indice !== null) mostrar(indice);
+  }
+
+  function fila(clase, valor, texto) {
+    const f = document.createElement('div');
+    f.className = 'f';
+    if (clase) { const k = document.createElement('i'); k.className = 'k ' + clase; f.appendChild(k); }
+    const b = document.createElement('b'); b.textContent = valor; f.appendChild(b);
+    const sp = document.createElement('span'); sp.textContent = texto; f.appendChild(sp);
+    return f;
+  }
+
+  function mostrar(i) {
+    indice = i;
+    const { x, y, s } = geo;
+    const px = x(T[i]), d = s.dif[i];
+    geo.guia.setAttribute('x1', px); geo.guia.setAttribute('x2', px); geo.guia.setAttribute('visibility', 'visible');
+    geo.punto.setAttribute('cx', px); geo.punto.setAttribute('cy', y(d));
+    geo.punto.setAttribute('class', 'punto ' + (d >= 0 ? 'az' : 'ro'));
+    geo.punto.setAttribute('visibility', 'visible');
+
+    tip.textContent = '';
+    const t = document.createElement('div'); t.className = 't';
+    t.textContent = i === T.length - 1 ? reloj(D.t[i]) + ' · final' : reloj(D.t[i]);
+    tip.appendChild(t);
+    tip.appendChild(fila('az', exacto(s.az.oro[i]), s.az.nombre));
+    tip.appendChild(fila('ro', exacto(s.ro.oro[i]), s.ro.nombre));
+    const dif = d === 0 ? fila('', '0', 'Igualados') : fila('', exacto(Math.abs(d)), 'de ventaja para ' + (d > 0 ? s.az.nombre : s.ro.nombre));
+    dif.classList.add('dif');
+    tip.appendChild(dif);
+    tip.hidden = false;
+    const w = tip.offsetWidth;
+    tip.style.left = (px + 14 + w > caja.clientWidth ? px - 14 - w : px + 14) + 'px';
+  }
+
+  function ocultar() {
+    indice = null;
+    tip.hidden = true;
+    if (geo) { geo.guia.setAttribute('visibility', 'hidden'); geo.punto.setAttribute('visibility', 'hidden'); }
+  }
+
+  /* Teclado: flechas para recorrer los minutos */
+  caja.addEventListener('focus', () => mostrar(indice ?? T.length - 1));
+  caja.addEventListener('blur', ocultar);
+  caja.addEventListener('keydown', e => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    e.preventDefault();
+    mostrar(Math.min(T.length - 1, Math.max(0, (indice ?? T.length - 1) + (e.key === 'ArrowRight' ? 1 : -1))));
+  });
+
+  /* Tabla minuto a minuto (la misma información sin pasar el ratón) */
+  function tabla() {
+    const s = serie();
+    const tb = document.getElementById('oro-tabla');
+    tb.textContent = '';
+    const cab = tb.createTHead().insertRow();
+    for (const [txt, cls] of [['Min', ''], [s.az.nombre, 'r'], [s.ro.nombre, 'r'], ['Ventaja', 'r']]) {
+      const th = document.createElement('th'); th.textContent = txt; th.className = cls; cab.appendChild(th);
+    }
+    const cuerpo = tb.createTBody();
+    D.t.forEach((seg, i) => {
+      const f = cuerpo.insertRow();
+      const d = s.dif[i];
+      [reloj(seg), exacto(s.az.oro[i]), exacto(s.ro.oro[i]), d === 0 ? '—' : (d > 0 ? 'Azul +' : 'Rojo +') + exacto(Math.abs(d))]
+        .forEach((txt, j) => { const c = f.insertCell(); c.textContent = txt; if (j) c.className = 'r'; });
+    });
+  }
+
+  document.getElementById('oro-sel').addEventListener('click', e => {
+    const b = e.target.closest('button[data-k]');
+    if (!b) return;
+    modo = b.dataset.k;
+    document.querySelectorAll('#oro-sel button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    indice = null;
+    tip.hidden = true;
+    dibujar();
+    tabla();
+  });
+
+  new ResizeObserver(dibujar).observe(caja);
+  dibujar();
+  tabla();
+})();
+</script>

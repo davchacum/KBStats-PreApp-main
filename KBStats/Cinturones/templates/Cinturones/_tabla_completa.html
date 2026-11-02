@@ -1,0 +1,36 @@
+{% load kb %}{# Todas las estadísticas de un equipo. Espera `titulo`, `lista` y `clase`. #}
+<div class="tabla-completa">
+  <div class="tc-titulo {{ clase }}">{{ titulo }}</div>
+  <div class="tabla-wrap">
+    <table class="tabla compacta">
+      <thead>
+        <tr>
+          <th>Jugador</th><th>Campeón</th><th class="c">K</th><th class="c">D</th><th class="c">A</th><th class="c">KDA</th><th class="c">KP %</th>
+          <th class="c">CS</th><th class="c">Daño/min</th><th class="c">Oro/min</th><th class="c">Daño</th><th class="c">% daño</th><th class="c">Daño rec.</th>
+          <th class="c">Visión/min</th><th class="c">2K</th><th class="c">3K</th><th class="c">4K</th><th class="c">5K</th>
+          <th class="c">GD@15</th><th class="c">CSD@15</th><th class="c">XPD@15</th><th class="c">CS@15</th><th class="c">KA@15</th><th class="c">FB</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in lista %}
+        <tr>
+          <td><a class="jug" href="{% url 'jugador' s.jugador_nombre %}"><span class="nom">{{ s.jugador_nombre|nombre_juego }}</span></a></td>
+          <td><span class="jug"><img class="camp s" src="{{ s.campeon|icono_campeon }}" alt="" loading="lazy">{{ s.campeon }}</span></td>
+          <td class="c">{{ s.kills }}</td><td class="c">{{ s.muertes }}</td><td class="c">{{ s.asistencias }}</td>
+          <td class="c">{{ s.kda|floatformat:2 }}</td><td class="c">{{ s.kp_porcentaje|floatformat:0 }}</td>
+          <td class="c">{{ s.cs }}</td><td class="c">{{ s.dano_min|floatformat:0 }}</td><td class="c">{{ s.oro_min|floatformat:0 }}</td>
+          <td class="c">{{ s.dano_infligido }}</td><td class="c">{{ s.porcentaje_dano_equipo|floatformat:1 }}</td><td class="c">{{ s.dano_recibido }}</td>
+          <td class="c">{{ s.vision_min|floatformat:2 }}</td>
+          <td class="c">{{ s.double_kills }}</td><td class="c">{{ s.triple_kills }}</td><td class="c">{{ s.quadra_kills }}</td><td class="c">{{ s.penta_kills }}</td>
+          <td class="c">{% if s.gd15 is not None %}{{ s.gd15 }}{% else %}—{% endif %}</td>
+          <td class="c">{% if s.csd15 is not None %}{{ s.csd15 }}{% else %}—{% endif %}</td>
+          <td class="c">{% if s.xpd15 is not None %}{{ s.xpd15 }}{% else %}—{% endif %}</td>
+          <td class="c">{% if s.cs15 is not None %}{{ s.cs15 }}{% else %}—{% endif %}</td>
+          <td class="c">{% if s.ka15 is not None %}{{ s.ka15 }}{% else %}—{% endif %}</td>
+          <td class="c">{% if s.fb %}✓{% else %}—{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>

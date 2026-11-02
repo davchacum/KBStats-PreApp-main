@@ -1,0 +1,79 @@
+{% load kb %}{# Ventana con el desglose de la nota. Necesita `desgloses` ({id: resultado}) en el contexto. #}
+{{ desgloses|json_script:"desgloses-datos" }}
+<div class="velo" id="desglose" hidden>
+  <div class="ventana" role="dialog" aria-modal="true" aria-labelledby="desglose-titulo">
+    <div class="h">
+      <img class="camp l" id="desglose-camp" alt="">
+      <div>
+        <div style="font-weight:700;font-size:16px;" id="desglose-titulo"></div>
+        <div class="muted" style="font-size:13px;" id="desglose-sub"></div>
+      </div>
+      <span class="nota l" id="desglose-nota"></span>
+      <button class="cerrar" type="button" aria-label="Cerrar">✕</button>
+    </div>
+    <div class="b">
+      <div class="bloques" id="desglose-bloques"></div>
+      <p class="muted" style="font-size:12.5px;margin:14px 0 0;" id="desglose-pie"></p>
+    </div>
+  </div>
+</div>
+<script>
+(function () {
+  const datos = JSON.parse(document.getElementById('desgloses-datos').textContent);
+  const velo = document.getElementById('desglose');
+  const ICONO = '{{ "X"|icono_campeon }}';
+  const ROL = { TOP: 'Top', JGL: 'Jungla', MID: 'Mid', ADC: 'ADC', SUP: 'Support' };
+
+  function claseNota(n) {
+    if (n >= 90) return 'n-top'; if (n >= 70) return 'n-alta'; if (n >= 60) return 'n-media'; if (n >= 50) return 'n-baja'; return 'n-mala';
+  }
+  function el(tag, cls, txt) { const e = document.createElement(tag); if (cls) e.className = cls; if (txt !== undefined) e.textContent = txt; return e; }
+
+  function abrir(id) {
+    const d = datos[id];
+    if (!d) return;
+    document.getElementById('desglose-camp').src = ICONO.replace(/X\.png$/, encodeURIComponent(d.campeon) + '.png');
+    document.getElementById('desglose-titulo').textContent = d.nombre.split('#')[0] + ' · ' + d.campeon;
+    const sub = [ROL[(d.rol || '').toUpperCase()] || '', d.victoria ? 'Victoria' : 'Derrota'];
+    if (d.puesto) sub.push(d.insignia ? d.insignia : ('Puesto ' + d.puesto + ' de 10'));
+    document.getElementById('desglose-sub').textContent = sub.filter(Boolean).join(' · ');
+    const nota = document.getElementById('desglose-nota');
+    nota.textContent = Math.round(d.nota);
+    nota.className = 'nota l ' + claseNota(d.nota);
+
+    const caja = document.getElementById('desglose-bloques');
+    caja.innerHTML = '';
+    d.bloques.forEach(b => {
+      const card = el('div', 'bloque');
+      const t = el('div', 't');
+      const izq = el('div');
+      izq.appendChild(el('b', '', b.nombre));
+      izq.appendChild(el('div', 'p', (b.puntos > 0 ? '+' : '') + b.puntos.toFixed(1) + ' pts'));
+      t.appendChild(izq);
+      t.appendChild(el('span', 'letra letra-' + b.letra.replace('+', 'p'), b.letra));
+      card.appendChild(t);
+      b.filas.forEach(f => {
+        const fila = el('div', 'f');
+        fila.appendChild(el('span', '', f.etiqueta));
+        fila.appendChild(el('span', 'v', f.valor));
+        fila.appendChild(el('span', 'pt ' + (f.puntos > 0 ? 'pt-pos' : f.puntos < 0 ? 'pt-neg' : 'pt-cero'), (f.puntos > 0 ? '+' : '') + f.puntos.toFixed(1)));
+        if (f.ayuda) fila.title = f.ayuda;
+        card.appendChild(fila);
+      });
+      caja.appendChild(card);
+    });
+    const aj = d.ajuste ? ` · ajuste del rol ${d.ajuste > 0 ? '+' : ''}${d.ajuste.toFixed(1)}` : '';
+    document.getElementById('desglose-pie').textContent =
+      `Puntos: ${d.total.toFixed(1)}${aj}${d.victoria ? ' · victoria +6' : ''}. Nota = 15 + 0,97 × puntos + 6 si se gana (máximo 100).`;
+    velo.hidden = false;
+    velo.querySelector('.cerrar').focus();
+  }
+
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-desglose]');
+    if (b) { e.preventDefault(); e.stopPropagation(); abrir(b.dataset.desglose); return; }
+    if (e.target === velo || e.target.closest('#desglose .cerrar')) velo.hidden = true;
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') velo.hidden = true; });
+})();
+</script>

@@ -1,0 +1,4 @@
+{% load kb %}{# Los 6 objetos y el trinket. Espera `ex` (riot_extra). #}
+<span class="objetos">
+  {% for it in ex.objetos %}{% if it %}<img class="{% if forloop.last %}trinket{% endif %}" src="{{ it|icono_objeto }}" alt="" loading="lazy">{% else %}<i class="{% if forloop.last %}trinket{% endif %}"></i>{% endif %}{% endfor %}
+</span>

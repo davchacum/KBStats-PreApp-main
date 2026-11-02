@@ -1,372 +1,126 @@
 {% extends 'Cinturones/base.html' %}
+{% load kb %}
 
-{% block extra_css %}
-<style>
-  /* ── Panel lateral ─────────────────────────────────────────────────────── */
-  #col-panel {
-    position: fixed;
-    top: 0; right: -280px;
-    width: 260px;
-    height: 100vh;
-    background: #0b1220;
-    border-left: 1px solid #1f2937;
-    z-index: 1050;
-    overflow-y: auto;
-    transition: right 0.25s ease;
-    padding: 1.25rem 1rem;
-    box-shadow: -4px 0 20px rgba(0,0,0,.5);
-  }
-  #col-panel.open { right: 0; }
-
-  #panel-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,.4);
-    z-index: 1040;
-  }
-  #panel-overlay.open { display: block; }
-
-  .panel-group { margin-bottom: 1rem; }
-  .panel-group-label {
-    font-size: 0.68rem;
-    text-transform: uppercase;
-    letter-spacing: .08em;
-    color: #6b7280;
-    margin-bottom: 0.4rem;
-  }
-  .panel-check {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.2rem 0;
-    cursor: pointer;
-    font-size: 0.82rem;
-    color: #d1d5db;
-    user-select: none;
-  }
-  .panel-check input { accent-color: #22d3ee; width: 14px; height: 14px; cursor: pointer; }
-
-  /* ── Tabla scrollable ──────────────────────────────────────────────────── */
-  .table-scroll { overflow-x: auto; }
-  .table-scroll table { white-space: nowrap; }
-</style>
-{% endblock %}
+{% block title %}Jugadores · KB Stats{% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4">
-
-  <h1 class="page-title mb-3">
-    Promedios por Jugador{% if jornada %} — Jornada {{ jornada }}{% if numero_partida %} · Game {{ numero_partida }}{% endif %}{% endif %}
-  </h1>
-
-  <div class="filter-card">
-    <form method="get" class="row g-3 align-items-end">
-      <div class="col-md-3">
-        <label class="form-label mb-1">Jugador</label>
-        <input
-          type="text"
-          name="jugador"
-          value="{{ filtro_jugador|default_if_none:'' }}"
-          class="form-control"
-          placeholder="Filtrar por jugador"
-        />
-      </div>
-
-      <div class="col-md-2">
-        <label for="rol" class="form-label mb-1">Rol</label>
-        <select name="rol" id="rol" class="form-select">
-          <option value="">Todos</option>
-          <option value="TOP" {% if filtro_rol == 'TOP' %}selected{% endif %}>Top</option>
-          <option value="JGL" {% if filtro_rol == 'JGL' %}selected{% endif %}>Jungle</option>
-          <option value="MID" {% if filtro_rol == 'MID' %}selected{% endif %}>Mid</option>
-          <option value="ADC" {% if filtro_rol == 'ADC' %}selected{% endif %}>ADC</option>
-          <option value="SUP" {% if filtro_rol == 'SUP' %}selected{% endif %}>Support</option>
-        </select>
-      </div>
-
-      <div class="col-md-2">
-        <label for="jornada" class="form-label mb-1">Jornada</label>
-        <select name="jornada" id="jornada" class="form-select">
-          <option value="">Todas</option>
-          {% for j in jornadas_disponibles %}
-            <option value="{{ j }}" {% if jornada|stringformat:"s" == j|stringformat:"s" %}selected{% endif %}>{{ j }}</option>
-          {% endfor %}
-        </select>
-      </div>
-
-      {% if numeros_disponibles and jornada %}
-      <div class="col-md-1">
-        <label for="numero_partida" class="form-label mb-1">Game</label>
-        <select name="numero_partida" id="numero_partida" class="form-select">
-          <option value="">Todos</option>
-          {% for n in numeros_disponibles %}
-            <option value="{{ n }}" {% if numero_partida|stringformat:"s" == n|stringformat:"s" %}selected{% endif %}>G{{ n }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      {% endif %}
-
-      <div class="col-md-3">
-        <label for="sort" class="form-label mb-1">Ordenar por</label>
-        <select name="sort" id="sort" class="form-select">
-          <option value="">No ordenar</option>
-          <option value="kills"                  {% if sort == 'kills' %}selected{% endif %}>K</option>
-          <option value="muertes"                {% if sort == 'muertes' %}selected{% endif %}>D</option>
-          <option value="asistencias"            {% if sort == 'asistencias' %}selected{% endif %}>A</option>
-          <option value="kda"                    {% if sort == 'kda' %}selected{% endif %}>KDA</option>
-          <option value="kp"                     {% if sort == 'kp' %}selected{% endif %}>KP %</option>
-          <option value="cs"                     {% if sort == 'cs' %}selected{% endif %}>CS</option>
-          <option value="cs_min"                 {% if sort == 'cs_min' %}selected{% endif %}>CS/min</option>
-          <option value="dano_min"               {% if sort == 'dano_min' %}selected{% endif %}>Dmg/min</option>
-          <option value="dano_recibido"          {% if sort == 'dano_recibido' %}selected{% endif %}>Dmg Rec</option>
-          <option value="porcentaje_dano_equipo" {% if sort == 'porcentaje_dano_equipo' %}selected{% endif %}>% Dmg</option>
-          <option value="oro_min"                {% if sort == 'oro_min' %}selected{% endif %}>Oro/min</option>
-          <option value="dano_oro"               {% if sort == 'dano_oro' %}selected{% endif %}>Dmg/Oro</option>
-          <option value="vision_min"             {% if sort == 'vision_min' %}selected{% endif %}>Visión/min</option>
-          <option value="wpm"                    {% if sort == 'wpm' %}selected{% endif %}>W/min</option>
-          <option value="cwpm"                   {% if sort == 'cwpm' %}selected{% endif %}>CW/min</option>
-          <option value="wcpm"                   {% if sort == 'wcpm' %}selected{% endif %}>WC/min</option>
-          <option value="gold_pct"               {% if sort == 'gold_pct' %}selected{% endif %}>Gold%</option>
-          <option value="death_share"            {% if sort == 'death_share' %}selected{% endif %}>Death%</option>
-          <option value="win_rate"               {% if sort == 'win_rate' %}selected{% endif %}>Win%</option>
-          <option value="gd15"                   {% if sort == 'gd15' %}selected{% endif %}>GD@15</option>
-          <option value="csd15"                  {% if sort == 'csd15' %}selected{% endif %}>CSD@15</option>
-          <option value="xpd15"                  {% if sort == 'xpd15' %}selected{% endif %}>XPD@15</option>
-          <option value="cs15"                   {% if sort == 'cs15' %}selected{% endif %}>CS@15</option>
-          <option value="ka15"                   {% if sort == 'ka15' %}selected{% endif %}>KA@15</option>
-          <option value="fb_rate"                {% if sort == 'fb_rate' %}selected{% endif %}>FB%</option>
-          <option value="double_kills"           {% if sort == 'double_kills' %}selected{% endif %}>2 kills</option>
-          <option value="triple_kills"           {% if sort == 'triple_kills' %}selected{% endif %}>3 kills</option>
-          <option value="quadra_kills"           {% if sort == 'quadra_kills' %}selected{% endif %}>4 kills</option>
-          <option value="penta_kills"            {% if sort == 'penta_kills' %}selected{% endif %}>5 kills</option>
-          <option value="games"                  {% if sort == 'games' %}selected{% endif %}>Games</option>
-          <option value="game_time"              {% if sort == 'game_time' %}selected{% endif %}>Tiempo medio</option>
-        </select>
-      </div>
-
-      <div class="col-md-2">
-        <label for="order" class="form-label mb-1">Orden</label>
-        <select name="order" id="order" class="form-select">
-          <option value="desc" {% if order == 'desc' %}selected{% endif %}>Desc</option>
-          <option value="asc"  {% if order == 'asc'  %}selected{% endif %}>Asc</option>
-        </select>
-      </div>
-
-      <div class="col-md-2 d-grid">
-        <button class="btn btn-primary">Aplicar</button>
-      </div>
-      <div class="col-md-auto d-grid">
-        <a href="{% url 'exportar_csv_jugadores' %}" class="btn btn-outline-success">Exportar CSV</a>
-      </div>
-      <div class="col-md-auto d-grid">
-        <button type="button" class="btn btn-outline-info" onclick="openPanel()">⊞ Columnas</button>
-      </div>
-    </form>
+<div class="page-head">
+  <div>
+    <h1>Jugadores</h1>
+    <p>{{ jugadores|length }} jugadores · medias por partida</p>
   </div>
+  <a class="btn-ico" href="{% url 'exportar_csv_jugadores' %}{% if jornada %}?jornada={{ jornada|urlencode }}{% endif %}" title="Descargar todas las estadísticas en CSV">⬇ CSV</a>
+</div>
 
-  <!-- Tabla scrollable -->
-  <div class="table-scroll">
-    <table class="table table-dark-kb table-hover table-sm" id="stats-table">
+<form method="get" class="filtros" id="filtros">
+  {% if sort %}<input type="hidden" name="sort" value="{{ sort }}"><input type="hidden" name="order" value="{{ order }}">{% endif %}
+  {% if filtro_rol %}<input type="hidden" name="rol" value="{{ filtro_rol }}">{% endif %}
+  <input type="hidden" name="vista" value="{{ vista }}"{% if vista == 'resumen' %} disabled{% endif %}>
+  <input class="inp" type="search" name="jugador" value="{{ filtro_jugador|default_if_none:'' }}" placeholder="Filtrar por nombre" aria-label="Filtrar por nombre" style="width:190px;">
+  <nav class="chips" aria-label="Rol">
+    <a href="?{{ qs_sin_rol }}" {% if not filtro_rol %}aria-current="true"{% endif %}>Todos</a>
+    {% for val, txt in roles_filtro %}
+    <a href="?{% if qs_sin_rol %}{{ qs_sin_rol }}&amp;{% endif %}rol={{ val }}" {% if filtro_rol == val %}aria-current="true"{% endif %}>{% rol val %}</a>
+    {% endfor %}
+  </nav>
+  <select class="sel" name="jornada" aria-label="Jornada" data-auto>
+    <option value="">Todas las jornadas</option>
+    {% for j in jornadas_disponibles %}<option value="{{ j }}" {% if jornada|stringformat:"s" == j|stringformat:"s" %}selected{% endif %}>{{ j|jornada_txt:True }}</option>{% endfor %}
+  </select>
+  {% if numeros_disponibles and jornada %}
+  <select class="sel" name="numero_partida" aria-label="Game" data-auto>
+    <option value="">Todos los games</option>
+    {% for n in numeros_disponibles %}<option value="{{ n }}" {% if numero_partida|stringformat:"s" == n|stringformat:"s" %}selected{% endif %}>Game {{ n }}</option>{% endfor %}
+  </select>
+  {% endif %}
+  <select class="sel" name="min" aria-label="Mínimo de partidas" data-auto>
+    {% for n in minimos %}<option value="{{ n }}" {% if minimo == n %}selected{% endif %}>Mín. {{ n }} partida{{ n|pluralize }}</option>{% endfor %}
+  </select>
+</form>
+
+<section class="card-app">
+  <div class="h pestanas-h">
+    <nav class="pestanas" id="vistas" aria-label="Estadísticas">
+      {% for v, txt in vistas %}<a href="?{% if qs_sin_vista %}{{ qs_sin_vista }}&amp;{% endif %}vista={{ v }}" data-vista="{{ v }}"{% if vista == v %} aria-current="true"{% endif %}>{{ txt }}</a>{% endfor %}
+    </nav>
+    <span class="leyenda-pct" title="Cada valor se compara con los jugadores de su mismo rol">Frente a su rol:<b class="p-mejor">Mejor</b><i class="p-alto"></i>20 % mejor<i class="p-bajo"></i>20 % peor<b class="p-peor">Peor</b></span>
+  </div>
+  <div class="b flush tabla-wrap">
+    <table class="tabla tabla-jug" id="stats-table" data-vista="{{ vista }}">
       <thead>
         <tr>
-          <th class="col-base">#</th>
-          <th class="col-base">Jugador</th>
-          <th class="col-base">Rol</th>
-          <th class="col-combate">K</th>
-          <th class="col-combate">D</th>
-          <th class="col-combate">A</th>
-          <th class="col-combate">KDA</th>
-          <th class="col-combate">KP %</th>
-          <th class="col-farmeo">CS</th>
-          <th class="col-farmeo">CS/min</th>
-          <th class="col-farmeo">Oro/min</th>
-          <th class="col-dano">Dmg/min</th>
-          <th class="col-dano">Dmg Rec</th>
-          <th class="col-dano">% Dmg</th>
-          <th class="col-dano">Dmg/Oro</th>
-          <th class="col-vision">Visión</th>
-          <th class="col-vision">W/min</th>
-          <th class="col-vision">CW/min</th>
-          <th class="col-vision">WC/min</th>
-          <th class="col-equipo">Gold%</th>
-          <th class="col-equipo">Death%</th>
-          <th class="col-equipo">Win%</th>
-          <th class="col-early">GD@15</th>
-          <th class="col-early">CSD@15</th>
-          <th class="col-early">XPD@15</th>
-          <th class="col-early">CS@15</th>
-          <th class="col-early">KA@15</th>
-          <th class="col-early">FB%</th>
-          <th class="col-multi">2K</th>
-          <th class="col-multi">3K</th>
-          <th class="col-multi">4K</th>
-          <th class="col-multi">5K</th>
-          <th class="col-base">Games</th>
-          <th class="col-tiempo">T. medio</th>
+          <th class="pos">#</th>
+          <th class="col-jug">Jugador</th>
+          <th class="c">Rol</th>
+          <th class="c{% if sort_activo == 'nota' %} ord{% endif %}"><a href="?{% if qs_sin_orden %}{{ qs_sin_orden }}&amp;{% endif %}sort=nota&amp;order={% if sort_activo == 'nota' and order == 'desc' %}asc{% else %}desc{% endif %}" title="Nota media de rendimiento">Nota{% if sort_activo == 'nota' %}<span class="flecha">{% if order == 'desc' %}▼{% else %}▲{% endif %}</span>{% endif %}</a></th>
+          <th class="c{% if sort_activo == 'games_played' %} ord{% endif %}"><a href="?{% if qs_sin_orden %}{{ qs_sin_orden }}&amp;{% endif %}sort=games_played&amp;order={% if sort_activo == 'games_played' and order == 'desc' %}asc{% else %}desc{% endif %}" title="Partidas jugadas">Partidas{% if sort_activo == 'games_played' %}<span class="flecha">{% if order == 'desc' %}▼{% else %}▲{% endif %}</span>{% endif %}</a></th>
+          {% for c in columnas %}
+          <th class="cv {{ c.vcls }} c{% if c.clave == sort_activo %} ord{% endif %}"><a href="?{% if qs_sin_orden %}{{ qs_sin_orden }}&amp;{% endif %}sort={{ c.clave }}&amp;order={% if c.clave == sort_activo and order == 'desc' %}asc{% else %}desc{% endif %}" title="{{ c.titulo }}">{{ c.cab }}{% if c.clave == sort_activo %}<span class="flecha">{% if order == 'desc' %}▼{% else %}▲{% endif %}</span>{% endif %}</a></th>
+          {% endfor %}
         </tr>
       </thead>
       <tbody>
         {% for j in jugadores %}
-        <tr>
-          <td class="col-base">{{ forloop.counter }}</td>
-          <td class="col-base">{{ j.jugador_nombre }}</td>
-          <td class="col-base">{{ j.rol_principal }}</td>
-          <td class="col-combate">{{ j.avg_kills }}</td>
-          <td class="col-combate">{{ j.avg_muertes }}</td>
-          <td class="col-combate">{{ j.avg_asistencias }}</td>
-          <td class="col-combate">{{ j.avg_kda|floatformat:2 }}</td>
-          <td class="col-combate">{{ j.avg_kp|floatformat:2 }}</td>
-          <td class="col-farmeo">{{ j.avg_cs|floatformat:0 }}</td>
-          <td class="col-farmeo">{{ j.avg_cs_min|floatformat:2 }}</td>
-          <td class="col-farmeo">{{ j.avg_oro_min|floatformat:2 }}</td>
-          <td class="col-dano">{{ j.avg_dano_min|floatformat:2 }}</td>
-          <td class="col-dano">{{ j.avg_dano_recibido|floatformat:0 }}</td>
-          <td class="col-dano">{{ j.avg_porcentaje_dano_equipo|floatformat:2 }}</td>
-          <td class="col-dano">{{ j.avg_dano_oro|floatformat:2 }}</td>
-          <td class="col-vision">{{ j.avg_vision_min|floatformat:2 }}</td>
-          <td class="col-vision">{{ j.avg_wpm|floatformat:2 }}</td>
-          <td class="col-vision">{{ j.avg_cwpm|floatformat:2 }}</td>
-          <td class="col-vision">{{ j.avg_wcpm|floatformat:2 }}</td>
-          <td class="col-equipo">{{ j.avg_gold_pct|floatformat:1 }}</td>
-          <td class="col-equipo">{{ j.avg_death_share|floatformat:1 }}</td>
-          <td class="col-equipo">{% if j.win_rate %}{{ j.win_rate|floatformat:0 }}%{% else %}—{% endif %}</td>
-          <td class="col-early">{% if j.avg_gd15 is not None %}{{ j.avg_gd15|floatformat:0 }}{% else %}—{% endif %}</td>
-          <td class="col-early">{% if j.avg_csd15 is not None %}{{ j.avg_csd15|floatformat:1 }}{% else %}—{% endif %}</td>
-          <td class="col-early">{% if j.avg_xpd15 is not None %}{{ j.avg_xpd15|floatformat:0 }}{% else %}—{% endif %}</td>
-          <td class="col-early">{% if j.avg_cs15 is not None %}{{ j.avg_cs15|floatformat:1 }}{% else %}—{% endif %}</td>
-          <td class="col-early">{% if j.avg_ka15 is not None %}{{ j.avg_ka15|floatformat:1 }}{% else %}—{% endif %}</td>
-          <td class="col-early">{% if j.fb_rate is not None %}{{ j.fb_rate|floatformat:0 }}%{% else %}—{% endif %}</td>
-          <td class="col-multi">{{ j.avg_double }}</td>
-          <td class="col-multi">{{ j.avg_triple }}</td>
-          <td class="col-multi">{{ j.avg_quadra }}</td>
-          <td class="col-multi">{{ j.avg_penta }}</td>
-          <td class="col-base">{{ j.games_played }}</td>
-          <td class="col-tiempo">{{ j.avg_game_time|floatformat:2 }}</td>
+        <tr data-href="{% url 'jugador' j.jugador_nombre %}">
+          <td class="pos">{{ forloop.counter }}</td>
+          <td class="col-jug">
+            <a class="jug" href="{% url 'jugador' j.jugador_nombre %}">
+              {% if j.perfil is not None %}<img class="camp" src="{{ j.perfil|icono_perfil }}" alt="" loading="lazy">{% elif j.campeon_fav %}<img class="camp" src="{{ j.campeon_fav|icono_campeon }}" alt="" loading="lazy">{% endif %}
+              <span class="nom">{{ j.jugador_nombre|nombre_juego }}</span><span class="tag">{{ j.jugador_nombre|tag_juego }}</span>
+            </a>
+          </td>
+          <td class="c">{% if j.rol_principal %}{% rol j.rol_principal %}{% endif %}</td>
+          <td class="c{% if sort_activo == 'nota' %} ord{% endif %}">{% if j.nota is not None %}<span class="nota {{ j.nota|nota_clase }}">{{ j.nota|floatformat:0 }}</span>{% else %}—{% endif %}</td>
+          <td class="c n-partidas{% if sort_activo == 'games_played' %} ord{% endif %}">{{ j.games_played }}</td>
+          {% for c in j.celdas %}<td class="cv {{ c.vcls }} c {{ c.cls }}{% if c.ord %} ord{% endif %}"><span>{{ c.txt }}</span></td>{% endfor %}
         </tr>
         {% empty %}
-        <tr><td colspan="34">No hay datos.</td></tr>
+        <tr><td colspan="40" class="vacio">No hay jugadores con estos filtros.</td></tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
+</section>
+{% endblock %}
 
-</div>
-
-<!-- ── Panel lateral ──────────────────────────────────────────────────────── -->
-<div id="panel-overlay"></div>
-
-<div id="col-panel">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
-    <span style="color:#22d3ee;font-size:0.85rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;">Columnas</span>
-    <button onclick="closePanel()" style="background:none;border:none;color:#6b7280;font-size:1.1rem;cursor:pointer;">✕</button>
-  </div>
-
-  <div class="panel-group">
-    <div class="panel-group-label">Combate</div>
-    <label class="panel-check"><input type="checkbox" data-group="col-combate" checked> K / D / A / KDA / KP%</label>
-  </div>
-
-  <div class="panel-group">
-    <div class="panel-group-label">Farmeo</div>
-    <label class="panel-check"><input type="checkbox" data-group="col-farmeo" checked> CS / CS/min / Oro/min</label>
-  </div>
-
-  <div class="panel-group">
-    <div class="panel-group-label">Daño</div>
-    <label class="panel-check"><input type="checkbox" data-group="col-dano" checked> Dmg/min / Rec / % / Oro</label>
-  </div>
-
-  <div class="panel-group">
-    <div class="panel-group-label">Visión</div>
-    <label class="panel-check"><input type="checkbox" data-group="col-vision" checked> Visión / W/min / CW/min / WC/min</label>
-  </div>
-
-  <div class="panel-group">
-    <div class="panel-group-label">Equipo</div>
-    <label class="panel-check"><input type="checkbox" data-group="col-equipo" checked> Gold% / Death% / Win%</label>
-  </div>
-
-  <div class="panel-group">
-    <div class="panel-group-label">Early Game</div>
-    <label class="panel-check"><input type="checkbox" data-group="col-early" checked> GD@15 / CSD@15 / XPD@15 / CS@15 / KA@15 / FB%</label>
-  </div>
-
-  <div class="panel-group">
-    <div class="panel-group-label">Multi-kills</div>
-    <label class="panel-check"><input type="checkbox" data-group="col-multi" checked> 2K / 3K / 4K / 5K</label>
-  </div>
-
-  <div class="panel-group">
-    <div class="panel-group-label">Tiempo</div>
-    <label class="panel-check"><input type="checkbox" data-group="col-tiempo" checked> Tiempo medio</label>
-  </div>
-
-  <div style="margin-top:1.25rem;display:flex;gap:0.5rem;">
-    <button onclick="setAll(true)"  class="btn btn-sm btn-outline-secondary" style="flex:1;font-size:0.75rem;">Todas</button>
-    <button onclick="setAll(false)" class="btn btn-sm btn-outline-secondary" style="flex:1;font-size:0.75rem;">Ninguna</button>
-  </div>
-</div>
-
+{% block extra_js %}
 <script>
 (function () {
-  const STORAGE_KEY = 'kbstats_col_prefs';
+  /* Filtros: se aplican solos al cambiar (el nombre, al dejar de escribir) */
+  const form = document.getElementById('filtros');
+  form.querySelectorAll('[data-auto]').forEach(s => s.addEventListener('change', () => {
+    if (s.name === 'jornada') form.querySelector('[name=numero_partida]')?.remove();
+    if (s.name === 'min' && s.value === '1') s.disabled = true;   // sin ?min=1 en la URL
+    form.submit();
+  }));
+  let t = null;
+  const nombre = form.querySelector('[name=jugador]');
+  nombre.addEventListener('input', () => { clearTimeout(t); t = setTimeout(() => form.submit(), 600); });
+  if (nombre.value) { nombre.focus(); nombre.setSelectionRange(nombre.value.length, nombre.value.length); }
 
-  function getCells(group) {
-    return document.querySelectorAll(`#stats-table .${group}`);
-  }
-
-  function applyGroup(group, visible) {
-    getCells(group).forEach(el => { el.style.display = visible ? '' : 'none'; });
-  }
-
-  function savePrefs() {
-    const prefs = {};
-    document.querySelectorAll('#col-panel input[data-group]').forEach(cb => {
-      prefs[cb.dataset.group] = cb.checked;
+  /* Pestañas de estadísticas: cambian las columnas sin recargar y se conservan en la URL */
+  const tabla = document.getElementById('stats-table');
+  const nav = document.getElementById('vistas');
+  const campoVista = form.querySelector('[name=vista]');
+  nav.addEventListener('click', e => {
+    const a = e.target.closest('a[data-vista]');
+    if (!a || e.ctrlKey || e.metaKey || e.shiftKey) return;
+    e.preventDefault();
+    const v = a.dataset.vista;
+    tabla.dataset.vista = v;
+    nav.querySelectorAll('a').forEach(x => x.toggleAttribute('aria-current', x === a));
+    // Los enlaces de orden y de rol mantienen la pestaña elegida
+    document.querySelectorAll('.tabla-jug thead a, .filtros .chips a').forEach(l => {
+      const p = new URLSearchParams(l.getAttribute('href').slice(1));
+      if (v === 'resumen') p.delete('vista'); else p.set('vista', v);
+      l.setAttribute('href', '?' + p.toString());
     });
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs)); } catch {}
-  }
-
-  function loadPrefs() {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      return raw ? JSON.parse(raw) : null;
-    } catch { return null; }
-  }
-
-  // Init: apply saved prefs or defaults
-  const saved = loadPrefs();
-  document.querySelectorAll('#col-panel input[data-group]').forEach(cb => {
-    if (saved && saved[cb.dataset.group] !== undefined) {
-      cb.checked = saved[cb.dataset.group];
-    }
-    applyGroup(cb.dataset.group, cb.checked);
-    cb.addEventListener('change', () => {
-      applyGroup(cb.dataset.group, cb.checked);
-      savePrefs();
-    });
+    campoVista.value = v;
+    campoVista.disabled = v === 'resumen';
+    const url = new URL(location.href);
+    if (v === 'resumen') url.searchParams.delete('vista'); else url.searchParams.set('vista', v);
+    history.replaceState(null, '', url);
   });
-
-  window.openPanel = function () {
-    document.getElementById('col-panel').classList.add('open');
-    document.getElementById('panel-overlay').classList.add('open');
-  };
-  window.closePanel = function () {
-    document.getElementById('col-panel').classList.remove('open');
-    document.getElementById('panel-overlay').classList.remove('open');
-  };
-  window.setAll = function (on) {
-    document.querySelectorAll('#col-panel input[data-group]').forEach(cb => {
-      cb.checked = on;
-      applyGroup(cb.dataset.group, on);
-    });
-    // col-base siempre visible
-    applyGroup('col-base', true);
-    savePrefs();
-  };
-
-  document.getElementById('panel-overlay').addEventListener('click', closePanel);
 })();
 </script>
 {% endblock %}

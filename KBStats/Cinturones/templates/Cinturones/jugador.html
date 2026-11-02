@@ -1,0 +1,176 @@
+{% extends 'Cinturones/base.html' %}
+{% load kb %}
+
+{% block title %}{{ nombre_juego }} · KB Stats{% endblock %}
+
+{% block extra_css %}
+<style>
+  .perfil { display: flex; flex-wrap: wrap; align-items: center; gap: 18px 22px; padding: 20px; margin-bottom: 14px; border-radius: var(--radius-lg); background: var(--surface); border: 1px solid var(--border); }
+  .perfil h1 { font-size: 26px; font-weight: 700; }
+  .perfil h1 .tag { color: var(--text-3); font-weight: 500; }
+  .perfil .datos { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-top: 6px; font-size: 13.5px; color: var(--text-2); }
+  .perfil .datos a { color: var(--text); font-weight: 600; display: inline-flex; align-items: center; gap: 7px; }
+  .perfil .datos a:hover { color: var(--gold); }
+  .perfil .datos .equipo-ini { width: 22px; height: 22px; font-size: 9px; border-radius: 5px; }
+  .perfil .der { margin-left: auto; display: flex; flex-wrap: wrap; gap: 10px; }
+  .placa-dato { padding: 10px 14px; border-radius: 8px; background: var(--bg); border: 1px solid var(--border); min-width: 150px; }
+  .placa-dato .e { font-size: 12.5px; font-weight: 500; color: var(--text-2); }
+  .placa-dato .v { display: flex; align-items: center; gap: 8px; margin-top: 4px; font-size: 18px; font-weight: 700; }
+  .placa-dato .s { font-size: 12.5px; color: var(--text-2); margin-top: 2px; }
+
+  .partida { grid-template-columns: 84px minmax(0, 1fr) auto; }
+  .partida .campeon { display: flex; align-items: center; gap: 6px; }
+  .partida .bloque-kda { min-width: 92px; }
+  .partida .bloque-kda .ratio { font-size: 12.5px; color: var(--text-2); }
+  .partida .der { display: flex; align-items: center; gap: 12px; }
+  .partida .puesto { font-size: 12.5px; color: var(--text-2); text-align: center; min-width: 40px; }
+  .partida .rival { font-size: 12.5px; color: var(--text-2); max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  @media (max-width: 1100px) { .partida .objetos { display: none; } }
+  @media (max-width: 640px) { .partida .rival, .partida .cargas { display: none; } }
+
+  .evol svg { width: 100%; height: 72px; display: block; }
+  .roles-barra { display: flex; height: 8px; border-radius: 4px; overflow: hidden; gap: 2px; margin: 4px 0 12px; }
+  .roles-barra i { display: block; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="migas"><a href="{% url 'jugadores' %}">Jugadores</a> / {{ nombre_juego }}</div>
+
+<section class="perfil">
+  <div class="avatar-perfil">
+    {% if perfil_icono is not None %}<img src="{{ perfil_icono|icono_perfil }}" alt="">{% elif campeon_fav %}<img src="{{ campeon_fav|icono_campeon }}" alt="">{% endif %}
+    {% if nivel %}<span class="nivel">{{ nivel }}</span>{% endif %}
+  </div>
+  <div>
+    <h1>{{ nombre_juego }} <span class="tag">{{ tag }}</span></h1>
+    <div class="datos">
+      {% if equipo_actual %}<a href="{% url 'equipo' equipo_actual %}"><span class="equipo-ini">{{ ini_equipo }}</span>{{ equipo_actual }}</a>{% endif %}
+      {% if rol_principal %}{% rol rol_principal 'largo' %}{% endif %}
+      <span>{{ resumen.partidas }} partida{{ resumen.partidas|pluralize }} {% if ver_todas %}en todas las temporadas{% elif temporada_vista %}en {{ temporada_vista.nombre }}{% else %}en la liga{% endif %}</span>
+    </div>
+  </div>
+  <div class="der">
+    {% if fila_rank %}
+    <div class="placa-dato">
+      <div class="e">Tier list</div>
+      <div class="v"><span class="tier tier-{{ fila_rank.tier|tier_clase }}">{{ fila_rank.tier }}</span><span class="nota {{ fila_rank.nota|nota_clase }}">{{ fila_rank.nota|floatformat:0 }}</span></div>
+      {% if puesto_rol %}<div class="s">{{ puesto_rol.0 }}º de {{ puesto_rol.1 }} en {{ fila_rank.rol|rol_largo }}</div>{% endif %}
+    </div>
+    {% endif %}
+    {% if ladder and ladder.tier %}
+    <div class="placa-dato">
+      <div class="e">SoloQ</div>
+      <div class="v"><img class="emblema" src="{{ ladder.tier|emblema_rango }}" alt=""><span class="tier-{{ ladder.tier }}" style="font-size:15px;">{{ ladder.rank_display }}</span></div>
+      {% if ladder.winrate is not None %}<div class="s">{{ ladder.wins }}V {{ ladder.losses }}D · {{ ladder.winrate }}%</div>{% endif %}
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% include 'Cinturones/_temporadas_perfil.html' %}
+
+<div class="cifras-app" style="margin-bottom:16px;">
+  <div class="cifra-app"><span class="e">Partidas</span><span class="v">{{ resumen.partidas }}</span><span class="s"><span class="res-v">{{ resumen.victorias }}V</span> <span class="res-d">{{ resumen.derrotas }}D</span></span></div>
+  <div class="cifra-app"><span class="e">Victorias</span><span class="v">{{ resumen.winrate }}%</span></div>
+  <div class="cifra-app"><span class="e">KDA</span><span class="v">{{ resumen.kda|floatformat:2 }}</span><span class="s">{{ resumen.k|floatformat:1 }} / {{ resumen.d|floatformat:1 }} / {{ resumen.a|floatformat:1 }}</span></div>
+  <div class="cifra-app"><span class="e">Part. en kills</span><span class="v">{{ resumen.kp|floatformat:0 }}%</span></div>
+  <div class="cifra-app"><span class="e">CS/min</span><span class="v">{{ resumen.cs_min|floatformat:1 }}</span></div>
+  <div class="cifra-app"><span class="e">Daño/min</span><span class="v">{{ resumen.dano_min|floatformat:0 }}</span><span class="s">{{ resumen.pct_dano|floatformat:0 }}% del equipo</span></div>
+  <div class="cifra-app"><span class="e">Visión/min</span><span class="v">{{ resumen.vision_min|floatformat:2 }}</span></div>
+  <div class="cifra-app"><span class="e">MVP / ACE</span><span class="v">{{ resumen.mvp }} / {{ resumen.ace }}</span></div>
+</div>
+
+<div class="grid-2">
+  <section>
+    <div class="page-head" style="margin-bottom:10px;">
+      <h2>Partidas</h2>
+    </div>
+    <div class="partidas">
+      {% for h in historial %}
+      <a class="partida {% if h.s.victoria %}v{% else %}d{% endif %}" href="{{ h.url }}">
+        <div class="meta">
+          <b class="{% if h.s.victoria %}res-v{% else %}res-d{% endif %}">{% if h.s.victoria %}Victoria{% else %}Derrota{% endif %}</b>
+          {{ h.p.jornada|jornada_txt }} · G{{ h.p.numero_partida }}<br>{{ h.duracion }}
+        </div>
+        <div class="cuerpo">
+          <div class="campeon">
+            <span class="camp-wrap">
+              <img class="camp l" src="{{ h.s.campeon|icono_campeon }}" alt="{{ h.s.campeon }}" title="{{ h.s.campeon }}" loading="lazy">
+              {% if h.s.riot_extra.champLevel %}<span class="lvl">{{ h.s.riot_extra.champLevel }}</span>{% endif %}
+            </span>
+            {% include 'Cinturones/_cargas.html' with ex=h.s.riot_extra %}
+          </div>
+          <div class="bloque-kda">
+            <div class="kda">{{ h.s.kills }} / <span class="m">{{ h.s.muertes }}</span> / {{ h.s.asistencias }}</div>
+            <div class="ratio">{{ h.kda|floatformat:2 }} KDA</div>
+          </div>
+          <div class="mini">
+            {{ h.s.cs }} CS ({{ h.s.cs_min|floatformat:1 }})<br>
+            KP {{ h.s.kp_porcentaje|floatformat:0 }}%
+          </div>
+          {% include 'Cinturones/_objetos.html' with ex=h.s.riot_extra %}
+        </div>
+        <div class="der">
+          <span class="rival" title="Rival">vs {{ h.rival }}</span>
+          <span class="puesto">{% if h.r.insignia %}<span class="ins ins-{{ h.r.insignia }}">{{ h.r.insignia }}</span>{% else %}{{ h.r.puesto }}º{% endif %}</span>
+          <button type="button" class="nota {{ h.r.nota|nota_clase }}" data-desglose="{{ h.s.id }}" title="Ver el desglose de la nota">{{ h.r.nota|floatformat:0 }}</button>
+        </div>
+      </a>
+      {% empty %}
+      <div class="aviso">Este jugador aún no tiene partidas.</div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <aside class="stack">
+    {% if evolucion %}
+    <section class="card-app evol">
+      <div class="h"><h3>Nota por partida</h3><span class="muted" style="font-size:12.5px;">media {{ resumen.nota|floatformat:0 }}</span></div>
+      <div class="b">
+        <svg viewBox="0 0 {{ evolucion.ancho }} {{ evolucion.alto }}" preserveAspectRatio="none" role="img" aria-label="Nota en cada partida">
+          <defs><linearGradient id="relleno-nota" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#EBD28A" stop-opacity=".28"/><stop offset="1" stop-color="#EBD28A" stop-opacity="0"/></linearGradient></defs>
+          <line x1="0" x2="{{ evolucion.ancho }}" y1="{{ evolucion.media_y }}" y2="{{ evolucion.media_y }}" stroke="#958C7D" stroke-dasharray="3 4" stroke-width="1" vector-effect="non-scaling-stroke"/>
+          <polygon points="{{ evolucion.area }}" fill="url(#relleno-nota)"/>
+          <polyline points="{{ evolucion.linea }}" fill="none" stroke="#EBD28A" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>
+        </svg>
+        <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-3);margin-top:4px;">
+          <span>{{ evolucion.puntos.0.j|jornada_txt }}</span><span>{{ evolucion.puntos|last|get:'j'|jornada_txt }}</span>
+        </div>
+      </div>
+    </section>
+    {% endif %}
+
+    <section class="card-app">
+      <div class="h"><h3>Campeones</h3></div>
+      <div class="b flush tabla-wrap">
+        <table class="tabla compacta">
+          <thead><tr><th>Campeón</th><th class="c" title="Partidas">P</th><th class="c">% WR</th><th class="c">KDA</th><th class="r">Nota</th></tr></thead>
+          <tbody>
+            {% for c in campeones %}
+            <tr>
+              <td><span class="jug"><img class="camp s" src="{{ c.campeon|icono_campeon }}" alt="" loading="lazy"><span class="nom">{{ c.campeon }}</span></span></td>
+              <td class="c">{{ c.partidas }}</td>
+              <td class="c">{{ c.winrate }}%</td>
+              <td class="c">{{ c.kda|floatformat:2 }}</td>
+              <td class="r"><span class="nota {{ c.nota|nota_clase }}">{{ c.nota|floatformat:0 }}</span></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    {% if roles|length > 1 %}
+    <section class="card-app">
+      <div class="h"><h3>Roles</h3></div>
+      <div class="b">
+        <div class="roles-barra">{% for r, n in roles %}<i style="flex:{{ n }};background:var(--r-{{ r|lower }});"></i>{% endfor %}</div>
+        {% for r, n in roles %}<div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:3px 0;">{% rol r 'largo' %}<span class="muted">{{ n }} partida{{ n|pluralize }}</span></div>{% endfor %}
+      </div>
+    </section>
+    {% endif %}
+  </aside>
+</div>
+
+{% include 'Cinturones/_desglose_modal.html' %}
+{% endblock %}

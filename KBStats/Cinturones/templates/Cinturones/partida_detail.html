@@ -7,8 +7,9 @@
     position: relative;
     width: 700px;
     height: 700px;
-    border: 1px solid #1f2937;
-    border-radius: 0.5rem;
+    border: 1px solid var(--oro-viejo);
+    border-radius: var(--radio);
+    box-shadow: inset 0 0 0 4px var(--sumi-alzado), 0 14px 34px rgba(0, 0, 0, .35);
     overflow: hidden;
     flex-shrink: 0;
   }
@@ -16,17 +17,17 @@
     content: '';
     position: absolute;
     inset: 0;
-    background-image: url("{% static 'images/f5da4bd98cb87704342fa1c6e4b6ab416aca990e-705x701.png' %}");
+    background-image: url("{% static 'images/mapa_grieta.png' %}");
     background-size: 700px 700px;
     background-repeat: no-repeat;
-    opacity: 0.5;
+    opacity: 0.6;
     z-index: 0;
   }
   .heatmap-controls {
     display: flex;
     flex-direction: column;
     gap: 1rem;
-    min-width: 280px;
+    width: min(100%, 340px);
   }
   .player-team-col {
     display: flex;
@@ -35,24 +36,23 @@
     flex: 1;
   }
   .player-team-label {
-    font-size: 0.68rem;
-    text-transform: uppercase;
-    letter-spacing: .07em;
-    font-weight: 600;
+    font-size: 11px;
+    
+    font-weight: 700;
     margin-bottom: 0.2rem;
   }
   .player-btn {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.4rem 0.75rem;
-    border-radius: 0.375rem;
-    border: 1px solid #1f2937;
-    background: #0b1220;
-    color: #d1d5db;
+    padding: 0.45rem 0.75rem;
+    border-radius: var(--radio-fino);
+    border: 1px solid var(--sumi-linea);
+    background: var(--sumi-hondo);
+    color: var(--washi);
     cursor: pointer;
-    font-size: 0.82rem;
-    transition: background 0.15s, border-color 0.15s;
+    font-size: 14px;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
     text-align: left;
     width: 100%;
     min-width: 0;
@@ -63,219 +63,227 @@
     white-space: nowrap;
     min-width: 0;
   }
-  .player-btn:hover { background: #1f2937; }
-  .player-btn.active { border-color: #22d3ee; color: #22d3ee; background: #0b2030; }
-  .player-btn.active-all { border-color: #4ade80; color: #4ade80; background: #0b1e14; }
+  .player-btn:hover { background: rgba(235, 210, 138, .05); border-color: var(--oro-viejo); }
+  .player-btn.active { border-color: var(--oro); color: var(--oro); background: rgba(235, 210, 138, .08); }
+  .player-btn.active-all { border-color: var(--oro); color: var(--oro); background: rgba(235, 210, 138, .08); }
   .dot {
     width: 10px; height: 10px;
     border-radius: 50%;
     flex-shrink: 0;
   }
   .phase-btn {
-    padding: 0.3rem 0.6rem;
-    border-radius: 0.3rem;
-    border: 1px solid #1f2937;
-    background: #0b1220;
-    color: #9ca3af;
+    padding: 0.35rem 0.75rem;
+    border-radius: var(--radio-fino);
+    border: 1px solid var(--sumi-linea);
+    background: transparent;
+    color: var(--hai);
     cursor: pointer;
-    font-size: 0.75rem;
-    transition: background 0.15s;
+    font-size: 13px;
+    font-weight: 500;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
   }
-  .phase-btn.active { border-color: #22d3ee; color: #22d3ee; }
-  .heatmap-section {
-    background: #0b1220;
-    border: 1px solid #1f2937;
-    border-radius: 0.5rem;
-    padding: 1.25rem;
-    margin-top: 2rem;
-  }
+  .phase-btn:hover { color: var(--washi); border-color: var(--oro-viejo); }
+  .phase-btn.active { border-color: var(--shu); color: var(--washi); background: var(--shu); }
   .no-data-msg {
-    color: #6b7280;
-    font-size: 0.85rem;
+    color: var(--hai);
+    font-size: 14px;
     padding: 2rem;
     text-align: center;
   }
   .prox-bar-track {
-    height: 7px;
-    background: #1f2937;
-    border-radius: 4px;
+    height: 6px;
+    background: var(--sumi-linea);
+    border-radius: 1px;
     overflow: hidden;
   }
   .prox-bar-fill {
     height: 100%;
     width: 0%;
-    border-radius: 4px;
-    transition: width .3s;
+    border-radius: 1px;
+    transition: width .5s var(--curva);
   }
-  .prox-blue { background: #60a5fa; }
-  .prox-red  { background: #f87171; }
+  /* ── Barra de tiempo del mapa de calor ── */
+  .tiempo-cabecera { display: flex; align-items: baseline; justify-content: space-between; gap: .75rem; }
+  .tiempo-lectura { font-weight: 700; font-size: 16px; color: var(--text); font-variant-numeric: tabular-nums; }
+  .tiempo-rango { position: relative; height: 28px; margin-top: .25rem; }
+  .tiempo-pista, .tiempo-relleno { position: absolute; top: 50%; height: 4px; translate: 0 -50%; border-radius: 1px; }
+  .tiempo-pista { left: 0; right: 0; background: var(--sumi-linea); }
+  .tiempo-relleno { background: var(--oro); }
+  .tiempo-rango input[type=range] {
+    position: absolute; inset: 0; width: 100%; height: 100%; margin: 0;
+    background: none; pointer-events: none; -webkit-appearance: none; appearance: none;
+  }
+  .tiempo-rango input[type=range]::-webkit-slider-runnable-track { background: none; border: 0; }
+  .tiempo-rango input[type=range]::-moz-range-track { background: none; border: 0; }
+  .tiempo-rango input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; pointer-events: auto; cursor: grab;
+    width: 16px; height: 16px; border-radius: 2px; transform: rotate(45deg);
+    background: var(--washi); border: 2px solid var(--shu); box-shadow: 0 2px 6px rgba(0,0,0,.5);
+  }
+  .tiempo-rango input[type=range]::-moz-range-thumb {
+    pointer-events: auto; cursor: grab;
+    width: 13px; height: 13px; border-radius: 2px; transform: rotate(45deg);
+    background: var(--washi); border: 2px solid var(--shu); box-shadow: 0 2px 6px rgba(0,0,0,.5);
+  }
+  .tiempo-rango input[type=range]:focus-visible { outline: none; }
+  .tiempo-rango input[type=range]:focus-visible::-webkit-slider-thumb { outline: 2px solid var(--oro); outline-offset: 3px; }
+  .tiempo-marcas { display: flex; justify-content: space-between; font-size: 11px; color: var(--hai-oscuro); font-variant-numeric: tabular-nums; }
+  .tiempo-botones { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; margin-top: .5rem; }
+  /* Barra de un solo tirador (replay): se puede pinchar en cualquier punto de la pista */
+  .tiempo-rango.unico input[type=range] { pointer-events: auto; cursor: pointer; }
+
+  /* ── Pestañas de modo ── */
+  .modo-tabs { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--sumi-linea); border-radius: var(--radio-fino); overflow: hidden; }
+  .modo-tabs button {
+    background: transparent; border: 0; padding: .5rem .75rem; cursor: pointer;
+    color: var(--hai); font-size: 14px; font-weight: 700; transition: background-color .15s, color .15s;
+  }
+  .modo-tabs button + button { border-left: 1px solid var(--sumi-linea); }
+  .modo-tabs button:hover { color: var(--washi); }
+  .modo-tabs button[aria-pressed="true"] { background: var(--shu); color: var(--washi); }
+
+  /* ── Interruptor "Filtrar por tiempo" ── */
+  .interruptor { display: flex; align-items: center; gap: .6rem; cursor: pointer; user-select: none; font-size: 14px; color: var(--washi); }
+  .interruptor input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+  .interruptor .pista-int { position: relative; width: 34px; height: 18px; border-radius: 9px; background: var(--sumi-linea); transition: background-color .2s; flex-shrink: 0; }
+  .interruptor .pista-int::after { content: ''; position: absolute; top: 3px; left: 3px; width: 12px; height: 12px; border-radius: 50%; background: var(--hai); transition: transform .2s var(--curva), background-color .2s; }
+  .interruptor input:checked + .pista-int { background: var(--shu); }
+  .interruptor input:checked + .pista-int::after { transform: translateX(16px); background: var(--washi); }
+  .interruptor input:focus-visible + .pista-int { outline: 2px solid var(--oro); outline-offset: 3px; }
+
+  .velocidad { display: flex; gap: .25rem; margin-left: auto; }
+  .velocidad button { padding: .3rem .5rem; }
+
+  /* ── Replay: burbujas de jugador y muertes ── */
+  .replay-capa { position: absolute; inset: 0; z-index: 5; pointer-events: none; }
+  .burbuja {
+    position: absolute; left: 0; top: 0;
+    width: 32px; height: 32px; margin: -16px 0 0 -16px; border-radius: 50%;
+    display: grid; place-items: center;
+    font-family: var(--gothic); font-size: 10px; font-weight: 700; letter-spacing: .02em; color: #fff;
+    border: 2px solid rgba(255, 255, 255, .9);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, .6);
+    pointer-events: auto; cursor: default;
+    transition: opacity .2s;
+    will-change: transform;
+  }
+  .burbuja.azul { background: #1F7FBF; }
+  .burbuja.rojo { background: #B3262B; }
+  .burbuja.muerto { opacity: .35; filter: grayscale(.7); }
+  .burbuja.muerto::after { content: '✕'; position: absolute; font-size: 22px; color: #fff; text-shadow: 0 0 4px #000; }
+  .burbuja.muerto span { visibility: hidden; }
+  .burbuja.atenuado { opacity: .25; }
+  .replay-leyenda { font-size: 12px; color: var(--hai); line-height: 1.5; }
+  .prox-blue { background: var(--azul-lado); }
+  .prox-red  { background: var(--rojo-lado); }
+  .prox-nombre { font-weight: 700; font-size: 16px; margin-bottom: 0.9rem; }
+  .prox-nombre small { color: var(--text-2); font-size: 12.5px; font-weight: 500; margin-left: 0.5rem; }
+  .prox-fila { display: flex; justify-content: space-between; font-size: 13px; color: var(--hai); margin-bottom: 0.25rem; }
+  .prox-fila b { color: var(--washi); font-weight: 700; font-variant-numeric: tabular-nums; }
+  .vs-cabecera { font-family: var(--gothic); font-size: .45em; font-weight: 500; color: var(--hai); margin: 0 .35em; vertical-align: middle; }
+  .lado-azul-txt { color: var(--azul-lado); }
+  .lado-rojo-txt { color: var(--rojo-lado); }
+
+  /* ── Marcador de la partida ── */
+  .resumen-partida .b { padding: 18px 20px; }
+  .enfrentamiento.grande { gap: 18px; }
+  .enfrentamiento.grande .eq { gap: 14px; }
+  .enfrentamiento.grande .eq > span:not(.equipo-ini) { display: grid; min-width: 0; }
+  .enfrentamiento.grande .n { font-size: clamp(16px, 2.2vw, 22px); font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .enfrentamiento.grande .eq:hover .n { text-decoration: underline; text-underline-offset: 4px; }
+  .enfrentamiento.grande .centro { text-align: center; }
+  .enfrentamiento.grande .marcador { font-size: clamp(26px, 3.4vw, 36px); line-height: 1.1; }
+  .comparativa { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 28px; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--sumi-linea); }
+  .cmp { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 4px 10px; font-size: 13px; }
+  .cmp .e, .objs .e { text-align: center; color: var(--hai); font-size: 12px; }
+  .cmp-barra { grid-column: 1 / -1; display: flex; gap: 2px; height: 6px; border-radius: 3px; overflow: hidden; }
+  .cmp-barra .az { background: var(--azul-lado); } .cmp-barra .ro { background: var(--rojo-lado); }
+  .objs { grid-column: 1 / -1; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 12px; }
+  .obj { display: inline-flex; align-items: center; gap: 10px; padding: 5px 14px; border-radius: 16px; background: var(--sumi-hondo); border: 1px solid var(--sumi-linea); font-size: 13px; }
+  .obj b { font-variant-numeric: tabular-nums; min-width: 10px; text-align: center; }
+  @media (max-width: 720px) {
+    .comparativa { grid-template-columns: 1fr; }
+    .enfrentamiento.grande .equipo-ini.l { display: none; }
+  }
+  .todas-stats { margin-top: 18px; }
+  .todas-stats summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; cursor: pointer; font-weight: 700; list-style: none; }
+  .todas-stats summary::-webkit-details-marker { display: none; }
+  .todas-stats summary::after { content: '▾'; color: var(--hai); margin-left: 8px; transition: transform .2s; }
+  .todas-stats[open] summary { border-bottom: 1px solid var(--sumi-linea); }
+  .todas-stats[open] summary::after { transform: rotate(180deg); }
+  .tc-titulo { padding: 10px 16px 4px; font-weight: 700; font-size: 13px; }
+  .heatmap-section { background: var(--sumi-alzado); border: 1px solid var(--sumi-linea); border-radius: var(--radio); padding: 18px; margin-top: 18px; }
+  h3.section-title { font-size: 17px; margin-bottom: 14px; }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container py-4">
-  <h1 class="page-title">Partida {{ partida.match_id }}</h1>
+{% load kb %}
+<div>
+  <div class="migas">{% if partida_obj.temporada %}<a href="{% url 'partidas' %}?temporada={{ partida_obj.temporada.slug }}">{{ partida_obj.temporada.nombre }}</a> / {% endif %}<a href="{% url 'partidas' %}">Partidas</a> / {{ partida.jornada|jornada_txt:True }} · Game {{ partida.numero_partida }}</div>
 
-  <!-- PANEL DE INFORMACIÓN -->
-  <div class="partida-info-card">
-    <p>
-      <span class="info-label">Jornada:</span>
-      <span class="info-value">{{ partida.jornada }}</span>
-    </p>
-    <p>
-      <span class="info-label">Número de partida:</span>
-      <span class="info-value">{{ partida.numero_partida }}</span>
-    </p>
-    <p>
-      <span class="info-label">Azul:</span>
-      <span class="info-value">{{ partida.equipo_azul }}</span>
-    </p>
-    <p>
-      <span class="info-label">Rojo:</span>
-      <span class="info-value">{{ partida.equipo_rojo }}</span>
-    </p>
-    <p>
-      <span class="info-label">Ganador:</span>
-      <span class="info-value">{{ partida.ganador_equipo }}</span>
-    </p>
-    <p>
-      <span class="info-label">Duración:</span>
-      <span class="info-value">{{ partida.duracion_segundos }} s</span>
-    </p>
+  <!-- Marcador -->
+  <section class="card-app resumen-partida">
+    <div class="b">
+      <div class="enfrentamiento grande">
+        <a class="eq {% if eq_azul.gana %}gana{% else %}pierde{% endif %}" href="{% url 'equipo' eq_azul.nombre %}">
+          <span class="equipo-ini l" style="border-color:var(--azul-lado);">{{ eq_azul.ini }}</span>
+          <span>
+            <span class="n txt-azul">{{ eq_azul.nombre }}</span>
+            <span class="res {% if eq_azul.gana %}res-v{% else %}res-d{% endif %}">{% if eq_azul.gana %}Victoria{% else %}Derrota{% endif %}</span>
+          </span>
+        </a>
+        <div class="centro">
+          <div class="marcador"><span class="txt-azul">{{ eq_azul.kills }}</span><span class="sep">–</span><span class="txt-rojo">{{ eq_rojo.kills }}</span></div>
+          <div class="muted" style="font-size:13px;">{{ partida.duracion_segundos }} · {{ partida.jornada|jornada_txt }} · Game {{ partida.numero_partida }}</div>
+        </div>
+        <a class="eq der {% if eq_rojo.gana %}gana{% else %}pierde{% endif %}" href="{% url 'equipo' eq_rojo.nombre %}">
+          <span>
+            <span class="n txt-rojo">{{ eq_rojo.nombre }}</span>
+            <span class="res {% if eq_rojo.gana %}res-v{% else %}res-d{% endif %}">{% if eq_rojo.gana %}Victoria{% else %}Derrota{% endif %}</span>
+          </span>
+          <span class="equipo-ini l" style="border-color:var(--rojo-lado);">{{ eq_rojo.ini }}</span>
+        </a>
+      </div>
+
+      <div class="comparativa">
+        <div class="cmp"><span class="num txt-azul">{{ eq_azul.oro|miles }}</span><span class="e">Oro</span><span class="num txt-rojo">{{ eq_rojo.oro|miles }}</span>
+          <div class="cmp-barra"><i class="az" style="flex:{{ eq_azul.oro }};"></i><i class="ro" style="flex:{{ eq_rojo.oro }};"></i></div></div>
+        <div class="cmp"><span class="num txt-azul">{{ eq_azul.dano|miles }}</span><span class="e">Daño a campeones</span><span class="num txt-rojo">{{ eq_rojo.dano|miles }}</span>
+          <div class="cmp-barra"><i class="az" style="flex:{{ eq_azul.dano }};"></i><i class="ro" style="flex:{{ eq_rojo.dano }};"></i></div></div>
+        <div class="objs">
+          <span class="obj"><b class="txt-azul">{{ eq_azul.dragones }}</b><span class="e">Dragones</span><b class="txt-rojo">{{ eq_rojo.dragones }}</b></span>
+          <span class="obj"><b class="txt-azul">{{ eq_azul.barones }}</b><span class="e">Barones</span><b class="txt-rojo">{{ eq_rojo.barones }}</b></span>
+          <span class="obj"><b class="txt-azul">{{ eq_azul.heraldos }}</b><span class="e">Heraldos</span><b class="txt-rojo">{{ eq_rojo.heraldos }}</b></span>
+          {% if eq_azul.elders or eq_rojo.elders %}<span class="obj"><b class="txt-azul">{{ eq_azul.elders }}</b><span class="e">Ancianos</span><b class="txt-rojo">{{ eq_rojo.elders }}</b></span>{% endif %}
+          {% if eq_azul.atakhan or eq_rojo.atakhan %}<span class="obj"><b class="txt-azul">{{ eq_azul.atakhan }}</b><span class="e">Atakhan</span><b class="txt-rojo">{{ eq_rojo.atakhan }}</b></span>{% endif %}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Jugadores de cada equipo -->
+  <div class="stack" style="margin-top:18px;">
+    {% include 'Cinturones/_marcador_equipo.html' with eq=eq_azul lista=stats_azul %}
+    {% include 'Cinturones/_marcador_equipo.html' with eq=eq_rojo lista=stats_rojo %}
   </div>
 
-  <h3 class="section-title mb-3">Stats Jugadores</h3>
+  <!-- Oro minuto a minuto -->
+  {% if oro_grafica %}{% include 'Cinturones/_grafica_oro.html' %}{% endif %}
+  <!-- Todas las estadísticas -->
+  <details class="card-app todas-stats">
+    <summary><span>Todas las estadísticas</span><span class="muted" style="font-size:12.5px;font-weight:400;">early game, multikills, daño recibido…</span></summary>
+    <div class="b flush">
+    {% include 'Cinturones/_tabla_completa.html' with titulo=equipo_azul lista=stats_azul clase='txt-azul' %}
+    {% include 'Cinturones/_tabla_completa.html' with titulo=equipo_rojo lista=stats_rojo clase='txt-rojo' %}
+    </div>
+  </details>
 
-  <!-- EQUIPO AZUL -->
-  <h4 class="team-title">Equipo Azul — {{ equipo_azul }}</h4>
-  <table class="table table-dark-kb table-striped table-hover">
-    <thead>
-      <tr>
-        <th>Jugador</th>
-        <th>Campeón</th>
-        <th>K</th>
-        <th>D</th>
-        <th>A</th>
-        <th>KDA</th>
-        <th>KP %</th>
-        <th>CS</th>
-        <th>Dmg/min</th>
-        <th>Oro/min</th>
-        <th>Daño Inf.</th>
-        <th>% Team Dmg</th>
-        <th>Daño Rec.</th>
-        <th>Visión</th>
-        <th>2K</th>
-        <th>3K</th>
-        <th>4K</th>
-        <th>5K</th>
-        <th>GD@15</th>
-        <th>CSD@15</th>
-        <th>XPD@15</th>
-        <th>CS@15</th>
-        <th>KA@15</th>
-        <th>FB</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for s in stats_azul %}
-      <tr>
-        <td>{{ s.jugador_nombre }}</td>
-        <td>{{ s.campeon }}</td>
-        <td>{{ s.kills }}</td>
-        <td>{{ s.muertes }}</td>
-        <td>{{ s.asistencias }}</td>
-        <td>{{ s.kda }}</td>
-        <td>{{ s.kp_porcentaje }}</td>
-        <td>{{ s.cs }}</td>
-        <td>{{ s.dano_min }}</td>
-        <td>{{ s.oro_min }}</td>
-        <td>{{ s.dano_infligido }}</td>
-        <td>{{ s.porcentaje_dano_equipo }}</td>
-        <td>{{ s.dano_recibido }}</td>
-        <td>{{ s.vision_min }}</td>
-        <td>{{ s.double_kills }}</td>
-        <td>{{ s.triple_kills }}</td>
-        <td>{{ s.quadra_kills }}</td>
-        <td>{{ s.penta_kills }}</td>
-        <td>{% if s.gd15 is not None %}{{ s.gd15 }}{% else %}—{% endif %}</td>
-        <td>{% if s.csd15 is not None %}{{ s.csd15 }}{% else %}—{% endif %}</td>
-        <td>{% if s.xpd15 is not None %}{{ s.xpd15 }}{% else %}—{% endif %}</td>
-        <td>{% if s.cs15 is not None %}{{ s.cs15 }}{% else %}—{% endif %}</td>
-        <td>{% if s.ka15 is not None %}{{ s.ka15 }}{% else %}—{% endif %}</td>
-        <td>{% if s.fb %}✓{% elif s.fb is not None %}—{% else %}—{% endif %}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-
-  <!-- EQUIPO ROJO -->
-  <h4 class="team-title">Equipo Rojo — {{ equipo_rojo }}</h4>
-  <table class="table table-dark-kb table-striped table-hover">
-    <thead>
-      <tr>
-        <th>Jugador</th>
-        <th>Campeón</th>
-        <th>K</th>
-        <th>D</th>
-        <th>A</th>
-        <th>KDA</th>
-        <th>KP %</th>
-        <th>CS</th>
-        <th>Dmg/min</th>
-        <th>Oro/min</th>
-        <th>Daño Inf.</th>
-        <th>% Team Dmg</th>
-        <th>Daño Rec.</th>
-        <th>Visión</th>
-        <th>2K</th>
-        <th>3K</th>
-        <th>4K</th>
-        <th>5K</th>
-        <th>GD@15</th>
-        <th>CSD@15</th>
-        <th>XPD@15</th>
-        <th>CS@15</th>
-        <th>KA@15</th>
-        <th>FB</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for s in stats_rojo %}
-      <tr>
-        <td>{{ s.jugador_nombre }}</td>
-        <td>{{ s.campeon }}</td>
-        <td>{{ s.kills }}</td>
-        <td>{{ s.muertes }}</td>
-        <td>{{ s.asistencias }}</td>
-        <td>{{ s.kda }}</td>
-        <td>{{ s.kp_porcentaje }}</td>
-        <td>{{ s.cs }}</td>
-        <td>{{ s.dano_min }}</td>
-        <td>{{ s.oro_min }}</td>
-        <td>{{ s.dano_infligido }}</td>
-        <td>{{ s.porcentaje_dano_equipo }}</td>
-        <td>{{ s.dano_recibido }}</td>
-        <td>{{ s.vision_min }}</td>
-        <td>{{ s.double_kills }}</td>
-        <td>{{ s.triple_kills }}</td>
-        <td>{{ s.quadra_kills }}</td>
-        <td>{{ s.penta_kills }}</td>
-        <td>{% if s.gd15 is not None %}{{ s.gd15 }}{% else %}—{% endif %}</td>
-        <td>{% if s.csd15 is not None %}{{ s.csd15 }}{% else %}—{% endif %}</td>
-        <td>{% if s.xpd15 is not None %}{{ s.xpd15 }}{% else %}—{% endif %}</td>
-        <td>{% if s.cs15 is not None %}{{ s.cs15 }}{% else %}—{% endif %}</td>
-        <td>{% if s.ka15 is not None %}{{ s.ka15 }}{% else %}—{% endif %}</td>
-        <td>{% if s.fb %}✓{% elif s.fb is not None %}—{% else %}—{% endif %}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
 
   <!-- ── JUNGLER PROXIMITY ─────────────────────────────────────────────── -->
   {% if proximity %}
-  <div class="heatmap-section" style="margin-top:2rem;">
-    <h3 class="section-title mb-3">Jungler Proximity</h3>
+  <div class="heatmap-section">
+    <h3 class="section-title">Jungler proximity</h3>
 
     <!-- Selector de fase -->
     <div style="display:flex;gap:0.5rem;margin-bottom:1.25rem;" id="prox-phase-btns">
@@ -289,17 +297,17 @@
 
       {% if proximity.blue %}
       <div style="flex:1;min-width:260px;">
-        <div style="color:#60a5fa;font-weight:600;font-size:0.95rem;margin-bottom:0.9rem;">
+        <div class="prox-nombre lado-azul-txt">
           {{ proximity.blue.name }}
-          <span style="color:#6b7280;font-size:0.78rem;font-weight:400;margin-left:0.4rem;">Equipo Azul</span>
+          <small>Lado azul</small>
         </div>
         {% for phase, zones in proximity.blue.items %}{% if phase != 'name' %}
         <div class="prox-phase-data{% if phase != 'all' %} d-none{% endif %}" data-phase="{{ phase }}">
           {% for zone, pct in zones.items %}
-          <div style="margin-bottom:0.55rem;">
-            <div style="display:flex;justify-content:space-between;font-size:0.78rem;color:#9ca3af;margin-bottom:0.2rem;">
+          <div style="margin-bottom:0.6rem;">
+            <div class="prox-fila">
               <span>{% if zone == 'top' %}Top{% elif zone == 'mid' %}Mid{% elif zone == 'adc' %}ADC{% elif zone == 'sup' %}SUP{% endif %}</span>
-              <span style="color:#e5e7eb;font-weight:600;">{{ pct }}%</span>
+              <b>{{ pct }}%</b>
             </div>
             <div class="prox-bar-track">
               <div class="prox-bar-fill prox-blue" data-pct="{{ pct }}"></div>
@@ -313,17 +321,17 @@
 
       {% if proximity.red %}
       <div style="flex:1;min-width:260px;">
-        <div style="color:#f87171;font-weight:600;font-size:0.95rem;margin-bottom:0.9rem;">
+        <div class="prox-nombre lado-rojo-txt">
           {{ proximity.red.name }}
-          <span style="color:#6b7280;font-size:0.78rem;font-weight:400;margin-left:0.4rem;">Equipo Rojo</span>
+          <small>Lado rojo</small>
         </div>
         {% for phase, zones in proximity.red.items %}{% if phase != 'name' %}
         <div class="prox-phase-data{% if phase != 'all' %} d-none{% endif %}" data-phase="{{ phase }}">
           {% for zone, pct in zones.items %}
-          <div style="margin-bottom:0.55rem;">
-            <div style="display:flex;justify-content:space-between;font-size:0.78rem;color:#9ca3af;margin-bottom:0.2rem;">
+          <div style="margin-bottom:0.6rem;">
+            <div class="prox-fila">
               <span>{% if zone == 'top' %}Top{% elif zone == 'mid' %}Mid{% elif zone == 'adc' %}ADC{% elif zone == 'sup' %}SUP{% endif %}</span>
-              <span style="color:#e5e7eb;font-weight:600;">{{ pct }}%</span>
+              <b>{{ pct }}%</b>
             </div>
             <div class="prox-bar-track">
               <div class="prox-bar-fill prox-red" data-pct="{{ pct }}"></div>
@@ -358,7 +366,7 @@
 
   <!-- ── MAPA DE CALOR ───────────────────────────────────────────────────── -->
   <div class="heatmap-section">
-    <h3 class="section-title mb-3">Mapa de Calor</h3>
+    <h3 class="section-title">Mapa de la partida</h3>
     <div id="heatmap-container">
       <div class="no-data-msg" id="heatmap-loading">Cargando datos de posición…</div>
     </div>
@@ -369,10 +377,11 @@
 <script src="https://cdn.jsdelivr.net/npm/heatmap.js@2.0.5/build/heatmap.min.js"></script>
 <script>
 (function () {
-  const MATCH_ID   = "{{ partida.match_id }}";
-  const MAP_SIZE   = 700;
-  const LOL_MAX    = 14820;
-const TEAM_COLORS = { 100: '#60a5fa', 200: '#f87171' };
+  const MATCH_ID    = "{{ partida.match_id|escapejs }}";
+  const MAP_SIZE    = 700;
+  const LOL_MAX     = 14820;
+  const TEAM_COLORS = { 100: 'var(--azul-lado)', 200: 'var(--rojo-lado)' };
+  const TEAM_NAMES  = { 100: '{{ equipo_azul|escapejs }}', 200: '{{ equipo_rojo|escapejs }}' };
   const HEAT_CFG_BLUE = {
     maxOpacity: 0.8, radius: 22, blur: 0.85,
     gradient: { 0.2: '#001eff', 0.5: '#00aaff', 0.75: '#00eeff', 1.0: '#ffffff' },
@@ -381,18 +390,41 @@ const TEAM_COLORS = { 100: '#60a5fa', 200: '#f87171' };
     maxOpacity: 0.8, radius: 22, blur: 0.85,
     gradient: { 0.2: '#cc0000', 0.5: '#ff4400', 0.75: '#ff9900', 1.0: '#ffffff' },
   };
-  const PHASES = {
-    all:   [0, Infinity],
-    early: [0,       900000],
-    mid:   [900000, 1800000],
-    late:  [1800000, Infinity],
-  };
+  const PASO_FILTRO = 30000;   // el filtro de tiempo va en pasos de 30 s
+  const FRAME_MS    = 60000;   // Riot da una posición real por minuto
+  const ROL_TXT     = { top: 'TOP', jgl: 'JG', mid: 'MID', adc: 'ADC', sup: 'SUP' };
+  const VELOCIDADES = [10, 30, 60];
 
   let allData      = null;
   let heatBlue     = null;
   let heatRed      = null;
   let selectedPids = new Set(['all']); // 'all' = todos seleccionados
-  let activePhase  = 'all';
+  let modo         = 'calor';          // 'calor' | 'replay'
+  let maxT         = 0;                // último instante con datos (ms)
+
+  // Filtro de tiempo del mapa de calor (en pasos de 30 s)
+  let filtroActivo = false;
+  let maxPaso = 0, desdePaso = 0, hastaPaso = 0;
+
+  // Jugadores sobre el mapa de calor, en un momento concreto
+  let momentoActivo = false;
+  let momentoT = 0;
+  let estelaMs = 60000;   // cuánto rastro de calor se ve detrás de cada jugador
+  const ESTELAS = [[30000, '30 s'], [60000, '1 min'], [120000, '2 min'], [300000, '5 min']];
+
+  // Replay
+  let replayT = 0, velocidad = 30, reproduciendo = false, ultimoTick = null, rafId = null;
+  let capa = null;
+  const burbujas = {};   // pid -> elemento
+  const pistas   = {};   // pid -> { anchors: [[x,y,t]], muertes: [[tMuerte, tReaparece, x, y]] }
+
+  // Tiempo de una muestra de posición (ms). Formato viejo [x,y]: una muestra por minuto
+  function posTime(pos, i) { return pos.length >= 3 ? pos[2] : i * FRAME_MS; }
+
+  function fmt(ms) {
+    const s = Math.floor(ms / 1000);
+    return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+  }
 
   function toCanvas(x, y) {
     return {
@@ -401,10 +433,25 @@ const TEAM_COLORS = { 100: '#60a5fa', 200: '#f87171' };
     };
   }
 
+  // ════════════════════ Mapa de calor ════════════════════
+
+  function rangoFiltro() {
+    if (momentoActivo) return [momentoT - estelaMs, momentoT];   // estela que acaba en el momento elegido
+    if (!filtroActivo) return [0, Infinity];
+    return [desdePaso * PASO_FILTRO, hastaPaso >= maxPaso ? Infinity : hastaPaso * PASO_FILTRO];
+  }
+
+  // En la estela, lo más reciente pesa más (se ve más intenso) y lo antiguo se apaga
+  function pesoEstela(t) {
+    if (!momentoActivo) return 1;
+    const f = 1 - (momentoT - t) / estelaMs;   // 0 = principio de la estela, 1 = el momento
+    return 1 + 3 * Math.max(0, Math.min(1, f));
+  }
+
   // Devuelve puntos para los jugadores seleccionados del equipo indicado
-  function buildPoints(teamId, phase) {
+  function buildPoints(teamId) {
     if (!allData) return [];
-    const [tMin, tMax] = PHASES[phase] || PHASES.all;
+    const [tMin, tMax] = rangoFiltro();
     const showAll = selectedPids.has('all');
     const pts = [];
 
@@ -412,10 +459,10 @@ const TEAM_COLORS = { 100: '#60a5fa', 200: '#f87171' };
       if (p.team !== teamId) continue;
       if (!showAll && !selectedPids.has(pid)) continue;
       p.positions.forEach((pos, i) => {
-        const t = pos.length >= 3 ? pos[2] : i * 60000; // retrocompat formato viejo [x,y]
-        if (t < tMin || t >= tMax) return;
+        const t = posTime(pos, i);
+        if (t < tMin || t > tMax) return;
         const { cx, cy } = toCanvas(pos[0], pos[1]);
-        pts.push({ x: cx, y: cy, value: 1 });
+        pts.push({ x: cx, y: cy, value: pesoEstela(t) });
       });
     }
 
@@ -426,7 +473,7 @@ const TEAM_COLORS = { 100: '#60a5fa', 200: '#f87171' };
         if (!p || p.team !== teamId) return;
         const pidInt = parseInt(pid);
         allData.kills.forEach(k => {
-          if (k.t < tMin || k.t >= tMax) return;
+          if (k.t < tMin || k.t > tMax) return;
           if (k.killer === pidInt || k.victim === pidInt) {
             const { cx, cy } = toCanvas(k.x, k.y);
             pts.push({ x: cx, y: cy, value: 3 });
@@ -438,27 +485,178 @@ const TEAM_COLORS = { 100: '#60a5fa', 200: '#f87171' };
     return pts;
   }
 
-  function makeWrap() {
-    const outer = document.createElement('div');
-    const wrap = document.createElement('div');
-    wrap.className = 'heatmap-wrap';
-    outer.appendChild(wrap);
-    return { outer, wrap };
-  }
-
-  function buildMaps(area) {
-    area.innerHTML = '';
-    heatBlue = null; heatRed = null;
-    const { outer, wrap } = makeWrap();
-    area.appendChild(outer);
-    heatBlue = h337.create({ container: wrap, ...HEAT_CFG_BLUE });
-    heatRed  = h337.create({ container: wrap, ...HEAT_CFG_RED });
-  }
-
   function renderHeatmap() {
     if (!allData || !heatBlue || !heatRed) return;
-    heatBlue.setData({ max: 6, data: buildPoints(100, activePhase) });
-    heatRed.setData({ max: 6,  data: buildPoints(200, activePhase) });
+    const enCalor = modo === 'calor';
+    heatBlue.setData({ max: 6, data: enCalor ? buildPoints(100) : [] });
+    heatRed.setData({ max: 6,  data: enCalor ? buildPoints(200) : [] });
+  }
+
+  function syncFiltroUI() {
+    const a = document.getElementById('f-desde');
+    const b = document.getElementById('f-hasta');
+    a.value = desdePaso; b.value = hastaPaso;
+    const fill = document.getElementById('f-relleno');
+    fill.style.left  = (desdePaso / maxPaso * 100) + '%';
+    fill.style.width = ((hastaPaso - desdePaso) / maxPaso * 100) + '%';
+    const fin = hastaPaso >= maxPaso ? maxT : hastaPaso * PASO_FILTRO;
+    document.getElementById('f-lectura').textContent = `${fmt(desdePaso * PASO_FILTRO)} – ${fmt(fin)}`;
+    // Si los tiradores se juntan al final, el de "desde" va encima para poder moverlo
+    a.style.zIndex = desdePaso >= maxPaso - 1 ? 3 : 1;
+    b.style.zIndex = 2;
+  }
+
+  function setFiltro(d, h) {
+    desdePaso = Math.max(0, Math.min(d, maxPaso - 1));
+    hastaPaso = Math.max(desdePaso + 1, Math.min(h, maxPaso));
+    syncFiltroUI();
+    renderHeatmap();
+  }
+
+  // ════════════════════ Replay ════════════════════
+
+  // Puntos fiables de cada jugador: la posición real de cada minuto y la de cada kill/muerte.
+  // Entre ellos se interpola en línea recta, segundo a segundo.
+  function construirPistas() {
+    const kills = allData.kills || [];
+    for (const [pid, p] of Object.entries(allData.players)) {
+      const frames = p.positions
+        .map((pos, i) => [pos[0], pos[1], posTime(pos, i), pos.length < 3])
+        .filter(([, , t, viejo]) => {
+          if (viejo) return true;
+          const r = t % FRAME_MS;
+          return r < 2000 || r > FRAME_MS - 2000;
+        })
+        .map(([x, y, t]) => [x, y, t]);
+
+      const propias = kills.filter(k => k.killer === +pid || k.victim === +pid);
+      const anchors = frames.concat(propias.map(k => [k.x, k.y, k.t])).sort((a, b) => a[2] - b[2]);
+
+      // Muerto desde el kill hasta la siguiente posición real (Riot no da el momento exacto en que reaparece)
+      const muertes = propias.filter(k => k.victim === +pid).map(k => {
+        const sig = frames.find(f => f[2] > k.t);
+        return [k.t, sig ? sig[2] : Infinity, k.x, k.y];
+      });
+
+      pistas[pid] = { anchors, muertes };
+    }
+  }
+
+  function posicionEn(pid, t) {
+    const { anchors, muertes } = pistas[pid];
+    for (const m of muertes) {
+      if (t >= m[0] && t < m[1]) return { x: m[2], y: m[3], muerto: true };
+    }
+    if (!anchors.length) return null;
+    if (t <= anchors[0][2]) return { x: anchors[0][0], y: anchors[0][1] };
+    const last = anchors[anchors.length - 1];
+    if (t >= last[2]) return { x: last[0], y: last[1] };
+    // Búsqueda binaria del tramo [i, i+1] que contiene t
+    let lo = 0, hi = anchors.length - 1;
+    while (hi - lo > 1) {
+      const mid = (lo + hi) >> 1;
+      if (anchors[mid][2] <= t) lo = mid; else hi = mid;
+    }
+    const [x1, y1, t1] = anchors[lo];
+    const [x2, y2, t2] = anchors[hi];
+    const f = t2 > t1 ? (t - t1) / (t2 - t1) : 0;
+    return { x: x1 + (x2 - x1) * f, y: y1 + (y2 - y1) * f };
+  }
+
+  function crearCapa(wrap) {
+    capa = document.createElement('div');
+    capa.className = 'replay-capa';
+    capa.hidden = true;
+    for (const [pid, p] of Object.entries(allData.players)) {
+      const el = document.createElement('div');
+      el.className = 'burbuja ' + (p.team === 100 ? 'azul' : 'rojo');
+      const txt = document.createElement('span');
+      txt.textContent = ROL_TXT[p.rol] || pid;
+      el.appendChild(txt);
+      el.title = p.name.split('#')[0] + (p.campeon ? ` · ${p.campeon}` : '');
+      capa.appendChild(el);
+      burbujas[pid] = el;
+    }
+    wrap.appendChild(capa);
+  }
+
+  // Coloca las burbujas de los jugadores en el instante t (ms)
+  function pintarBurbujas(t) {
+    const showAll = selectedPids.has('all');
+    for (const [pid, el] of Object.entries(burbujas)) {
+      const p = posicionEn(pid, t);
+      if (!p) { el.hidden = true; continue; }
+      el.hidden = false;
+      const { cx, cy } = toCanvas(p.x, p.y);
+      el.style.transform = `translate(${cx}px, ${cy}px)`;
+      el.classList.toggle('muerto', !!p.muerto);
+      el.classList.toggle('atenuado', !showAll && !selectedPids.has(pid));
+    }
+  }
+
+  // Muestra la capa de burbujas en replay, o en el mapa de calor si está activado "Mostrar jugadores"
+  function actualizarCapa() {
+    if (!capa) return;
+    capa.hidden = !(modo === 'replay' || (modo === 'calor' && momentoActivo));
+    if (modo === 'replay') pintarReplay();
+    else if (momentoActivo) pintarMomento();
+  }
+
+  function pintarMomento() {
+    if (!capa || modo !== 'calor' || !momentoActivo) return;
+    pintarBurbujas(momentoT);
+    document.getElementById('m-slider').value = Math.round(momentoT / 1000);
+    document.getElementById('m-relleno').style.width = (momentoT / maxT * 100) + '%';
+    document.getElementById('m-lectura').textContent = fmt(momentoT);
+  }
+
+  function pintarReplay() {
+    if (!capa || modo !== 'replay') return;
+    pintarBurbujas(replayT);
+    const slider = document.getElementById('r-slider');
+    slider.value = Math.round(replayT / 1000);
+    document.getElementById('r-relleno').style.width = (replayT / maxT * 100) + '%';
+    document.getElementById('r-lectura').textContent = fmt(replayT);
+  }
+
+  function tick(now) {
+    if (!reproduciendo) return;
+    if (ultimoTick !== null) replayT += (now - ultimoTick) * velocidad;
+    ultimoTick = now;
+    if (replayT >= maxT) { replayT = maxT; pintarReplay(); pausar(); return; }
+    pintarReplay();
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function reproducir() {
+    if (replayT >= maxT) replayT = 0;
+    reproduciendo = true;
+    ultimoTick = null;
+    document.getElementById('r-play').textContent = '❚❚ Pausa';
+    document.getElementById('r-play').classList.add('active');
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function pausar() {
+    reproduciendo = false;
+    cancelAnimationFrame(rafId);
+    ultimoTick = null;
+    const btn = document.getElementById('r-play');
+    if (btn) { btn.textContent = '▶ Reproducir'; btn.classList.remove('active'); }
+  }
+
+  // ════════════════════ Controles ════════════════════
+
+  function setModo(nuevo) {
+    modo = nuevo;
+    document.querySelectorAll('.modo-tabs button').forEach(b => {
+      b.setAttribute('aria-pressed', b.dataset.modo === modo ? 'true' : 'false');
+    });
+    document.getElementById('panel-calor').hidden  = modo !== 'calor';
+    document.getElementById('panel-replay').hidden = modo !== 'replay';
+    if (modo !== 'replay') pausar();
+    renderHeatmap();
+    actualizarCapa();
   }
 
   function updateButtons() {
@@ -487,11 +685,169 @@ const TEAM_COLORS = { 100: '#60a5fa', 200: '#f87171' };
     }
     updateButtons();
     renderHeatmap();
+    actualizarCapa();
+  }
+
+  function buildModos(ctrl) {
+    const tabs = document.createElement('div');
+    tabs.className = 'modo-tabs';
+    tabs.setAttribute('role', 'group');
+    tabs.setAttribute('aria-label', 'Modo del mapa');
+    tabs.innerHTML = `
+      <button type="button" data-modo="calor" aria-pressed="true">Mapa de calor</button>
+      <button type="button" data-modo="replay" aria-pressed="false">Replay</button>`;
+    tabs.addEventListener('click', e => {
+      const b = e.target.closest('button');
+      if (b) setModo(b.dataset.modo);
+    });
+    ctrl.appendChild(tabs);
+  }
+
+  function buildPanelCalor(ctrl) {
+    const box = document.createElement('div');
+    box.id = 'panel-calor';
+    box.innerHTML = `
+      <div id="f-bloque" style="margin-bottom:1rem;">
+      <label class="interruptor">
+        <input type="checkbox" id="f-activo">
+        <span class="pista-int"></span>
+        Filtrar por tiempo
+      </label>
+      <div id="f-caja" hidden style="margin-top:.75rem;">
+        <div class="tiempo-cabecera">
+          <span class="etiqueta">Tramo</span>
+          <span class="tiempo-lectura" id="f-lectura"></span>
+        </div>
+        <div class="tiempo-rango">
+          <div class="tiempo-pista"></div>
+          <div class="tiempo-relleno" id="f-relleno"></div>
+          <input type="range" id="f-desde" min="0" max="${maxPaso}" step="1" aria-label="Desde">
+          <input type="range" id="f-hasta" min="0" max="${maxPaso}" step="1" aria-label="Hasta">
+        </div>
+        <div class="tiempo-marcas"><span>${fmt(0)}</span><span>${fmt(maxT)}</span></div>
+      </div>
+      </div>
+      <label class="interruptor">
+        <input type="checkbox" id="m-activo">
+        <span class="pista-int"></span>
+        Mostrar jugadores en un momento
+      </label>
+      <div id="m-caja" hidden style="margin-top:.75rem;">
+        <div class="tiempo-cabecera">
+          <span class="etiqueta">Momento</span>
+          <span class="tiempo-lectura" id="m-lectura"></span>
+        </div>
+        <div class="tiempo-rango unico">
+          <div class="tiempo-pista"></div>
+          <div class="tiempo-relleno" id="m-relleno" style="left:0;width:0"></div>
+          <input type="range" id="m-slider" min="0" max="${Math.ceil(maxT / 1000)}" step="1" value="0" aria-label="Momento de la partida">
+        </div>
+        <div class="tiempo-marcas"><span>${fmt(0)}</span><span>${fmt(maxT)}</span></div>
+        <div class="tiempo-botones" style="margin-top:.75rem;">
+          <span class="etiqueta" style="margin-right:.25rem;">Estela</span>
+          <div class="velocidad" id="m-estela" role="group" aria-label="Duración de la estela" style="margin-left:0;">
+            ${ESTELAS.map(([ms, txt]) => `<button type="button" class="phase-btn${ms === estelaMs ? ' active' : ''}" data-ms="${ms}">${txt}</button>`).join('')}
+          </div>
+        </div>
+        <p class="replay-leyenda" style="margin:.6rem 0 0;">El calor muestra el rastro de cada jugador hasta este momento.</p>
+      </div>`;
+    ctrl.appendChild(box);
+
+    box.querySelector('#m-activo').addEventListener('change', e => {
+      if (e.target.checked) {
+        // Empieza en el centro del tramo que se estaba viendo
+        const [a, b] = rangoFiltro();
+        momentoT = Math.round(((Math.max(a, 0) + Math.min(b, maxT)) / 2) / 1000) * 1000;
+      }
+      momentoActivo = e.target.checked;
+      box.querySelector('#m-caja').hidden = !momentoActivo;
+      // Con la estela activa, el filtro de tramo no se usa
+      box.querySelector('#f-bloque').hidden = momentoActivo;
+      renderHeatmap();
+      actualizarCapa();
+    });
+    box.querySelector('#m-slider').addEventListener('input', e => {
+      momentoT = Math.min(+e.target.value * 1000, maxT);
+      renderHeatmap();
+      pintarMomento();
+    });
+    box.querySelector('#m-estela').addEventListener('click', e => {
+      const b = e.target.closest('button[data-ms]');
+      if (!b) return;
+      estelaMs = +b.dataset.ms;
+      box.querySelectorAll('#m-estela button').forEach(x => x.classList.toggle('active', x === b));
+      renderHeatmap();
+    });
+
+    box.querySelector('#f-activo').addEventListener('change', e => {
+      filtroActivo = e.target.checked;
+      box.querySelector('#f-caja').hidden = !filtroActivo;
+      renderHeatmap();
+    });
+    box.querySelector('#f-desde').addEventListener('input', e => {
+      setFiltro(Math.min(+e.target.value, hastaPaso - 1), hastaPaso);
+    });
+    box.querySelector('#f-hasta').addEventListener('input', e => {
+      setFiltro(desdePaso, Math.max(+e.target.value, desdePaso + 1));
+    });
+  }
+
+  function buildPanelReplay(ctrl) {
+    const box = document.createElement('div');
+    box.id = 'panel-replay';
+    box.hidden = true;
+    const maxS = Math.ceil(maxT / 1000);
+    box.innerHTML = `
+      <div class="tiempo-cabecera">
+        <span class="etiqueta">Minuto</span>
+        <span class="tiempo-lectura" id="r-lectura">00:00</span>
+      </div>
+      <div class="tiempo-rango unico">
+        <div class="tiempo-pista"></div>
+        <div class="tiempo-relleno" id="r-relleno" style="left:0;width:0"></div>
+        <input type="range" id="r-slider" min="0" max="${maxS}" step="1" value="0" aria-label="Momento de la partida">
+      </div>
+      <div class="tiempo-marcas"><span>${fmt(0)}</span><span>${fmt(maxT)}</span></div>
+      <div class="tiempo-botones">
+        <button type="button" class="phase-btn" id="r-play">▶ Reproducir</button>
+        <div class="velocidad" role="group" aria-label="Velocidad">
+          ${VELOCIDADES.map(v => `<button type="button" class="phase-btn${v === velocidad ? ' active' : ''}" data-vel="${v}">×${v}</button>`).join('')}
+        </div>
+      </div>
+      <p class="replay-leyenda" style="margin:.75rem 0 0;">
+        Riot da una posición real por minuto y la de cada kill; entre medias se interpola.
+        Un jugador con ✕ está muerto.
+      </p>`;
+    ctrl.appendChild(box);
+
+    box.querySelector('#r-slider').addEventListener('input', e => {
+      pausar();
+      replayT = Math.min(+e.target.value * 1000, maxT);
+      pintarReplay();
+    });
+    box.querySelector('#r-play').addEventListener('click', () => (reproduciendo ? pausar() : reproducir()));
+    box.querySelector('.velocidad').addEventListener('click', e => {
+      const b = e.target.closest('button[data-vel]');
+      if (!b) return;
+      velocidad = +b.dataset.vel;
+      box.querySelectorAll('.velocidad button').forEach(x => x.classList.toggle('active', x === b));
+    });
   }
 
   function buildUI() {
     const container = document.getElementById('heatmap-container');
     container.innerHTML = '';
+
+    // Último instante con datos (posiciones o kills)
+    Object.values(allData.players).forEach(p => {
+      p.positions.forEach((pos, i) => { maxT = Math.max(maxT, posTime(pos, i)); });
+    });
+    (allData.kills || []).forEach(k => { maxT = Math.max(maxT, k.t); });
+    maxT = Math.max(maxT, FRAME_MS);
+    maxPaso = Math.ceil(maxT / PASO_FILTRO);
+    desdePaso = 0;
+    hastaPaso = maxPaso;
+    construirPistas();
 
     const layout = document.createElement('div');
     layout.style.cssText = 'display:flex;gap:1.5rem;align-items:flex-start;flex-wrap:wrap;';
@@ -502,31 +858,13 @@ const TEAM_COLORS = { 100: '#60a5fa', 200: '#f87171' };
     const ctrl = document.createElement('div');
     ctrl.className = 'heatmap-controls';
 
-    const phaseLabel = document.createElement('div');
-    phaseLabel.style.cssText = 'color:#6b7280;font-size:0.7rem;text-transform:uppercase;letter-spacing:.08em;margin-bottom:0.25rem;';
-    phaseLabel.textContent = 'Fase';
-    ctrl.appendChild(phaseLabel);
-
-    const phaseRow = document.createElement('div');
-    phaseRow.style.cssText = 'display:flex;gap:0.4rem;flex-wrap:wrap;';
-    [['all','Toda'],['early','Early (0-15)'],['mid','Mid (15-30)'],['late','Late (30+)']]
-      .forEach(([key, label]) => {
-        const btn = document.createElement('button');
-        btn.className = 'phase-btn' + (key === 'all' ? ' active' : '');
-        btn.textContent = label;
-        btn.dataset.phase = key;
-        btn.addEventListener('click', () => {
-          document.querySelectorAll('.phase-btn').forEach(b => b.classList.remove('active'));
-          btn.classList.add('active');
-          activePhase = key;
-          renderHeatmap();
-        });
-        phaseRow.appendChild(btn);
-      });
-    ctrl.appendChild(phaseRow);
+    buildModos(ctrl);
+    buildPanelCalor(ctrl);
+    buildPanelReplay(ctrl);
 
     const playerLabel = document.createElement('div');
-    playerLabel.style.cssText = 'color:#6b7280;font-size:0.7rem;text-transform:uppercase;letter-spacing:.08em;margin-top:0.75rem;margin-bottom:0.25rem;';
+    playerLabel.className = 'etiqueta';
+    playerLabel.style.cssText = 'margin-top:0.5rem;margin-bottom:0.25rem;';
     playerLabel.textContent = 'Jugador';
     ctrl.appendChild(playerLabel);
 
@@ -534,11 +872,11 @@ const TEAM_COLORS = { 100: '#60a5fa', 200: '#f87171' };
     allBtn.className = 'player-btn active-all';
     allBtn.style.width = '100%';
     allBtn.dataset.pid = 'all';
-    allBtn.innerHTML = '<span class="dot" style="background:#4ade80;flex-shrink:0"></span><span class="btn-name">Todos los jugadores</span>';
+    allBtn.innerHTML = '<span class="dot" style="background:var(--oro);flex-shrink:0"></span><span class="btn-name">Todos los jugadores</span>';
     allBtn.addEventListener('click', () => togglePlayer('all'));
     ctrl.appendChild(allBtn);
 
-    // Two-column grid: blue team | red team
+    // Dos columnas: equipo azul | equipo rojo
     const teamsRow = document.createElement('div');
     teamsRow.style.cssText = 'display:flex;gap:0.5rem;width:100%;';
 
@@ -549,7 +887,7 @@ const TEAM_COLORS = { 100: '#60a5fa', 200: '#f87171' };
       const lbl = document.createElement('div');
       lbl.className = 'player-team-label';
       lbl.style.color = TEAM_COLORS[team];
-      lbl.textContent = team === 100 ? '{{ equipo_azul }}' : '{{ equipo_rojo }}';
+      lbl.textContent = TEAM_NAMES[team];
       col.appendChild(lbl);
 
       const pidOrder = Object.keys(allData.players)
@@ -561,7 +899,9 @@ const TEAM_COLORS = { 100: '#60a5fa', 200: '#f87171' };
         const btn = document.createElement('button');
         btn.className = 'player-btn';
         btn.dataset.pid = pid;
-        btn.innerHTML = `<span class="dot" style="background:${TEAM_COLORS[team]};flex-shrink:0"></span><span class="btn-name">${p.name.split('#')[0]}</span>`;
+        const rol = ROL_TXT[p.rol] ? `<span style="margin-left:auto;font-size:11px;color:var(--hai);">${ROL_TXT[p.rol]}</span>` : '';
+        btn.innerHTML = `<span class="dot" style="background:${TEAM_COLORS[team]};flex-shrink:0"></span><span class="btn-name"></span>${rol}`;
+        btn.querySelector('.btn-name').textContent = p.name.split('#')[0];
         btn.addEventListener('click', () => togglePlayer(pid));
         col.appendChild(btn);
       });
@@ -574,7 +914,15 @@ const TEAM_COLORS = { 100: '#60a5fa', 200: '#f87171' };
     layout.appendChild(ctrl);
     container.appendChild(layout);
 
-    buildMaps(mapsArea);
+    // Mapa: dos capas de calor y la capa de burbujas del replay
+    const wrap = document.createElement('div');
+    wrap.className = 'heatmap-wrap';
+    mapsArea.appendChild(wrap);
+    heatBlue = h337.create({ container: wrap, ...HEAT_CFG_BLUE });
+    heatRed  = h337.create({ container: wrap, ...HEAT_CFG_RED });
+    crearCapa(wrap);
+
+    syncFiltroUI();
     renderHeatmap();
   }
 
@@ -593,4 +941,5 @@ const TEAM_COLORS = { 100: '#60a5fa', 200: '#f87171' };
     });
 })();
 </script>
+{% include 'Cinturones/_desglose_modal.html' %}
 {% endblock %}

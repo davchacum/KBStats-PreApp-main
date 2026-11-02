@@ -1,0 +1,5 @@
+# Temporadas de la liga, de la más antigua a la más reciente.
+# slug,nombre,archivo de partidas,archivo de grupos (opcional)
+t3,Temporada 3,seed_partidosCinturones3.csv,
+t4,Temporada 4,seed_partidos.csv,seed_grupos.csv
+tenkaichi,Tenka Ichi,seed_partidos_tenkaichi.csv,seed_grupos_tenkaichi.csv

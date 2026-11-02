@@ -1,98 +1,154 @@
-{% extends 'Cinturones/base.html' %} {% block content %}
-<div class="container py-5">
-  <div class="text-center mb-5">
-    <h1 class="fw-bold display-4 text-gradient">KBStats</h1>
-    <p class="lead">Panel general — resumen del sistema</p>
-  </div>
+{% extends 'Cinturones/base.html' %}
+{% load kb %}
 
-  <div class="row g-4 justify-content-center">
-    <div class="col-md-4">
-      <div class="card shadow-lg border-0 stat-card">
-        <div class="card-body text-center p-4">
-          <h5 class="text-uppercase text-secondary mb-2">Total Partidas</h5>
-          <h2 class="fw-bold display-5">{{ total_partidas }}</h2>
-        </div>
-      </div>
+{% block extra_css %}
+<style>
+  .roles-top { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin-bottom: 16px; }
+  @media (max-width: 1060px) { .roles-top { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  @media (max-width: 600px) { .roles-top { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .rol-top { display: grid; gap: 10px; padding: 12px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--border); color: var(--text); transition: border-color .15s, background-color .15s; }
+  .rol-top:hover { border-color: var(--border-2); background: var(--surface-2); color: var(--text); }
+  .rol-top .arriba { display: flex; align-items: center; justify-content: space-between; }
+  .rol-top .quien { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .rol-top .quien img { width: 40px; height: 40px; border-radius: 8px; background: var(--field); }
+  .rol-top .quien b { display: block; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rol-top .quien span { font-size: 12.5px; color: var(--text-2); }
+  .rol-top .abajo { display: flex; justify-content: space-between; align-items: center; font-size: 12.5px; color: var(--text-2); }
+  .eqc { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; color: var(--text); }
+  .eqc:hover { color: var(--gold); }
+  .eqc .equipo-ini { width: 24px; height: 24px; font-size: 9.5px; }
+  .avatar-s { width: 28px; height: 28px; border-radius: 6px; background: var(--field); flex-shrink: 0; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Liga KB</h1>
+    <p>{% if temporada %}{{ temporada.nombre }} · {% endif %}{{ ultima_jornada|jornada_txt:True }} · {{ total_partidas }} partidas jugadas</p>
+  </div>
+</div>
+
+<div class="cifras-app" style="margin-bottom:16px;">
+  <div class="cifra-app"><span class="e">Partidas</span><span class="v">{{ total_partidas }}</span></div>
+  <div class="cifra-app"><span class="e">Jugadores</span><span class="v">{{ total_jugadores }}</span></div>
+  <div class="cifra-app"><span class="e">Equipos</span><span class="v">{{ total_equipos }}</span></div>
+  <div class="cifra-app"><span class="e">Jornadas</span><span class="v">{{ total_jornadas }}</span></div>
+</div>
+
+<div class="page-head" style="margin-bottom:10px;">
+  <h2>Mejores de cada rol</h2>
+  <a class="muted" href="{% url 'tier_list' %}" style="font-size:13px;">Ver tier list</a>
+</div>
+<div class="roles-top">
+  {% for f in mejores_por_rol %}
+  <a class="rol-top" href="{% url 'jugador' f.jugador_nombre %}">
+    <div class="arriba">
+      {% rol f.rol 'largo' %}
+      <span class="tier tier-{{ f.tier|tier_clase }}">{{ f.tier }}</span>
     </div>
-
-    <div class="col-md-4">
-      <div class="card shadow-lg border-0 stat-card">
-        <div class="card-body text-center p-4">
-          <h5 class="text-uppercase text-secondary mb-2">Jugadores Únicos</h5>
-          <h2 class="fw-bold display-5">{{ total_jugadores }}</h2>
-        </div>
-      </div>
+    <div class="quien">
+      {% if f.perfil is not None %}<img src="{{ f.perfil|icono_perfil }}" alt="" loading="lazy">{% elif f.campeon_fav %}<img src="{{ f.campeon_fav|icono_campeon }}" alt="" loading="lazy">{% endif %}
+      <div style="min-width:0;"><b>{{ f.jugador_nombre|nombre_juego }}</b><span>{{ f.equipo }}</span></div>
     </div>
+    <div class="abajo">
+      <span>{{ f.partidas }} partidas · {{ f.winrate }}% WR</span>
+      <span class="nota {{ f.nota|nota_clase }}">{{ f.nota|floatformat:0 }}</span>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+
+<div class="grid-2">
+  <div class="stack">
+    <section class="card-app">
+      <div class="h">
+        <h2>Últimas partidas · {{ ultima_jornada|jornada_txt:True }}</h2>
+        <a class="ver" href="{% url 'partidas' %}">Ver todas</a>
+      </div>
+      <div class="b flush">
+        {% for f in recientes %}{% include 'Cinturones/_fila_partida.html' %}{% empty %}<div class="vacio">Aún no hay partidas.</div>{% endfor %}
+      </div>
+    </section>
+
+    <section class="card-app">
+      <div class="h">
+        <h2>Mejores jugadores</h2>
+        <a class="ver" href="{% url 'jugadores' %}">Ver todos</a>
+      </div>
+      <div class="b flush tabla-wrap">
+        <table class="tabla">
+          <thead><tr><th>#</th><th>Jugador</th><th class="c">Rol</th><th class="c">Partidas</th><th class="c">% WR</th><th class="c">KDA</th><th class="c">MVP</th><th class="r">Nota</th></tr></thead>
+          <tbody>
+            {% for f in top %}
+            <tr data-href="{% url 'jugador' f.jugador_nombre %}">
+              <td class="pos">{{ forloop.counter }}</td>
+              <td>
+                <a class="jug" href="{% url 'jugador' f.jugador_nombre %}">
+                  {% if f.perfil is not None %}<img class="avatar-s" src="{{ f.perfil|icono_perfil }}" alt="" loading="lazy">{% endif %}
+                  <span><span class="nom">{{ f.jugador_nombre|nombre_juego }}</span><span class="sub-valor">{{ f.equipo }}</span></span>
+                </a>
+              </td>
+              <td class="c">{% rol f.rol %}</td>
+              <td class="c">{{ f.partidas }}</td>
+              <td class="c">{{ f.winrate }}%</td>
+              <td class="c">{{ f.kda|floatformat:2 }}</td>
+              <td class="c">{% if f.mvp %}<span class="ins ins-MVP">{{ f.mvp }}</span>{% else %}<span class="muted-2">-</span>{% endif %}</td>
+              <td class="r"><span class="nota {{ f.nota|nota_clase }}">{{ f.nota|floatformat:0 }}</span></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
   </div>
 
-  <div class="text-center mt-5">
-    <a
-      class="btn btn-warning btn-lg px-4 me-3"
-      href="{% url 'clasificacion_grupos' %}"
-    >
-      Ver clasificación
-    </a>
+  <aside class="stack">
+    {% for grupo in clasificacion %}
+    <section class="card-app">
+      <div class="h">
+        <h3>{% if grupo.grupo == 'Liga' %}Clasificación{% else %}Grupo {{ grupo.grupo|capfirst }}{% endif %}</h3>
+        <a class="ver" href="{% url 'clasificacion_grupos' %}">Clasificación</a>
+      </div>
+      <div class="b flush">
+        <table class="tabla compacta">
+          <thead><tr><th>#</th><th>Equipo</th><th class="c">V</th><th class="c">D</th></tr></thead>
+          <tbody>
+            {% for eq in grupo.equipos %}
+            <tr data-href="{% url 'equipo' eq.equipo %}">
+              <td class="pos">{{ eq.pos }}</td>
+              <td><a class="eqc" href="{% url 'equipo' eq.equipo %}"><span class="equipo-ini">{{ eq.ini }}</span>{{ eq.equipo }}</a></td>
+              <td class="c">{{ eq.victorias }}</td>
+              <td class="c muted">{{ eq.derrotas }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+    {% endfor %}
 
-    <a
-      class="btn btn-primary btn-lg px-4 me-3"
-      href="/buscar_partidos/?format=html"
-    >
-      Buscar partidas por jornada
-    </a>
-
-    <a
-      class="btn btn-outline-secondary btn-lg px-4 me-3"
-      href="/promedios_jugadores/?format=html"
-    >
-      Promedios por jugador
-    </a>
-
-    <a
-      class="btn btn-outline-info btn-lg px-4 me-3"
-      href="{% url 'tier_list' %}"
-    >
-      Tier List
-    </a>
-
-    <a
-      class="btn btn-lg px-4"
-      href="{% url 'kblix:index' %}"
-      style="
-        background: #1f6feb;
-        color: #fff;
-        font-weight: 700;
-        letter-spacing: 2px;
-      "
-    >
-      KBLIX
-    </a>
-
-    <a
-      class="btn btn-lg px-5 mt-3 d-block mx-auto"
-      href="{% url 'ladder' %}"
-      style="
-        background: linear-gradient(90deg, #22d3ee, #6366f1);
-        color: #fff;
-        font-weight: 800;
-        font-size: 1.3rem;
-        letter-spacing: 3px;
-        border: none;
-        border-radius: 0.6rem;
-        box-shadow:
-          0 0 24px rgba(34, 211, 238, 0.35),
-          0 0 48px rgba(99, 102, 241, 0.2);
-        max-width: 320px;
-      "
-    >
-      🏆 LADDER
-    </a>
-
-    {% comment %} FUNCIONALIDAD DE AÑADIR PARTIDA DESACTIVADA POR SEGURIDAD {%
-    if request.user.is_superuser %}
-    <a class="btn btn-success btn-lg px-4" href="{% url 'add_partida' %}">
-      Añadir partida (admin)
-    </a>
-    {% endif %} {% endcomment %}
-  </div>
+    {% if ladder %}
+    <section class="card-app">
+      <div class="h">
+        <h3>Ladder SoloQ</h3>
+        <a class="ver" href="{% url 'ladder' %}">Ver ladder</a>
+      </div>
+      <div class="b flush">
+        <table class="tabla compacta">
+          <tbody>
+            {% for l in ladder %}
+            <tr {% if l.tiene_perfil %}data-href="{% url 'jugador' l.p.nombre %}"{% endif %}>
+              <td class="pos">{{ forloop.counter }}</td>
+              <td><span class="fuerte">{{ l.p.nombre|nombre_juego }}</span></td>
+              <td class="r"><span style="display:inline-flex;align-items:center;gap:6px;"><img class="emblema" src="{{ l.p.tier|emblema_rango }}" alt=""><span class="tier-{{ l.p.tier }}" style="font-weight:600;font-size:13px;">{{ l.p.rank_display }}</span></span></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+    {% endif %}
+  </aside>
 </div>
 {% endblock %}

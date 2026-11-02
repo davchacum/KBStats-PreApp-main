@@ -1,59 +1,46 @@
 {% extends 'Cinturones/base.html' %}
+{% load kb %}
+
+{% block title %}Partidas · KB Stats{% endblock %}
 
 {% block content %}
-<div class="container py-4">
-
-  <div class="mb-4">
-    <h1 class="page-title fw-bold text-gradient">Buscar partidas por jornada</h1>
-    <p class=" mb-0">
-      {% if jornada %}
-        Mostrando partidas de la jornada {{ jornada }}.
-      {% else %}
-        Mostrando todas las partidas registradas.
-      {% endif %}
-    </p>
+<div class="page-head">
+  <div>
+    <h1>Partidas</h1>
+    <p>{{ total }} partida{{ total|pluralize }}{% if jornada or equipo %} de {{ total_partidas }}{% endif %}</p>
   </div>
+</div>
 
-  <div class="mt-4">
-    {% if groups %}
-      {% for g in groups %}
-        <div class="card card-jornada mb-3">
-          <div class="card-header card-jornada-header d-flex justify-content-between align-items-center">
-            <span class="text-uppercase">Jornada {{ g.jornada }}</span>
-            <span>Partidas: {{ g.partidas|length }}</span>
-          </div>
+<div class="filtros">
+  <nav class="chips" aria-label="Jornada">
+    <a href="?{% if equipo %}equipo={{ equipo|urlencode }}{% endif %}" {% if not jornada %}aria-current="true"{% endif %}>Todas</a>
+    {% for j in jornadas %}
+    <a href="?jornada={{ j|urlencode }}{% if equipo %}&equipo={{ equipo|urlencode }}{% endif %}" {% if jornada == j %}aria-current="true"{% endif %}>{{ j|jornada_txt }}</a>
+    {% endfor %}
+  </nav>
+  <span class="sep"></span>
+  <form method="get">
+    {% if jornada %}<input type="hidden" name="jornada" value="{{ jornada }}">{% endif %}
+    <select class="sel" name="equipo" aria-label="Equipo" onchange="this.form.submit()">
+      <option value="">Todos los equipos</option>
+      {% for e in equipos %}<option value="{{ e }}" {% if e == equipo %}selected{% endif %}>{{ e }}</option>{% endfor %}
+    </select>
+  </form>
+</div>
 
-          <div class="list-group list-group-flush list-group-kb">
-            {% for p in g.partidas %}
-              <a href="/partida/{{ p.match_id }}/"
-                 class="list-group-item list-group-item-action list-group-item-kb">
-                <div class="d-flex w-100 justify-content-between align-items-center">
-                  <span class="partida-title">
-                    {{ p.equipo_azul }} vs {{ p.equipo_rojo }}
-                  </span>
-                  <span class="partida-meta">
-                    Duración: {{ p.duracion_segundos }} s
-                  </span>
-                </div>
-                <div class="d-flex w-100 justify-content-between">
-                  <span class="partida-meta">
-                    Nº de game: {{ p.numero_partida }} — {{ p.match_id }}
-                  </span>
-                  <span class="partida-meta">
-                    Ganador: {{ p.ganador_equipo|default:"-" }}
-                  </span>
-                </div>
-              </a>
-            {% endfor %}
-          </div>
-        </div>
-      {% endfor %}
-    {% else %}
-      <div class="alert alert-secondary">
-        No hay partidas para mostrar. Total en la base: {{ total_partidas }}
-      </div>
-    {% endif %}
-  </div>
-
+<div class="stack">
+  {% for g in grupos %}
+  <section class="card-app">
+    <div class="h">
+      <h2>{{ g.jornada|jornada_txt:True }}</h2>
+      <span class="muted" style="font-size:13px;">{{ g.partidas|length }} partida{{ g.partidas|length|pluralize }}</span>
+    </div>
+    <div class="b flush">
+      {% for f in g.partidas %}{% include 'Cinturones/_fila_partida.html' %}{% endfor %}
+    </div>
+  </section>
+  {% empty %}
+  <div class="aviso">No hay partidas con estos filtros.</div>
+  {% endfor %}
 </div>
 {% endblock %}

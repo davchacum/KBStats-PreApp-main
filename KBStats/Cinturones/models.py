@@ -24,8 +24,25 @@ class Jugador(models.Model):
 		return self.nombre
 
 
+class Temporada(models.Model):
+	"""Una temporada de la liga. Se crean desde temporadas.csv (comando seed_temporadas)."""
+	slug = models.SlugField(max_length=50, unique=True)
+	nombre = models.CharField(max_length=100)
+	orden = models.IntegerField(default=0)          # más alto = más reciente
+	grupos = models.JSONField(default=list, blank=True)   # [{"nombre": "SOMBRA", "equipos": [...]}, ...]
+
+	class Meta:
+		ordering = ['orden']
+		verbose_name = "Temporada"
+		verbose_name_plural = "Temporadas"
+
+	def __str__(self):
+		return self.nombre
+
+
 class Partida(models.Model):
 	match_id = models.CharField(max_length=100, unique=True)
+	temporada = models.ForeignKey(Temporada, null=True, blank=True, on_delete=models.PROTECT, related_name='partidas')
 	jornada = models.CharField(max_length=100, blank=True, null=True)
 	numero_partida = models.CharField(max_length=50, blank=True, null=True)
 	equipo_azul = models.ForeignKey(Equipo, related_name='partidas_azul', on_delete=models.PROTECT)
@@ -97,6 +114,9 @@ class StatsJugador(models.Model):
 	ka15  = models.IntegerField(null=True, blank=True)
 	fb    = models.BooleanField(null=True, blank=True)   # participó en First Blood
 	fbv   = models.BooleanField(null=True, blank=True)   # fue víctima del First Blood
+	# Campos avanzados de la API de Riot (bloque `challenges` y otros) para la nota de rendimiento.
+	# Se rellenan al importar o con `manage.py cargar_datos_avanzados`.
+	riot_extra = models.JSONField(null=True, blank=True)
 	created_at = models.DateTimeField(auto_now_add=True)
 
 	class Meta:

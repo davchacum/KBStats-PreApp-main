@@ -15,157 +15,153 @@
     justify-content: space-between;
     align-items: center;
   }
-  .sala-title { color: #58a6ff; font-size: 1.6rem; font-weight: 800; letter-spacing: 3px; }
+  .sala-title { display: flex; align-items: center; gap: .75rem; color: var(--text); font-size: 24px; font-weight: 700; }
+  .sala-title .sello { width: 42px; font-size: 22px; box-shadow: none; }
   .room-badge {
-    background: #161b22;
-    border: 1px solid #30363d;
-    border-radius: 8px;
-    padding: 0.4rem 0.9rem;
-    font-size: 0.85rem;
-    color: #8b949e;
+    border: 1px solid var(--sumi-linea);
+    border-radius: var(--radio-fino);
+    padding: 0.35rem 0.9rem;
+    font-size: 14px;
+    color: var(--hai);
   }
+  .room-badge b { color: var(--oro); letter-spacing: .1em; }
 
+  #status-box, #cadena-box, #fin-box {
+    background: var(--sumi-alzado);
+    border: 1px solid var(--sumi-linea);
+    border-radius: var(--radio);
+  }
   #status-box {
-    background: #161b22;
-    border: 1px solid #30363d;
-    border-radius: 12px;
     padding: 2rem;
     text-align: center;
-    font-size: 1.1rem;
-    color: #8b949e;
+    font-size: 17px;
+    color: var(--hai);
   }
-  #share-box { display: none; text-align: center; color: #8b949e; font-size: 0.85rem; }
+  #share-box { display: none; text-align: center; color: var(--hai); font-size: 14px; }
   #share-link {
-    background: #21262d;
-    padding: 0.4rem 0.8rem;
-    border-radius: 6px;
-    font-family: monospace;
-    color: #58a6ff;
+    display: inline-block;
+    margin-left: .4rem;
+    background: var(--sumi-hondo);
+    border: 1px dashed var(--oro-viejo);
+    padding: 0.3rem 0.8rem;
+    border-radius: var(--radio-fino);
+    font-family: ui-monospace, Consolas, monospace;
+    letter-spacing: .12em;
+    color: var(--oro);
     cursor: pointer;
     user-select: all;
   }
 
+  /* El jugador a conectar, en una carta con el filo de oro */
   #jugador-actual-box {
     display: none;
-    background: #161b22;
-    border: 1px solid #58a6ff;
-    border-radius: 12px;
-    padding: 1.5rem;
+    background: var(--surface);
+    border: 1px solid var(--oro-viejo);
+    border-radius: var(--radio-carta);
+    box-shadow: none;
+    padding: 1.75rem 1.5rem;
     text-align: center;
   }
-  #jugador-actual-box .label { color: #8b949e; font-size: 0.85rem; margin-bottom: 0.5rem; }
-  #jugador-actual { font-size: 2rem; font-weight: 700; color: #58a6ff; }
+  #jugador-actual-box .label { color: var(--hai); font-size: 12px; font-weight: 700;  margin-bottom: 0.5rem; }
+  #jugador-actual { font-size: clamp(26px, 4.5vw, 36px); font-weight: 700; color: var(--text); line-height: 1.15; }
 
   #timer-box { display: none; text-align: center; }
   #timer-bar-container {
-    background: #21262d;
-    border-radius: 99px;
-    height: 10px;
+    background: var(--sumi-linea);
+    height: 6px;
     overflow: hidden;
     margin-bottom: 0.4rem;
   }
-  #timer-bar { height: 100%; border-radius: 99px; background: #238636; transition: width 1s linear, background 1s; }
-  #timer-text { color: #8b949e; font-size: 0.85rem; }
+  #timer-bar { height: 100%; background: var(--bien); transition: width 1s linear, background 1s; }
+  #timer-text { color: var(--hai); font-size: 14px; font-variant-numeric: tabular-nums; }
 
   #cadena-box {
     display: none;
-    background: #161b22;
-    border: 1px solid #30363d;
-    border-radius: 12px;
     padding: 1.25rem;
   }
-  #cadena-box h3 { color: #8b949e; font-size: 0.8rem; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 1px; }
+  #cadena-box h3 { color: var(--hai); font-family: var(--gothic); font-size: 12px; font-weight: 700; margin-bottom: 1rem;  }
   #cadena { display: flex; flex-wrap: wrap; gap: 0.5rem; }
   .cadena-item {
-    background: #21262d;
-    border-radius: 6px;
+    background: var(--sumi-hondo);
+    border: 1px solid var(--sumi-linea);
+    border-radius: var(--radio-fino);
     padding: 0.35rem 0.75rem;
-    font-size: 0.9rem;
+    font-size: 14px;
     display: flex;
     align-items: center;
-    gap: 0.4rem;
+    gap: 0.5rem;
   }
-  .cadena-item::after { content: '→'; color: #30363d; }
+  .cadena-item::after { content: '→'; color: var(--hai-oscuro); }
   .cadena-item:last-child::after { content: ''; }
-  .cadena-item.activo { background: #1f3a5f; color: #58a6ff; }
+  .cadena-item.activo { border-color: var(--oro-viejo); color: var(--oro); font-weight: 700; }
 
   #input-box { display: none; flex-direction: column; gap: 0.75rem; }
   #turno-label {
     text-align: center;
-    font-size: 0.9rem;
-    font-weight: 600;
-    padding: 0.5rem;
-    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    padding: 0.55rem;
+    border-radius: var(--radio-fino);
+    letter-spacing: .04em;
   }
-  .turno-yo { background: #1a3a1a; color: #3fb950; }
-  .turno-rival { background: #1a1f2e; color: #8b949e; }
+  .turno-yo { background: var(--shu); color: var(--washi); }
+  .turno-rival { background: var(--sumi-alzado); color: var(--hai); border: 1px solid var(--sumi-linea); }
   .input-row { display: flex; gap: 0.75rem; }
   #nombre-input {
     flex: 1;
-    background: #0d1117;
-    border: 1px solid #30363d;
-    border-radius: 8px;
+    min-width: 0;
+    background: var(--sumi-hondo);
+    border: 1px solid var(--sumi-linea);
+    border-radius: var(--radio-fino);
     padding: 0.75rem 1rem;
-    color: #e6edf3;
-    font-size: 1rem;
+    color: var(--washi);
+    font-size: 16px;
   }
-  #nombre-input:focus { outline: none; border-color: #58a6ff; }
+  #nombre-input:focus { outline: none; border-color: var(--oro-viejo); box-shadow: 0 0 0 3px rgba(235, 210, 138, .12); }
   #nombre-input:disabled { opacity: 0.4; cursor: not-allowed; }
-  #enviar-btn {
-    padding: 0.75rem 1.5rem;
-    background: #238636;
-    color: #fff;
+  #enviar-btn, #rematch-btn {
+    position: relative;
+    isolation: isolate;
+    padding: 0.75rem 1.6rem;
+    background: transparent;
+    color: var(--washi);
     border: none;
-    border-radius: 8px;
-    font-size: 1rem;
-    font-weight: 600;
+    font-size: 16px;
+    font-weight: 700;
     cursor: pointer;
-    transition: opacity 0.2s;
   }
-  #enviar-btn:hover:not(:disabled) { opacity: 0.85; }
-  #enviar-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-  #error-msg { color: #f85149; font-size: 0.9rem; text-align: center; min-height: 1.2rem; }
+  #enviar-btn::before, #rematch-btn::before {
+    content: ''; position: absolute; inset: 0; z-index: -1;
+    background: var(--shu); border-radius: var(--radio-fino); transform: skewX(-12deg);
+    transition: background-color .2s, box-shadow .2s;
+  }
+  #enviar-btn:hover:not(:disabled)::before, #rematch-btn:hover:not(:disabled)::before { background: var(--shu-claro); box-shadow: inset 0 -2px 0 var(--oro); }
+  #enviar-btn:disabled, #rematch-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  #error-msg { color: var(--shu-claro); font-size: 14px; text-align: center; min-height: 1.2rem; }
 
   #fin-box {
     display: none;
-    background: #161b22;
-    border: 1px solid #30363d;
-    border-radius: 12px;
     padding: 2.5rem;
     text-align: center;
   }
-  #fin-box h2 { font-size: 2rem; margin-bottom: 0.5rem; }
-  #fin-box p { color: #8b949e; margin-bottom: 1rem; }
-  #fin-box a, #rematch-btn {
-    display: inline-block;
-    padding: 0.75rem 1.5rem;
-    background: #1f6feb;
-    color: #fff;
-    border-radius: 8px;
-    text-decoration: none;
-    font-weight: 600;
-    border: none;
-    font-size: 1rem;
-    cursor: pointer;
-  }
-  #rematch-btn:hover { opacity: 0.85; }
+  #fin-box h2 { font-size: clamp(32px, 5vw, 44px); margin-bottom: 0.5rem; }
+  #fin-box p { color: var(--hai); margin-bottom: 1.25rem; }
   #opciones-box {
-    margin: 1rem 0 1.5rem;
+    margin: 1rem 0 1.75rem;
     display: none;
     flex-direction: column;
     gap: 0.5rem;
     align-items: center;
   }
-  .opciones-label { font-size: 0.8rem; color: #8b949e; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.25rem; }
+  .opciones-label { font-size: 12px; font-weight: 700; color: var(--hai);  margin-bottom: 0.25rem; }
   .opciones-lista { display: flex; gap: 0.6rem; flex-wrap: wrap; justify-content: center; }
   .opcion {
-    background: #1f3a1f;
-    border: 1px solid #238636;
-    color: #3fb950;
-    border-radius: 8px;
-    padding: 0.5rem 1rem;
-    font-size: 0.95rem;
-    font-weight: 600;
+    border: 1px solid var(--oro-viejo);
+    color: var(--oro);
+    border-radius: var(--radio-fino);
+    padding: 0.45rem 1rem;
+    font-size: 15px;
+    font-weight: 700;
   }
 </style>
 {% endblock %}
@@ -173,8 +169,8 @@
 {% block content %}
 <div class="sala-wrap">
   <div class="sala-header">
-    <span class="sala-title">KBLIX</span>
-    <span class="room-badge">Sala: {{ room_id }}</span>
+    <span class="sala-title">Kblix</span>
+    <span class="room-badge">Sala <b>{{ room_id }}</b></span>
   </div>
 
   <div id="status-box">Conectando...</div>
@@ -256,7 +252,7 @@
 
     bar.style.transition = 'none';
     bar.style.width = '100%';
-    bar.style.background = '#238636';
+    bar.style.background = 'var(--bien)';
     text.textContent = `${remaining}s`;
     showBlock('timer-box');
 
@@ -265,8 +261,8 @@
       const pct = (remaining / timerTotal) * 100;
       bar.style.transition = 'width 1s linear, background 0.5s';
       bar.style.width = pct + '%';
-      if (pct < 30) bar.style.background = '#da3633';
-      else if (pct < 60) bar.style.background = '#d29922';
+      if (pct < 30) bar.style.background = 'var(--mal)';
+      else if (pct < 60) bar.style.background = 'var(--medio)';
       text.textContent = `${remaining}s`;
       if (remaining <= 0) clearInterval(timerInterval);
     }, 1000);
@@ -300,13 +296,13 @@
 
     if (gane === null) {
       titulo.textContent = 'Partida cancelada';
-      titulo.style.color = '#8b949e';
+      titulo.style.color = 'var(--hai)';
     } else if (gane) {
       titulo.textContent = '¡Has ganado!';
-      titulo.style.color = '#3fb950';
+      titulo.style.color = 'var(--oro)';
     } else {
       titulo.textContent = 'Has perdido';
-      titulo.style.color = '#f85149';
+      titulo.style.color = 'var(--shu-claro)';
     }
 
     razEl.textContent = razon === 'tiempo' ? 'El tiempo se agotó' : razon;

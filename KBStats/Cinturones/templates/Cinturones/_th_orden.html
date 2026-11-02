@@ -1,0 +1,2 @@
+{# Cabecera ordenable. Uso: {% include 'Cinturones/_th_orden.html' with campo='kda' etiqueta='KDA' grupo='col-combate' %} #}
+<th class="{{ grupo }} c"><a href="?{% if qs_sin_orden %}{{ qs_sin_orden }}&amp;{% endif %}sort={{ campo }}&amp;order={% if sort == campo and order == 'desc' %}asc{% else %}desc{% endif %}" class="{% if sort == campo %}activo{% endif %}" title="Ordenar por {{ etiqueta }}">{{ etiqueta }}{% if sort == campo %} {% if order == 'desc' %}▼{% else %}▲{% endif %}{% endif %}</a></th>

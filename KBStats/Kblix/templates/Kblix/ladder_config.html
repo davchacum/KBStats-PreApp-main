@@ -1,190 +1,97 @@
-{% extends 'Cinturones/base.html' %} {% block extra_css %}
+{% extends 'Cinturones/base.html' %}
+{% load i18n %} {% block extra_css %}
 <style>
-  .section-card {
-    background: #0b1220;
-    border: 1px solid #1f2937;
-    border-radius: 0.6rem;
-    padding: 1.25rem;
-    margin-bottom: 1.5rem;
-  }
-  .section-title {
-    font-size: 0.7rem;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: #6b7280;
-    margin-bottom: 0.9rem;
-  }
   .cfg-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.8rem;
+    font-size: 14px;
   }
   .cfg-table th {
-    color: #4b5563;
-    font-weight: 500;
-    text-transform: uppercase;
-    font-size: 0.65rem;
-    letter-spacing: 0.07em;
-    padding: 0.4rem 0.65rem;
-    border-bottom: 2px solid #1f2937;
+    color: var(--hai);
+    font-weight: 700;
+    font-size: 11px;
+    
+    padding: 0.65rem 0.75rem;
+    border-bottom: 1px solid var(--oro-viejo);
     white-space: nowrap;
   }
   .cfg-table td {
-    padding: 0.45rem 0.65rem;
-    border-bottom: 1px solid #0d1424;
-    color: #d1d5db;
+    padding: 0.55rem 0.75rem;
+    border-bottom: 1px solid var(--sumi-linea);
+    color: var(--washi);
     vertical-align: middle;
   }
+  .cfg-table tbody tr:last-child td { border-bottom: 0; }
   .cfg-table tr:hover td {
-    background: #0f1828;
-  }
-  .rol-badge {
-    display: inline-block;
-    border-radius: 0.25rem;
-    padding: 0.08rem 0.38rem;
-    font-size: 0.67rem;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-  }
-  .rol-TOP {
-    background: #1e1b4b;
-    color: #a78bfa;
-    border: 1px solid #4338ca;
-  }
-  .rol-JUNGLE {
-    background: #052e16;
-    color: #4ade80;
-    border: 1px solid #16a34a;
-  }
-  .rol-MID {
-    background: #713f12;
-    color: #fcd34d;
-    border: 1px solid #d97706;
-  }
-  .rol-ADC {
-    background: #450a0a;
-    color: #f87171;
-    border: 1px solid #dc2626;
-  }
-  .rol-SUPPORT {
-    background: #0c4a6e;
-    color: #7dd3fc;
-    border: 1px solid #0284c7;
+    background: rgba(235, 210, 138, .05);
   }
   .tier-badge-sm {
-    font-size: 0.75rem;
-    font-weight: 600;
-  }
-  .tier-CHALLENGER {
-    color: #fbbf24;
-  }
-  .tier-GRANDMASTER {
-    color: #f43f5e;
-  }
-  .tier-MASTER {
-    color: #c084fc;
-  }
-  .tier-DIAMOND {
-    color: #818cf8;
-  }
-  .tier-EMERALD {
-    color: #22c55e;
-  }
-  .tier-PLATINUM {
-    color: #14b8a6;
-  }
-  .tier-GOLD {
-    color: #d97706;
-  }
-  .tier-SILVER {
-    color: #94a3b8;
-  }
-  .tier-BRONZE {
-    color: #a16207;
-  }
-  .tier-IRON {
-    color: #6b7280;
-  }
-  .tier-UNRANKED {
-    color: #374151;
+    font-size: 13px;
+    font-weight: 700;
   }
   .form-field {
     width: 100%;
-    background: #111827;
-    border: 1px solid #374151;
-    color: #e5e7eb;
-    border-radius: 0.3rem;
-    padding: 0.38rem 0.65rem;
-    font-size: 0.82rem;
+    background: var(--sumi-hondo);
+    border: 1px solid var(--sumi-linea);
+    color: var(--washi);
+    border-radius: var(--radio-fino);
+    padding: 0.45rem 0.7rem;
+    font-size: 14px;
   }
   .form-field:focus {
     outline: none;
-    border-color: #22d3ee;
+    border-color: var(--oro-viejo);
+    box-shadow: 0 0 0 3px rgba(235, 210, 138, .12);
   }
-  .form-label {
-    font-size: 0.7rem;
-    color: #6b7280;
-    text-transform: uppercase;
-    letter-spacing: 0.07em;
-    display: block;
-    margin-bottom: 0.3rem;
-  }
+  .form-field[readonly] { color: var(--hai); }
+  .ayuda { font-size: 12px; color: var(--hai-oscuro); margin-top: 0.25rem; }
   .btn-icon {
     background: none;
     border: none;
     cursor: pointer;
-    padding: 0.15rem 0.3rem;
-    border-radius: 0.2rem;
+    padding: 0.15rem 0.35rem;
+    border-radius: var(--radio-fino);
     transition: color 0.15s;
-    font-size: 0.85rem;
+    font-size: 15px;
+    color: var(--hai-oscuro);
   }
-  .btn-icon-edit {
-    color: #4b5563;
-  }
-  .btn-icon-edit:hover {
-    color: #22d3ee;
-  }
-  .btn-icon-refresh {
-    color: #4b5563;
-  }
-  .btn-icon-refresh:hover {
-    color: #facc15;
-  }
-  .btn-icon-delete {
-    color: #4b5563;
-  }
-  .btn-icon-delete:hover {
-    color: #f87171;
-  }
+  .btn-icon-edit:hover { color: var(--oro); }
+  .btn-icon-refresh:hover { color: var(--washi); }
+  .btn-icon-delete:hover { color: var(--shu-claro); }
   .riot-id-cell {
-    font-size: 0.75rem;
-    color: #6b7280;
-    font-family: monospace;
+    font-size: 13px;
+    color: var(--hai);
+    font-family: ui-monospace, Consolas, monospace;
   }
+  .nombre-cell { font-weight: 700; }
+  .sub-cell { font-size: 13px; color: var(--hai); }
+  .sin-dato { color: var(--hai-oscuro); font-size: 13px; }
+  .subir-csv {
+    display: inline-flex; align-items: center;
+    font-size: 14px; font-weight: 700; color: var(--washi);
+    border: 1px solid var(--sumi-linea); border-radius: var(--radio-fino);
+    padding: 0.25rem 0.75rem; cursor: pointer; margin: 0;
+    transition: color .2s, border-color .2s;
+  }
+  .subir-csv:hover { color: var(--oro); border-color: var(--oro-viejo); }
+  .nota-csv { font-size: 13px; color: var(--hai); margin-top: -0.75rem; margin-bottom: 1.5rem; }
+  .nota-csv code { color: var(--oro-viejo); }
+  .progreso-cabecera { font-size: 14px; color: var(--oro); }
+  .progreso-track { height: 4px; background: var(--sumi-linea); overflow: hidden; }
+  .progreso-barra { height: 100%; background: var(--oro); width: 0%; transition: width 0.4s var(--curva); }
+  #upd-detail { font-size: 13px; color: var(--hai); margin-top: 0.4rem; }
 </style>
 {% endblock %} {% block content %}
 
 <!-- Header -->
-<div
-  class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4"
->
+<header class="cabecera">
   <div>
-    <a href="{% url 'ladder' %}" style="font-size: 0.82rem; color: #6b7280"
-      >← Ladder</a
-    >
-    <h2 class="text-gradient mb-0 mt-1" style="font-size: 1.5rem">
-      Configuración del Ladder
-    </h2>
+    <a class="volver" href="{% url 'ladder' %}">← Ladder</a>
+    <h1>Configuración del ladder</h1>
   </div>
-  <div class="d-flex gap-2 flex-wrap align-items-center">
+  <div class="cabecera-acciones">
     <!-- Exportar CSV -->
-    <a
-      href="{% url 'ladder_export_csv' %}"
-      class="btn btn-sm px-3"
-      style="border: 1px solid #374151; color: #22d3ee; background: transparent"
-    >
-      ⬇ Exportar CSV
-    </a>
+    <a href="{% url 'ladder_export_csv' %}" class="btn btn-sm btn-outline-secondary px-3">⬇ Exportar CSV</a>
     <!-- Importar CSV -->
     <form
       method="post"
@@ -193,17 +100,7 @@
       class="d-flex gap-1 align-items-center"
     >
       {% csrf_token %}
-      <label
-        style="
-          font-size: 0.75rem;
-          color: #9ca3af;
-          background: #111827;
-          border: 1px solid #374151;
-          border-radius: 0.3rem;
-          padding: 0.28rem 0.65rem;
-          cursor: pointer;
-        "
-      >
+      <label class="subir-csv">
         ⬆ Importar CSV
         <input
           type="file"
@@ -217,8 +114,7 @@
     <!-- Forzar actualización -->
     <button
       id="btn-force-update"
-      class="btn btn-sm px-3"
-      style="border: 1px solid #374151; color: #22d3ee; background: transparent"
+      class="btn btn-sm btn-outline-secondary px-3"
       onclick="forceUpdate()"
     >
       ↻ Forzar actualización
@@ -232,12 +128,7 @@
       {% csrf_token %}
       <button
         type="submit"
-        class="btn btn-sm px-3"
-        style="
-          border: 1px solid #374151;
-          color: #facc15;
-          background: transparent;
-        "
+        class="btn btn-sm btn-outline-secondary px-3"
         title="Copia el nombre como riot_id para jugadores con GameName#TAG y riot_id vacío"
       >
         🔗 Sincronizar Riot IDs
@@ -252,12 +143,7 @@
       {% csrf_token %}
       <button
         type="submit"
-        class="btn btn-sm px-3"
-        style="
-          background: linear-gradient(90deg, #22d3ee, #6366f1);
-          color: #fff;
-          border: none;
-        "
+        class="btn btn-sm btn-outline-secondary px-3"
         onclick="
           return confirm(
             '¿Importar todos los jugadores de estadísticas que no estén ya en el ladder?',
@@ -268,14 +154,26 @@
       </button>
     </form>
     <!-- Añadir jugador -->
-    <button class="btn btn-primary btn-sm px-3" onclick="openAddModal()">
+    <button class="btn btn-primary btn-sm px-3 ms-1" onclick="openAddModal()">
       + Añadir jugador
     </button>
   </div>
+</header>
+
+<!-- Barra de progreso de actualización -->
+<div id="update-status" style="display: none; padding: 0.9rem 1.25rem" class="section-card">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <span class="progreso-cabecera">Actualizando rangos…</span>
+    <span id="upd-pct" class="progreso-cabecera" style="font-variant-numeric: tabular-nums">0%</span>
+  </div>
+  <div class="progreso-track">
+    <div id="upd-bar-cfg" class="progreso-barra"></div>
+  </div>
+  <div id="upd-detail"></div>
 </div>
 
 <!-- Tabla de jugadores -->
-<div class="section-card" style="padding: 0.75rem">
+<div class="section-card" style="padding: 0.25rem 0.5rem">
   <div style="overflow-x: auto">
     {% if players %}
     <table class="cfg-table">
@@ -293,31 +191,27 @@
       <tbody>
         {% for p in players %}
         <tr id="cfgrow-{{ p.pk }}">
-          <td style="font-weight: 600; color: #e5e7eb">{{ p.nombre }}</td>
+          <td class="nombre-cell">{{ p.nombre }}</td>
           <td class="riot-id-cell">{{ p.riot_id|default:"—" }}</td>
           <td>
             {% if p.rol %}
             <span class="rol-badge rol-{{ p.rol }}">{{ p.rol }}</span>
-            {% else %}<span style="color: #374151">—</span>{% endif %}
+            {% else %}<span class="sin-dato">—</span>{% endif %}
           </td>
-          <td style="font-size: 0.78rem; color: #9ca3af">
+          <td class="sub-cell">
             {{ p.equipo|default:"—" }}
           </td>
           <td>
             {% if p.tier and p.tier != 'UNRANKED' %}
-            <span class="tier-badge-sm tier-{{ p.tier }}"
-              >{{ p.rank_display }}</span
-            >
+            <span class="tier-badge-sm tier-{{ p.tier }}">{{ p.rank_display }}</span>
             {% elif p.tier == 'UNRANKED' %}
-            <span style="color: #374151; font-size: 0.75rem"
-              >Sin clasificar</span
-            >
+            <span class="sin-dato">Sin clasificar</span>
             {% else %}
-            <span style="color: #374151; font-size: 0.75rem">Sin datos</span>
+            <span class="sin-dato">Sin datos</span>
             {% endif %}
           </td>
-          <td style="font-size: 0.72rem; color: #4b5563">
-            {% if p.last_updated %}{{ p.last_updated|timesince }} ago{% else
+          <td class="sin-dato">
+            {% if p.last_updated %}hace {% language "es" %}{{ p.last_updated|timesince }}{% endlanguage %}{% else
             %}—{% endif %}
           </td>
           <td style="white-space: nowrap">
@@ -348,7 +242,7 @@
       </tbody>
     </table>
     {% else %}
-    <div style="color: #6b7280; text-align: center; padding: 2rem">
+    <div class="vacio">
       No hay jugadores. Añade uno con el botón de arriba o importa un CSV.
     </div>
     {% endif %}
@@ -356,18 +250,9 @@
 </div>
 
 <!-- Nota sobre CSV -->
-<div
-  style="
-    font-size: 0.72rem;
-    color: #374151;
-    margin-top: -0.5rem;
-    margin-bottom: 1.5rem;
-  "
->
+<div class="nota-csv">
   Formato CSV:
-  <code style="color: #4b5563"
-    >nombre, riot_id, rol, equipo, tier, rank, lp, wins, losses</code
-  >
+  <code>nombre, riot_id, rol, equipo, tier, rank, lp, wins, losses</code>
   — las columnas de rango son opcionales (se rellenan desde la API
   automáticamente).
 </div>
@@ -377,21 +262,16 @@
   <div class="modal-dialog">
     <form method="post" id="playerForm">
       {% csrf_token %}
-      <div
-        class="modal-content"
-        style="background: #0b1220; border: 1px solid #1f2937"
-      >
-        <div
-          class="modal-header"
-          style="border-color: #1f2937; padding: 0.75rem 1rem"
-        >
-          <h6 class="modal-title text-gradient mb-0" id="modalTitle">
+      <div class="modal-content">
+        <div class="modal-header" style="padding: 0.9rem 1.1rem">
+          <h5 class="modal-title mb-0" id="modalTitle">
             Añadir jugador
-          </h6>
+          </h5>
           <button
             type="button"
-            class="btn-close btn-close-white btn-sm"
+            class="btn-close btn-sm"
             data-bs-dismiss="modal"
+            aria-label="Cerrar"
           ></button>
         </div>
         <div class="modal-body" style="padding: 1.1rem">
@@ -410,9 +290,7 @@
               {% for n in available %}
               <option value="{{ n }}">{% endfor %}</option>
             </datalist>
-            <div style="font-size: 0.65rem; color: #4b5563; margin-top: 0.2rem">
-              Debe coincidir con el nombre en estadísticas
-            </div>
+            <div class="ayuda">Debe coincidir con el nombre en estadísticas</div>
           </div>
           <div class="mb-3">
             <label class="form-label">Riot ID</label>
@@ -443,28 +321,12 @@
                 class="form-field"
                 placeholder="Ej: Kaiju"
               />
-              <div
-                style="font-size: 0.63rem; color: #4b5563; margin-top: 0.2rem"
-              >
-                Vacío = último equipo de stats
-              </div>
+              <div class="ayuda">Vacío = último equipo de stats</div>
             </div>
           </div>
         </div>
-        <div
-          class="modal-footer"
-          style="border-color: #1f2937; padding: 0.6rem 1rem"
-        >
-          <button
-            type="button"
-            class="btn btn-sm"
-            data-bs-dismiss="modal"
-            style="
-              border: 1px solid #374151;
-              color: #9ca3af;
-              background: transparent;
-            "
-          >
+        <div class="modal-footer" style="padding: 0.75rem 1.1rem">
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">
             Cancelar
           </button>
           <button type="submit" class="btn btn-primary btn-sm px-3">
@@ -474,50 +336,6 @@
       </div>
     </form>
   </div>
-</div>
-
-<!-- Barra de progreso de actualización -->
-<div
-  id="update-status"
-  style="display: none"
-  class="section-card"
-  style="padding: 0.9rem 1.25rem"
->
-  <div class="d-flex justify-content-between align-items-center mb-2">
-    <span style="font-size: 0.78rem; color: #22d3ee">Actualizando rangos…</span>
-    <span
-      id="upd-pct"
-      style="
-        font-size: 0.78rem;
-        color: #22d3ee;
-        font-variant-numeric: tabular-nums;
-      "
-      >0%</span
-    >
-  </div>
-  <div
-    style="
-      height: 5px;
-      background: #1f2937;
-      border-radius: 3px;
-      overflow: hidden;
-    "
-  >
-    <div
-      id="upd-bar-cfg"
-      style="
-        height: 100%;
-        border-radius: 3px;
-        background: linear-gradient(90deg, #22d3ee, #6366f1);
-        width: 0%;
-        transition: width 0.4s;
-      "
-    ></div>
-  </div>
-  <div
-    id="upd-detail"
-    style="font-size: 0.7rem; color: #4b5563; margin-top: 0.4rem"
-  ></div>
 </div>
 
 <!-- Form delete (oculto) -->

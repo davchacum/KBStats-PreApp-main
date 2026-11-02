@@ -1,0 +1,7 @@
+{% load kb %}{# Hechizos de invocador y runas (cuadro 2×2). Espera `ex` (riot_extra). #}
+<span class="cargas">
+  {% if ex.summoner1Id %}<img src="{{ ex.summoner1Id|icono_hechizo }}" alt="{{ ex.summoner1Id|nombre_hechizo }}" title="{{ ex.summoner1Id|nombre_hechizo }}" loading="lazy">{% else %}<i></i>{% endif %}
+  {% if ex.runa_clave %}<img class="runa" src="{{ ex.runa_clave|icono_runa }}" alt="{{ ex.runa_clave|nombre_runa }}" title="{{ ex.runa_clave|nombre_runa }}" loading="lazy">{% else %}<i></i>{% endif %}
+  {% if ex.summoner2Id %}<img src="{{ ex.summoner2Id|icono_hechizo }}" alt="{{ ex.summoner2Id|nombre_hechizo }}" title="{{ ex.summoner2Id|nombre_hechizo }}" loading="lazy">{% else %}<i></i>{% endif %}
+  {% if ex.runa_secundaria %}<img class="runa sec" src="{{ ex.runa_secundaria|icono_runa }}" alt="{{ ex.runa_secundaria|nombre_runa }}" title="{{ ex.runa_secundaria|nombre_runa }}" loading="lazy">{% else %}<i></i>{% endif %}
+</span>

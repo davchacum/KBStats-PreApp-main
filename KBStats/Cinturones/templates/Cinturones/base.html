@@ -1,53 +1,161 @@
 <!doctype html>
-<html lang="es">
+<html lang="es" data-bs-theme="dark">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>KBStats</title>
+    <meta name="theme-color" content="#161412" />
+    <title>{% block title %}KB Stats{% endblock %}</title>
 
     {% load static %}
 
-    <!-- Favicon -->
-    <link
-      rel="icon"
-      type="image/png"
-      href="{% static 'images/team_kaiju.png' %}"
-    />
+    <link rel="icon" type="image/png" href="{% static 'images/team_kaiju.png' %}" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://ddragon.leagueoflegends.com" />
 
-    <!-- CSS global de tu proyecto -->
-    <link rel="stylesheet" href="{% static 'css/kbstats.css' %}" />
+    <!-- Bootstrap primero; los estilos propios van detrás para mandar sobre él -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'css/kbstats.css' %}?v={{ css_version }}" />
 
-    <!-- Bootstrap -->
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
-      rel="stylesheet"
-    />
-
-    <!-- CSS extra por página -->
     {% block extra_css %}{% endblock %}
   </head>
 
-  <body class="wrapper">
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
-      <div class="container-fluid">
-        <a class="navbar-brand d-flex align-items-center fs-3" href="/">KB Stats</a>
-        <div class="d-flex gap-3 ms-auto align-items-center">
-          <a class="nav-link text-secondary" href="{% url 'promedios_jugadores' %}?format=html" style="font-size:0.85rem;">Promedios</a>
-          <a class="nav-link text-secondary" href="{% url 'tier_list' %}" style="font-size:0.85rem;">Tier List</a>
-          <a class="nav-link text-secondary" href="{% url 'ladder' %}" style="font-size:0.85rem;">Ladder</a>
-          {% if user.is_superuser %}
-          <a class="nav-link" href="{% url 'ladder_config' %}" style="font-size:0.85rem;color:#22d3ee;">⚙ Admin</a>
-          <form method="post" action="{% url 'logout' %}" style="display:inline;margin:0;">
-            {% csrf_token %}
-            <button type="submit" class="nav-link btn btn-link" style="font-size:0.82rem;color:#6b7280;padding:0;border:none;background:none;cursor:pointer;">Salir</button>
-          </form>
-          {% endif %}
-        </div>
-      </div>
-    </nav>
+  <body>
+    {% with url=request.resolver_match.url_name ns=request.resolver_match.namespace %}
+    <header class="app-header">
+      <div class="app-top">
+        <a class="marca" href="{% url 'index' %}">
+          <span class="logo" aria-hidden="true">KB</span>
+          <span class="marca-txt">KB Stats</span>
+        </a>
 
-    <main class="container">{% block content %}{% endblock %}</main>
+        {% if temporadas|length > 1 %}
+        <select class="sel sel-temporada" id="sel-temporada" aria-label="Temporada"{% if url == 'detalle_partida' %} data-ir="{% url 'partidas' %}"{% endif %}>
+          {% for t in temporadas %}<option value="{{ t.slug }}"{% if t == temporada %} selected{% endif %}>{{ t.nombre }}</option>{% endfor %}
+        </select>
+        {% endif %}
+
+        <nav class="app-nav" aria-label="Secciones">
+          <a href="{% url 'index' %}" {% if url == 'index' and not ns %}aria-current="page"{% endif %}>Inicio</a>
+          <a href="{% url 'clasificacion_grupos' %}" {% if url == 'clasificacion_grupos' or url == 'equipo' %}aria-current="page"{% endif %}>Clasificación</a>
+          <a href="{% url 'partidas' %}" {% if url == 'partidas' or url == 'buscar_partidos_form' or url == 'detalle_partida' %}aria-current="page"{% endif %}>Partidas</a>
+          <a href="{% url 'jugadores' %}" {% if url == 'jugadores' or url == 'promedios_jugadores' or url == 'jugador' %}aria-current="page"{% endif %}>Jugadores</a>
+          <a href="{% url 'tier_list' %}" {% if url == 'tier_list' %}aria-current="page"{% endif %}>Tier list</a>
+          <a href="{% url 'ladder' %}" {% if url == 'ladder' or url == 'ladder_config' %}aria-current="page"{% endif %}>Ladder</a>
+          <a href="{% url 'kblix:index' %}" {% if ns == 'kblix' %}aria-current="page"{% endif %}>Kblix</a>
+        </nav>
+
+        <form class="buscador" action="{% url 'buscar' %}" method="get" role="search" autocomplete="off">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input type="search" name="q" id="buscador-q" placeholder="Buscar jugador o equipo" aria-label="Buscar jugador o equipo"
+                 value="{{ request.GET.q|default:'' }}" aria-controls="buscador-res" aria-autocomplete="list">
+          <span class="atajo" aria-hidden="true">Ctrl K</span>
+          <div class="resultados" id="buscador-res" role="listbox" hidden></div>
+        </form>
+
+        {% if user.is_superuser %}
+        <div class="app-top-der">
+          <a href="{% url 'ladder_config' %}">Admin</a>
+          <form method="post" action="{% url 'logout' %}" style="margin:0;">
+            {% csrf_token %}
+            <button type="submit">Salir</button>
+          </form>
+        </div>
+        {% endif %}
+      </div>
+    </header>
+    {% endwith %}
+
+    <main class="app-main">{% block content %}{% endblock %}</main>
+
+    <footer class="app-foot">
+      <div class="app-foot-in">
+        <span>© KB Stats</span>
+        <span>KB Stats no está respaldado por Riot Games ni refleja sus opiniones. League of Legends es una marca de Riot Games, Inc.</span>
+      </div>
+    </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    /* ── Buscador global: sugerencias mientras escribes, flechas para moverte, Enter para ir ── */
+    (function () {
+      const input = document.getElementById('buscador-q');
+      const caja = document.getElementById('buscador-res');
+      const URL_BUSCAR = "{% url 'buscar' %}";
+      let activo = -1, timer = null, ultima = '';
+
+      const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+      function pintar(d) {
+        const filas = [];
+        if (d.jugadores.length) {
+          filas.push('<div class="grupo">Jugadores</div>');
+          d.jugadores.forEach(j => filas.push(
+            `<a href="${esc(j.url)}" role="option">${j.icono ? `<img class="camp s" src="${esc(j.icono)}" alt="" loading="lazy">` : ''}
+              <span><b>${esc(j.nombre)}</b><span class="muted-2">${esc(j.tag)}</span></span>
+              <span class="sub">${esc(j.equipo || '')}${j.rol ? ' · ' + esc(j.rol) : ''}</span></a>`));
+        }
+        if (d.equipos.length) {
+          filas.push('<div class="grupo">Equipos</div>');
+          d.equipos.forEach(e => filas.push(
+            `<a href="${esc(e.url)}" role="option"><span class="equipo-ini">${esc(e.ini)}</span>
+              <b>${esc(e.nombre)}</b><span class="sub">${esc(e.sub || '')}</span></a>`));
+        }
+        caja.innerHTML = filas.length ? filas.join('') : '<div class="nada">Sin resultados</div>';
+        caja.hidden = false;
+        activo = -1;
+      }
+
+      function buscar() {
+        const q = input.value.trim();
+        if (q === ultima) return;
+        ultima = q;
+        if (q.length < 1) { caja.hidden = true; return; }
+        fetch(`${URL_BUSCAR}?q=${encodeURIComponent(q)}&format=json`)
+          .then(r => r.json()).then(d => { if (input.value.trim() === q) pintar(d); })
+          .catch(() => {});
+      }
+
+      input.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(buscar, 120); });
+      input.addEventListener('focus', () => { if (input.value.trim() && caja.innerHTML) caja.hidden = false; });
+      input.addEventListener('keydown', e => {
+        const items = [...caja.querySelectorAll('a')];
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+          if (!items.length) return;
+          e.preventDefault();
+          activo = (activo + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
+          items.forEach((a, i) => a.classList.toggle('activo', i === activo));
+          items[activo].scrollIntoView({ block: 'nearest' });
+        } else if (e.key === 'Enter' && activo >= 0 && items[activo]) {
+          e.preventDefault();
+          location.href = items[activo].href;
+        } else if (e.key === 'Escape') {
+          caja.hidden = true; input.blur();
+        }
+      });
+      document.addEventListener('click', e => { if (!e.target.closest('.buscador')) caja.hidden = true; });
+      document.addEventListener('keydown', e => {
+        const escribiendo = /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName);
+        if ((e.key === 'k' && (e.ctrlKey || e.metaKey)) || (e.key === '/' && !escribiendo)) {
+          e.preventDefault(); input.focus(); input.select();
+        }
+      });
+
+      /* Temporada: se queda en la misma página (filtros fuera, pueden no existir en la otra temporada) */
+      const selTemp = document.getElementById('sel-temporada');
+      if (selTemp) selTemp.addEventListener('change', () => {
+        location.href = (selTemp.dataset.ir || location.pathname) + '?temporada=' + encodeURIComponent(selTemp.value);
+      });
+
+      /* Filas de tabla enlazadas: toda la fila lleva a su página */
+      document.addEventListener('click', e => {
+        const fila = e.target.closest('tr[data-href]');
+        if (!fila || e.target.closest('a, button, input, select')) return;
+        if (e.ctrlKey || e.metaKey) window.open(fila.dataset.href, '_blank');
+        else location.href = fila.dataset.href;
+      });
+    })();
+    </script>
+    {% block extra_js %}{% endblock %}
   </body>
 </html>

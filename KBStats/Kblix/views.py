@@ -284,12 +284,26 @@ def _build_players(equipo_filter, rol_filter, sort, sort_dir):
 
     nombres    = [p.nombre for p in players]
     stats_data = _get_stats_data(nombres)
+    try:
+        from KBStats.Cinturones.models import Jugador as StatJugador, Equipo as StatEquipo
+        con_perfil = set(StatJugador.objects.filter(nombre__in=nombres, stats__isnull=False).values_list('nombre', flat=True))
+        equipos_liga = set(StatEquipo.objects.values_list('nombre', flat=True))
+        from KBStats.Cinturones.models import StatsJugador as _Stats
+        iconos = {}
+        for nombre, extra in _Stats.objects.filter(jugador__nombre__in=nombres).order_by('partida_id').values_list('jugador__nombre', 'riot_extra'):
+            if extra and extra.get('profileIcon') is not None:
+                iconos[nombre] = extra['profileIcon']
+    except ImportError:
+        con_perfil, equipos_liga, iconos = set(), set(), {}
 
     for p in players:
         sd = stats_data.get(p.nombre, {})
         p.display_team = p.equipo or sd.get('last_team') or '—'
         p.display_rol  = p.rol or sd.get('most_common_role') or ''
         p.total_games  = p.wins + p.losses
+        p.tiene_perfil = p.nombre in con_perfil
+        p.equipo_liga  = p.display_team in equipos_liga
+        p.icono_perfil = iconos.get(p.nombre)
 
     if equipo_filter:
         players = [p for p in players if p.display_team == equipo_filter]

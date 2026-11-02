@@ -17,14 +17,20 @@ Including another URLconf
 # from django.contrib import admin  # DESACTIVADO POR SEGURIDAD
 from django.urls import path, include
 from django.contrib.auth import views as auth_views
-from .Cinturones.views import index, buscar_partidos_form, buscar_partidos_por_jornada, detalle_partida, promedios_jugadores, clasificacion_grupos, exportar_csv_jugadores, tier_list, heatmap_data  # , add_partida  # DESACTIVADO
+from .Cinturones.views import buscar_partidos_form, buscar_partidos_por_jornada, detalle_partida, promedios_jugadores, clasificacion_grupos, exportar_csv_jugadores, tier_list, heatmap_data, jugadores_html  # , add_partida  # DESACTIVADO
+from .Cinturones import views_app
 from .Kblix import views as kblix_views
 
 urlpatterns = [
     # FUNCIONALIDADES DE ADMIN DESACTIVADAS POR SEGURIDAD
     # path('admin/add_partida/', add_partida, name='add_partida'),
     # path('admin/', admin.site.urls),
-    path('', index, name='index'),
+    path('', views_app.inicio, name='index'),
+    path('buscar/', views_app.buscar, name='buscar'),
+    path('jugador/<str:nombre>/', views_app.jugador, name='jugador'),
+    path('equipo/<str:nombre>/', views_app.equipo, name='equipo'),
+    path('partidas/', buscar_partidos_form, name='partidas'),
+    path('jugadores/', jugadores_html, name='jugadores'),
     path('clasificacion/', clasificacion_grupos, name='clasificacion_grupos'),
     path('buscar_partidos/', buscar_partidos_form, name='buscar_partidos_form'),
     path('partida/<str:match_id>/', detalle_partida, name='detalle_partida'),

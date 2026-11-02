@@ -22,6 +22,78 @@ def _apply_name_alias(name: str) -> str:
     return _NAME_ALIASES.get(name, name)
 
 
+# Campos de la API de Riot que usa la nota de rendimiento (ver scoring.py)
+CAMPOS_RIOT_EXTRA = (
+    'champExperience', 'goldEarned', 'visionScore', 'wardsPlaced', 'wardsKilled',
+    'damageDealtToObjectives', 'damageDealtToBuildings', 'totalDamageTaken',
+    'totalMinionsKilled', 'neutralMinionsKilled', 'firstBloodKill', 'firstBloodAssist',
+    'turretKills', 'champLevel', 'teamPosition', 'championName', 'teamId', 'win',
+    'profileIcon', 'summonerLevel', 'summoner1Id', 'summoner2Id',
+)
+CHALLENGES_RIOT_EXTRA = (
+    'soloKills', 'turretPlatesTaken', 'laneMinionsFirst10Minutes', 'jungleCsBefore10Minutes',
+    'dragonTakedowns', 'baronTakedowns', 'riftHeraldTakedowns', 'voidMonsterKill', 'epicMonsterSteals',
+    'controlWardsPlaced', 'pickKillWithAlly', 'saveAllyFromDeath', 'turretTakedowns',
+    'maxCsAdvantageOnLaneOpponent', 'maxLevelLeadLaneOpponent', 'visionScoreAdvantageLaneOpponent',
+    'damageTakenOnTeamPercentage', 'teamDamagePercentage', 'killParticipation',
+    'enemyJungleMonsterKills', 'scuttleCrabKills', 'buffsStolen', 'initialCrabCount',
+    'takedownsFirstXMinutes', 'killsOnLanersEarlyJungleAsJungler', 'junglerKillsEarlyJungle',
+    'moreEnemyJungleThanOpponent', 'effectiveHealAndShielding', 'immobilizeAndKillWithAlly',
+    'knockEnemyIntoTeamAndKill', 'laningPhaseGoldExpAdvantage', 'earlyLaningPhaseGoldExpAdvantage',
+    'wardTakedowns', 'stealthWardsPlaced', 'visionScorePerMinute', 'goldPerMinute', 'damagePerMinute',
+)
+
+
+def placas_por_participante(timeline: dict) -> dict:
+    """
+    Placas de torre que rompe cada jugador, contando los eventos TURRET_PLATE_DESTROYED del timeline.
+    (El campo `turretPlatesTaken` de la API no sirve: no cuenta las placas del propio jugador.)
+    Devuelve {participantId: placas}.
+    """
+    placas = {}
+    for frame in (timeline or {}).get('info', {}).get('frames', []):
+        for ev in frame.get('events', []):
+            if ev.get('type') == 'TURRET_PLATE_DESTROYED' and ev.get('killerId'):
+                placas[ev['killerId']] = placas.get(ev['killerId'], 0) + 1
+    return placas
+
+
+def curvas_por_participante(timeline: dict) -> dict:
+    """
+    Oro total, experiencia y CS de cada jugador en cada frame del timeline
+    (uno por minuto y el último, al acabar la partida).
+    Devuelve {participantId: {'frames_s': [...], 'oro_t': [...], 'xp_t': [...], 'cs_t': [...]}}.
+    """
+    frames = (timeline or {}).get('info', {}).get('frames', [])
+    segundos = [round(f.get('timestamp', 0) / 1000) for f in frames]
+    curvas = {}
+    for i, frame in enumerate(frames):
+        for pid, d in (frame.get('participantFrames') or {}).items():
+            c = curvas.setdefault(int(pid), {'frames_s': segundos, 'oro_t': [], 'xp_t': [], 'cs_t': []})
+            if len(c['oro_t']) != i:  # frame sin este jugador: se repite el último valor
+                for k in ('oro_t', 'xp_t', 'cs_t'):
+                    c[k].extend([c[k][-1] if c[k] else 0] * (i - len(c[k])))
+            c['oro_t'].append(d.get('totalGold', 0))
+            c['xp_t'].append(d.get('xp', 0))
+            c['cs_t'].append(d.get('minionsKilled', 0) + d.get('jungleMinionsKilled', 0))
+    return curvas
+
+
+def extraer_riot_extra(participante: dict) -> dict:
+    """Saca de un participante de match-v5 los campos avanzados que usa la nota de rendimiento."""
+    extra = {k: participante.get(k) for k in CAMPOS_RIOT_EXTRA if participante.get(k) is not None}
+    challenges = participante.get('challenges') or {}
+    extra['challenges'] = {k: challenges.get(k) for k in CHALLENGES_RIOT_EXTRA if challenges.get(k) is not None}
+    # Objetos (6 huecos + trinket) y runas: runa clave de la rama principal y rama secundaria
+    extra['objetos'] = [participante.get(f'item{i}', 0) or 0 for i in range(7)]
+    estilos = (participante.get('perks') or {}).get('styles') or []
+    if estilos:
+        principal = estilos[0]
+        extra['runa_clave'] = ((principal.get('selections') or [{}])[0]).get('perk')
+        extra['runa_secundaria'] = estilos[1].get('style') if len(estilos) > 1 else None
+    return extra
+
+
 def extract_match_data(json_data: str, equipo_azul_nombre: str, equipo_rojo_nombre: str) -> Dict[str, Any]:
     try:
         data = json.loads(json_data)
@@ -174,6 +246,7 @@ def extract_match_data(json_data: str, equipo_azul_nombre: str, equipo_rojo_nomb
                 "gold_pct": gold_pct,
                 "death_share": death_share,
                 "victoria": bool(p.get('win', False)),
+                "riot_extra": extraer_riot_extra(p),
             })
 
         return {"partida": partida_data, "stats_jugadores": player_stats_list}
@@ -183,7 +256,7 @@ def extract_match_data(json_data: str, equipo_azul_nombre: str, equipo_rojo_nomb
 
 
 def save_to_django(match_data: Dict[str, Any], jornada: str, numero_partida: str,
-                   equipo_azul_nombre: str, equipo_rojo_nombre: str):
+                   equipo_azul_nombre: str, equipo_rojo_nombre: str, temporada=None):
     if not match_data:
         return
 
@@ -202,6 +275,7 @@ def save_to_django(match_data: Dict[str, Any], jornada: str, numero_partida: str
         partida_obj, created = Partida.objects.get_or_create(
             match_id=match_id_riot,
             defaults={
+                'temporada': temporada,
                 'jornada': jornada,
                 'numero_partida': numero_partida,
                 'equipo_azul': equipo_azul,
@@ -222,6 +296,7 @@ def save_to_django(match_data: Dict[str, Any], jornada: str, numero_partida: str
         )
 
         if not created:
+            partida_obj.temporada = temporada or partida_obj.temporada
             partida_obj.jornada = jornada or partida_obj.jornada
             partida_obj.numero_partida = numero_partida or partida_obj.numero_partida
             partida_obj.duracion_segundos = partida_data.get('duracion_segundos', partida_obj.duracion_segundos)
@@ -278,6 +353,7 @@ def save_to_django(match_data: Dict[str, Any], jornada: str, numero_partida: str
                 'gold_pct': p_stats.get('gold_pct', 0.0),
                 'death_share': p_stats.get('death_share', 0.0),
                 'victoria': p_stats.get('victoria', False),
+                'riot_extra': p_stats.get('riot_extra'),
             }
 
             StatsJugador.objects.update_or_create(
@@ -388,6 +464,37 @@ def calculate_jungler_proximity(position_data: dict, team_roles: dict) -> dict:
     return result
 
 
+def annotate_player_roles(players: dict, stats) -> dict:
+    """
+    Añade 'rol' (top/jgl/mid/adc/sup) y 'campeon' a cada participante de position_data,
+    emparejando su Riot ID con las StatsJugador de la partida.
+    Si alguno no se encuentra, usa el orden de participante de Riot (1-5 y 6-10 = top, jgl, mid, adc, sup).
+    """
+    ORDER = ('top', 'jgl', 'mid', 'adc', 'sup')
+
+    name_to_pid: dict[str, str] = {}
+    for pid, pdata in players.items():
+        aliased = _apply_name_alias(pdata.get('name', ''))
+        name_to_pid[aliased.lower()] = pid
+        name_to_pid[aliased.split('#')[0].lower()] = pid
+
+    found: dict[str, dict] = {}
+    for s in stats:
+        nombre = s.jugador.nombre
+        pid = name_to_pid.get(nombre.lower()) or name_to_pid.get(nombre.split('#')[0].lower())
+        if pid:
+            found[pid] = {'rol': (s.rol or '').lower() or None, 'campeon': s.campeon}
+
+    result = {}
+    for pid, pdata in players.items():
+        extra = found.get(pid, {})
+        rol = extra.get('rol')
+        if not rol and str(pid).isdigit():
+            rol = ORDER[(int(pid) - 1) % 5]
+        result[pid] = {**pdata, 'rol': rol, 'campeon': extra.get('campeon')}
+    return result
+
+
 def extract_positions_from_timeline(timeline_json: str, match_json: str) -> dict | None:
     """
     Extrae posiciones de todos los participantes frame a frame del timeline.
@@ -426,7 +533,7 @@ def extract_positions_from_timeline(timeline_json: str, match_json: str) -> dict
         'SKILL_LEVEL_UP', 'LEVEL_UP', 'CHAMPION_SPECIAL_KILL',
         'BUILDING_KILL', 'ELITE_MONSTER_KILL',
     }
-    INTERP_STEPS = 9  # 9 puntos intermedios entre frames → posición cada ~6 s
+    INTERP_STEPS = 5  # 5 puntos intermedios entre frames (uno por minuto) → posición cada 10 s
 
     positions: dict[str, list] = {str(i): [] for i in range(1, 11)}
     prev_frame: dict[str, tuple] = {}  # pid -> (x, y, t)

@@ -1,0 +1,7 @@
+{# Temporadas de un jugador o equipo (si ha jugado más de una). Necesita temporadas_propias, temporada_vista y ver_todas. #}
+{% if temporadas_propias|length > 1 %}
+<nav class="chips chips-temporada" aria-label="Temporada">
+  {% for t in temporadas_propias %}<a href="?temporada={{ t.slug }}"{% if not ver_todas and t == temporada_vista %} aria-current="true"{% endif %}>{{ t.nombre }}</a>{% endfor %}
+  <a href="?temporada=todas"{% if ver_todas %} aria-current="true"{% endif %}>Todas</a>
+</nav>
+{% endif %}

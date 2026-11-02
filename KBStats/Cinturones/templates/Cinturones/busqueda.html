@@ -1,0 +1,53 @@
+{% extends 'Cinturones/base.html' %}
+{% load kb %}
+
+{% block title %}Buscar «{{ q }}» · KB Stats{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{% if q %}Resultados para «{{ q }}»{% else %}Buscar{% endif %}</h1>
+    <p>{% if q %}{{ jugadores|length }} jugador{{ jugadores|length|pluralize:"es" }} y {{ equipos|length }} equipo{{ equipos|length|pluralize }}.{% else %}Escribe el nombre de un jugador o de un equipo en el buscador de arriba.{% endif %}</p>
+  </div>
+</div>
+
+{% if q %}
+<div class="grid-2-igual">
+  <section class="card-app">
+    <div class="h"><h2>Jugadores</h2></div>
+    <div class="b flush">
+      <table class="tabla">
+        <tbody>
+          {% for j in jugadores %}
+          <tr data-href="{{ j.url }}">
+            <td><a class="jug" href="{{ j.url }}">{% if j.icono %}<img class="camp" src="{{ j.icono }}" alt="" loading="lazy">{% endif %}<span class="nom">{{ j.nombre }}</span><span class="tag">{{ j.tag }}</span></a></td>
+            <td class="muted">{{ j.equipo }}</td>
+            <td class="r">{% if j.rol %}{% rol j.rol_clave %}{% endif %}</td>
+          </tr>
+          {% empty %}
+          <tr><td class="vacio">Ningún jugador coincide.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  <section class="card-app">
+    <div class="h"><h2>Equipos</h2></div>
+    <div class="b flush">
+      <table class="tabla">
+        <tbody>
+          {% for e in equipos %}
+          <tr data-href="{{ e.url }}">
+            <td><a class="jug" href="{{ e.url }}"><span class="equipo-ini">{{ e.ini }}</span><span class="nom">{{ e.nombre }}</span></a></td>
+            <td class="r muted">{{ e.sub }}</td>
+          </tr>
+          {% empty %}
+          <tr><td class="vacio">Ningún equipo coincide.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,91 @@
+{% extends 'Cinturones/base.html' %}
+{% load kb %}
+
+{% block title %}{{ e.nombre }} · KB Stats{% endblock %}
+
+{% block extra_css %}
+<style>
+  .perfil { display: flex; flex-wrap: wrap; align-items: center; gap: 18px 24px; padding: 20px 22px; margin-bottom: 14px; border-radius: 10px;
+    background: var(--surface); border: 1px solid var(--border); }
+  .perfil h1 { font-size: clamp(24px, 3vw, 32px); font-weight: 700; }
+  .perfil .datos { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-top: 6px; color: var(--hai); }
+  .perfil .der { margin-left: auto; display: flex; gap: 10px; flex-wrap: wrap; }
+  .placa-dato { padding: 10px 14px; border-radius: 8px; background: var(--bg); border: 1px solid var(--border); min-width: 120px; }
+  .placa-dato .e { font-size: 12.5px; font-weight: 500; color: var(--text-2); }
+  .placa-dato .v { margin-top: 4px; font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .camps { display: inline-flex; gap: 3px; }
+  .lado-fila { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; font-size: 13px; border-top: 1px solid rgba(51, 45, 39, .6); }
+  .lado-fila:first-child { border-top: 0; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="migas"><a href="{% url 'clasificacion_grupos' %}">Clasificación</a> / {{ e.nombre }}</div>
+
+<section class="perfil">
+  <span class="equipo-ini l">{{ ini }}</span>
+  <div>
+    <h1>{{ e.nombre }}</h1>
+    <div class="datos">
+      {% if posicion %}<span>{{ posicion.pos }}º de {{ posicion.de }} {% if posicion.grupo == 'Liga' %}en la liga{% else %}en el grupo {{ posicion.grupo|capfirst }}{% endif %}</span>{% endif %}
+      <span class="racha">{% for r in racha %}<i class="{{ r }}">{% if r == 'v' %}V{% else %}D{% endif %}</i>{% endfor %}</span>
+    </div>
+  </div>
+  <div class="der">
+    <div class="placa-dato"><div class="e">Récord</div><div class="v"><span class="res-v">{{ victorias }}V</span> <span class="res-d">{{ derrotas }}D</span></div></div>
+    <div class="placa-dato"><div class="e">Victorias</div><div class="v">{{ winrate }}%</div></div>
+  </div>
+</section>
+{% include 'Cinturones/_temporadas_perfil.html' %}
+
+<div class="cifras-app" style="margin-bottom:18px;">
+  <div class="cifra-app"><span class="e">Partidas</span><span class="v">{{ partidas }}</span></div>
+  <div class="cifra-app"><span class="e">Duración media</span><span class="v">{{ medias.duracion }}</span></div>
+  <div class="cifra-app"><span class="e">Kills / partida</span><span class="v">{{ medias.kills|floatformat:1 }}</span><span class="s">recibe {{ medias.kills_riv|floatformat:1 }}</span></div>
+  <div class="cifra-app"><span class="e">Dragones / partida</span><span class="v">{{ medias.dragones|floatformat:1 }}</span></div>
+  <div class="cifra-app"><span class="e">Barones / partida</span><span class="v">{{ medias.barones|floatformat:1 }}</span></div>
+</div>
+
+<div class="grid-2">
+  <div class="stack">
+    <section class="card-app">
+      <div class="h"><h2>Plantilla</h2></div>
+      <div class="b flush tabla-wrap">
+        <table class="tabla">
+          <thead><tr><th>Rol</th><th>Jugador</th><th>Campeones</th><th class="c">Partidas</th><th class="c">KDA</th><th class="c">MVP</th><th class="r">Nota</th></tr></thead>
+          <tbody>
+            {% for f in plantilla %}
+            <tr data-href="{% url 'jugador' f.nombre %}">
+              <td>{% rol f.rol %}</td>
+              <td><a class="jug" href="{% url 'jugador' f.nombre %}"><span class="nom">{{ f.nombre|nombre_juego }}</span><span class="tag">{{ f.nombre|tag_juego }}</span></a></td>
+              <td><span class="camps">{% for c in f.campeones %}<img class="camp s" src="{{ c|icono_campeon }}" alt="{{ c }}" title="{{ c }}" loading="lazy">{% endfor %}</span></td>
+              <td class="c">{{ f.partidas }}</td>
+              <td class="c">{{ f.kda|floatformat:2 }}<div class="muted-2" style="font-size:11px;">{{ f.k|floatformat:1 }}/{{ f.d|floatformat:1 }}/{{ f.a|floatformat:1 }}</div></td>
+              <td class="c">{% if f.mvp %}<span class="ins ins-MVP">{{ f.mvp }}</span>{% else %}<span class="muted-2">—</span>{% endif %}</td>
+              <td class="r"><span class="nota {{ f.nota|nota_clase }}">{{ f.nota|floatformat:0 }}</span></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card-app">
+      <div class="h"><h2>Partidas</h2></div>
+      <div class="b flush">
+        {% for f in filas %}{% include 'Cinturones/_fila_partida.html' %}{% empty %}<div class="vacio">Sin partidas.</div>{% endfor %}
+      </div>
+    </section>
+  </div>
+
+  <aside class="stack">
+    <section class="card-app">
+      <div class="h"><h3>Por lado del mapa</h3></div>
+      <div class="b">
+        <div class="lado-fila"><span class="txt-azul" style="font-weight:700;">Lado azul</span><span>{{ medias.lado_azul_v }}V – {{ medias.lado_azul|add:0 }} partidas</span></div>
+        <div class="lado-fila"><span class="txt-rojo" style="font-weight:700;">Lado rojo</span><span>{{ medias.lado_rojo_v }}V – {{ medias.lado_rojo }} partidas</span></div>
+      </div>
+    </section>
+  </aside>
+</div>
+{% endblock %}

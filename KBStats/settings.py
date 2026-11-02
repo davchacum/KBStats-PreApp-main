@@ -46,6 +46,9 @@ DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 # Do NOT commit your real API key into source control.
 # Set `RIOT_API_KEY` in the environment or via your deployment platform.
 RIOT_API_KEY = os.environ.get('RIOT_API_KEY') or None
+
+# Versión de Data Dragon (iconos de campeones de Riot). Se puede cambiar sin tocar código.
+DDRAGON_VERSION = os.environ.get('DDRAGON_VERSION', '16.21.1')
 ALLOWED_HOSTS = ['kbstats-preapp-main.onrender.com', 'www.kbstats.es', 'kbstats.es', 'localhost', '127.0.0.1']
 
 # Requerido en Django 4.0+ para validar el header Origin en peticiones POST
@@ -80,6 +83,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'KBStats.Cinturones.temporadas.TemporadaMiddleware',   # temporada que se está viendo
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -96,6 +100,8 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'KBStats.Cinturones.context_processors.version_estaticos',
+                'KBStats.Cinturones.temporadas.contexto',
             ],
         },
     },
