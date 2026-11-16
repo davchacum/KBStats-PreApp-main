@@ -227,7 +227,7 @@
     <div class="b">
       <div class="enfrentamiento grande">
         <a class="eq {% if eq_azul.gana %}gana{% else %}pierde{% endif %}" href="{% url 'equipo' eq_azul.nombre %}">
-          <span class="equipo-ini l" style="border-color:var(--azul-lado);">{{ eq_azul.ini }}</span>
+          {% escudo eq_azul.nombre 'l' 'border-color:var(--azul-lado);' %}
           <span>
             <span class="n txt-azul">{{ eq_azul.nombre }}</span>
             <span class="res {% if eq_azul.gana %}res-v{% else %}res-d{% endif %}">{% if eq_azul.gana %}Victoria{% else %}Derrota{% endif %}</span>
@@ -242,7 +242,7 @@
             <span class="n txt-rojo">{{ eq_rojo.nombre }}</span>
             <span class="res {% if eq_rojo.gana %}res-v{% else %}res-d{% endif %}">{% if eq_rojo.gana %}Victoria{% else %}Derrota{% endif %}</span>
           </span>
-          <span class="equipo-ini l" style="border-color:var(--rojo-lado);">{{ eq_rojo.ini }}</span>
+          {% escudo eq_rojo.nombre 'l' 'border-color:var(--rojo-lado);' %}
         </a>
       </div>
 

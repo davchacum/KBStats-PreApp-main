@@ -23,7 +23,7 @@
 <div class="migas"><a href="{% url 'clasificacion_grupos' %}">Clasificación</a> / {{ e.nombre }}</div>
 
 <section class="perfil">
-  <span class="equipo-ini l">{{ ini }}</span>
+  {% escudo e.nombre 'l' %}
   <div>
     <h1>{{ e.nombre }}</h1>
     <div class="datos">

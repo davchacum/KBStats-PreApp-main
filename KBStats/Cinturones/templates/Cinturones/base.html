@@ -98,7 +98,7 @@
         if (d.equipos.length) {
           filas.push('<div class="grupo">Equipos</div>');
           d.equipos.forEach(e => filas.push(
-            `<a href="${esc(e.url)}" role="option"><span class="equipo-ini">${esc(e.ini)}</span>
+            `<a href="${esc(e.url)}" role="option">${e.logo ? `<img class="equipo-ini logo" src="${esc(e.logo)}" alt="">` : `<span class="equipo-ini">${esc(e.ini)}</span>`}
               <b>${esc(e.nombre)}</b><span class="sub">${esc(e.sub || '')}</span></a>`));
         }
         caja.innerHTML = filas.length ? filas.join('') : '<div class="nada">Sin resultados</div>';

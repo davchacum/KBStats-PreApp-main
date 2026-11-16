@@ -44,7 +44,7 @@
   <div>
     <h1>{{ nombre_juego }} <span class="tag">{{ tag }}</span></h1>
     <div class="datos">
-      {% if equipo_actual %}<a href="{% url 'equipo' equipo_actual %}"><span class="equipo-ini">{{ ini_equipo }}</span>{{ equipo_actual }}</a>{% endif %}
+      {% if equipo_actual %}<a href="{% url 'equipo' equipo_actual %}">{% escudo equipo_actual %}{{ equipo_actual }}</a>{% endif %}
       {% if rol_principal %}{% rol rol_principal 'largo' %}{% endif %}
       <span>{{ resumen.partidas }} partida{{ resumen.partidas|pluralize }} {% if ver_todas %}en todas las temporadas{% elif temporada_vista %}en {{ temporada_vista.nombre }}{% else %}en la liga{% endif %}</span>
     </div>

@@ -48,7 +48,7 @@ DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 RIOT_API_KEY = os.environ.get('RIOT_API_KEY') or None
 
 # Versión de Data Dragon (iconos de campeones de Riot). Se puede cambiar sin tocar código.
-DDRAGON_VERSION = os.environ.get('DDRAGON_VERSION', '16.21.1')
+DDRAGON_VERSION = os.environ.get('DDRAGON_VERSION', '16.22.1')
 ALLOWED_HOSTS = ['kbstats-preapp-main.onrender.com', 'www.kbstats.es', 'kbstats.es', 'localhost', '127.0.0.1']
 
 # Requerido en Django 4.0+ para validar el header Origin en peticiones POST

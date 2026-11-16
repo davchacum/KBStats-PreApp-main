@@ -40,7 +40,7 @@
           {% for eq in grupo.equipos %}
           <tr class="{% if con_grupos %}{% if eq.pos <= 2 %}top{% elif forloop.last %}ultimo{% endif %}{% endif %}" data-href="{% url 'equipo' eq.equipo %}">
             <td class="pos">{{ eq.pos }}</td>
-            <td><a class="eqc" href="{% url 'equipo' eq.equipo %}">{{ eq.equipo }}</a></td>
+            <td><a class="eqc" href="{% url 'equipo' eq.equipo %}">{% escudo eq.equipo %}{{ eq.equipo }}</a></td>
             <td class="c">{{ eq.jugados }}</td>
             <td class="c txt-bien">{{ eq.victorias }}</td>
             <td class="c txt-mal">{{ eq.derrotas }}</td>

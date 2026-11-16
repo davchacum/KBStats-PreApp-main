@@ -28,7 +28,7 @@
     <span class="{% if p.winrate >= 55 %}wr-good{% elif p.winrate >= 48 %}wr-ok{% else %}wr-bad{% endif %}">{{ p.winrate }}%</span>
     {% else %}<span class="muted-2">-</span>{% endif %}
   </td>
-  <td class="muted">{% if p.equipo_liga %}<a href="{% url 'equipo' p.display_team %}" class="muted">{{ p.display_team }}</a>{% else %}{{ p.display_team }}{% endif %}</td>
+  <td class="muted">{% if p.equipo_liga %}<a href="{% url 'equipo' p.display_team %}" class="muted eq-ladder">{% escudo p.display_team %}{{ p.display_team }}</a>{% else %}{{ p.display_team }}{% endif %}</td>
   <td>
     {% if p.display_rol %}
     {% rol p.display_rol %}

@@ -1,9 +1,13 @@
-"""Filtros de plantilla de KBStats: iconos del juego, notas, nombres y roles."""
+"""Filtros de plantilla de KBStats: iconos del juego, notas, nombres, roles y escudos de equipo."""
+from functools import lru_cache
 from urllib.parse import quote
 
 from django import template
 from django.conf import settings
+from django.contrib.staticfiles import finders
 from django.templatetags.static import static
+from django.utils.html import format_html
+from django.utils.text import slugify
 
 from KBStats.Cinturones.ddragon import HECHIZOS, OBJETOS_RETIRADOS, RUNAS
 from KBStats.Cinturones.scoring import color_nota
@@ -11,6 +15,35 @@ from KBStats.Cinturones.scoring import color_nota
 register = template.Library()
 
 DDRAGON = 'https://ddragon.leagueoflegends.com/cdn'
+
+
+def iniciales_equipo(nombre):
+    """'KB KAIJU' → 'KAI'; 'Team Rocket' → 'TR'."""
+    palabras = [p for p in (nombre or '').split() if p.upper() != 'KB']
+    if not palabras:
+        return (nombre or '?')[:3].upper()
+    if len(palabras) == 1:
+        return palabras[0][:3].upper()
+    return ''.join(p[0] for p in palabras[:3]).upper()
+
+
+@lru_cache(maxsize=None)
+def logo_equipo(nombre):
+    """URL del logo del equipo (static/img/equipos/<nombre en slug>.webp, p. ej. 'Ryūjin' → ryujin.webp) o '' si no tiene."""
+    slug = slugify(nombre or '')
+    ruta = f'img/equipos/{slug}.webp'
+    return static(ruta) if slug and finders.find(ruta) else ''
+
+
+@register.simple_tag
+def escudo(nombre, clase='', estilo=''):
+    """Logo del equipo si lo tiene; si no, el cuadrado con sus iniciales. clase: 'l' para el grande."""
+    logo = logo_equipo(nombre)
+    clases = ' '.join(c for c in ('equipo-ini', 'logo' if logo else '', clase) if c)
+    attr_estilo = format_html(' style="{}"', estilo) if estilo else ''
+    if logo:
+        return format_html('<img class="{}" src="{}" alt=""{}>', clases, logo, attr_estilo)
+    return format_html('<span class="{}"{}>{}</span>', clases, attr_estilo, iniciales_equipo(nombre))
 
 
 @register.filter

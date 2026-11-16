@@ -38,7 +38,23 @@ class Command(BaseCommand):
             else:
                 self.stdout.write(f"  Sin archivo de partidas ({t['partidas'] or '—'}) todavía.")
 
+        # Temporadas que ya no están en temporadas.csv (p. ej. renombradas): se borran si se han quedado sin partidas
+        slugs = {t['slug'] for t in config}
+        for vieja in Temporada.objects.exclude(slug__in=slugs):
+            if vieja.partidas.exists():
+                self.stdout.write(self.style.WARNING(
+                    f'«{vieja.nombre}» ({vieja.slug}) no está en temporadas.csv pero tiene partidas: se deja.'))
+            else:
+                vieja.delete()
+                self.stdout.write(f'«{vieja.nombre}» ({vieja.slug}) ya no está en temporadas.csv: borrada.')
+
         sueltas = Partida.objects.filter(temporada__isnull=True).count()
         if sueltas:
             self.stdout.write(self.style.WARNING(
                 f'{sueltas} partidas no están en ningún archivo de temporada y no saldrán en la web.'))
+
+        # Los jugadores nuevos entran en el ladder de SoloQ (sus rangos se piden a Riot al abrir /ladder/)
+        from KBStats.Kblix.views import importar_jugadores_al_ladder
+        nuevos = importar_jugadores_al_ladder()
+        if nuevos:
+            self.stdout.write(f'Ladder: {nuevos} jugadores nuevos.')

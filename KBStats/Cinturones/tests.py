@@ -223,3 +223,39 @@ class TemporadasTests(TestCase):
         orden = sorted(['FINAL', 'SUIZO 2', '10', 'PLAYOFFS SEMIFINAL', '2', 'PLAYOFFS CUARTOS', 'SUIZO 1'], key=orden_jornada)
         self.assertEqual(orden, ['2', '10', 'SUIZO 1', 'SUIZO 2', 'PLAYOFFS CUARTOS', 'PLAYOFFS SEMIFINAL', 'FINAL'])
         self.assertEqual([jornada_txt(j) for j in ('SUIZO 1', 'PLAYOFFS CUARTOS', 'FINAL')], ['Suizo 1', 'Cuartos', 'Final'])
+
+    def test_ladder_solo_con_jugadores_de_la_temporada_actual(self):
+        from django.utils import timezone
+        from KBStats.Kblix.models import LadderPlayer, LadderUpdateState
+        from KBStats.Kblix.views import importar_jugadores_al_ladder
+        LadderUpdateState.objects.update_or_create(pk=1, defaults={'last_update': timezone.now()})   # que no llame a Riot
+        # Un jugador que solo jugó la temporada 1 (no la actual)
+        viejo = Jugador.objects.create(nombre='Viejo#OLD')
+        StatsJugador.objects.create(partida=self.p1, jugador=viejo, campeon='Ashe', rol='ADC', equipo_nombre='KB AZUL')
+        LadderPlayer.objects.create(nombre='Viejo#OLD', riot_id='Viejo#OLD', tier='CHALLENGER')
+        LadderPlayer.objects.create(nombre='Juga0#TST', riot_id='Juga0#TST', tier='GOLD', rank='I', equipo='KB VIEJO')
+        LadderPlayer.objects.create(nombre='Ajeno#OLD', riot_id='Ajeno#OLD', tier='MASTER')
+
+        # Aunque se esté viendo la temporada 1, el ladder es de la actual (la 2)
+        r = self.client.get(reverse('ladder'), {'temporada': 't1'})
+        self.assertEqual([p.nombre for p in r.context['players']], ['Juga0#TST'])
+        # Con el equipo que tiene en la temporada, no el guardado en el ladder
+        self.assertEqual(r.context['players'][0].display_team, 'KB AZUL')
+        self.assertEqual(r.context['all_teams'], ['KB AZUL', 'KB ROJO'])
+        self.assertContains(r, 'Jugadores de Temporada 2')
+        r = self.client.get(reverse('index'))
+        self.assertEqual([f['p'].nombre for f in r.context['ladder']], ['Juga0#TST'])
+        # En el perfil, el rango de SoloQ solo sale a los de la temporada actual
+        self.assertIsNone(self.client.get(reverse('jugador', args=['Viejo#OLD'])).context['ladder'])
+        self.assertEqual(self.client.get(reverse('jugador', args=['Juga0#TST'])).context['ladder'].tier, 'GOLD')
+        # Al importar al ladder, solo entran los de la temporada actual
+        LadderPlayer.objects.all().delete()
+        self.assertEqual(importar_jugadores_al_ladder(), 10)
+        self.assertFalse(LadderPlayer.objects.filter(nombre='Viejo#OLD').exists())
+
+class EscudoTests(TestCase):
+    def test_logo_si_lo_tiene_y_si_no_iniciales(self):
+        from .templatetags.kb import escudo
+        self.assertIn('img/equipos/ryujin.webp', escudo('Ryūjin', 'l'))
+        self.assertIn('class="equipo-ini logo l"', escudo('Ryūjin', 'l'))
+        self.assertEqual(escudo('KB TORA'), '<span class="equipo-ini">TOR</span>')

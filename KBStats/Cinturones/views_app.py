@@ -11,21 +11,11 @@ from django.urls import reverse
 from . import scoring
 from .models import Equipo, Jugador, Partida, StatsJugador, Temporada
 from .temporadas import temporada_de
-from .templatetags.kb import icono_campeon, icono_perfil, jornada_txt, nota_clase, rol_corto
+from .templatetags.kb import icono_campeon, icono_perfil, iniciales_equipo, jornada_txt, logo_equipo, nota_clase, rol_corto
 from .views import calcular_clasificacion, orden_partida, partidas_de
 
 
 # ─────────────────────────── utilidades ───────────────────────────
-
-def iniciales_equipo(nombre):
-    """'KB KAIJU' → 'KAI'; 'Team Rocket' → 'TR'."""
-    palabras = [p for p in (nombre or '').split() if p.upper() != 'KB']
-    if not palabras:
-        return (nombre or '?')[:3].upper()
-    if len(palabras) == 1:
-        return palabras[0][:3].upper()
-    return ''.join(p[0] for p in palabras[:3]).upper()
-
 
 def _ladder(nombres):
     """Rango de SoloQ de cada jugador, si está en el ladder."""
@@ -113,11 +103,17 @@ def inicio(request):
     for jid, c in _campeones_favoritos(todas).items():
         campeon_fav[jid] = c
 
+    # Ladder de SoloQ: siempre los jugadores de la temporada actual (los de otras temporadas no cuentan)
     ladder = []
     try:
         from KBStats.Kblix.models import LadderPlayer
+        from KBStats.Kblix.views import equipos_en_temporada, temporada_actual
+        actual = temporada_actual()
+        jugadores_ladder = LadderPlayer.objects.exclude(riot_id='').exclude(tier='').exclude(tier='UNRANKED')
+        if actual:
+            jugadores_ladder = jugadores_ladder.filter(nombre__in=list(equipos_en_temporada(actual)))
         jugadores_ladder = sorted(
-            LadderPlayer.objects.exclude(riot_id='').exclude(tier='').exclude(tier='UNRANKED'),
+            jugadores_ladder,
             key=lambda p: -p.rank_score,
         )[:6]
         con_stats = set(Jugador.objects.filter(nombre__in=[p.nombre for p in jugadores_ladder]).values_list('nombre', flat=True))
@@ -195,7 +191,7 @@ def buscar(request):
             if not n:
                 continue
             equipos.append({
-                'nombre': e.nombre, 'ini': iniciales_equipo(e.nombre),
+                'nombre': e.nombre, 'ini': iniciales_equipo(e.nombre), 'logo': logo_equipo(e.nombre),
                 'sub': f'{n} partida{"s" if n != 1 else ""}',
                 'url': reverse('equipo', args=[e.nombre]),
             })
@@ -326,7 +322,13 @@ def jugador(request, nombre):
     equipo_actual = propias[-1].equipo_nombre if propias else ''
     ultimo_extra = (propias[-1].riot_extra or {}) if propias else {}
     nombre_juego, _, tag = j.nombre.partition('#')
-    ladder = _ladder([j.nombre]).get(j.nombre)
+    # Rango de SoloQ: solo se sigue a los jugadores de la temporada actual; a los demás no se les actualiza
+    try:
+        from KBStats.Kblix.views import equipos_en_temporada, temporada_actual
+        actual = temporada_actual()
+        ladder = _ladder([j.nombre]).get(j.nombre) if not actual or j.nombre in equipos_en_temporada(actual) else None
+    except ImportError:
+        ladder = None
 
     return render(request, 'Cinturones/jugador.html', {
         'j': j, 'nombre_juego': nombre_juego, 'tag': f'#{tag}' if tag else '',

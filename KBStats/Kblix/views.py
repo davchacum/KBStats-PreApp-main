@@ -219,7 +219,12 @@ def _run_ladder_update():
         api_key = _get_api_key()
         print(f'[Ladder] API key: {"OK (" + str(len(api_key)) + " chars)" if api_key else "⚠ NO CONFIGURADA"}', flush=True)
 
-        players = list(LadderPlayer.objects.filter(riot_id__isnull=False).exclude(riot_id=''))
+        players = LadderPlayer.objects.filter(riot_id__isnull=False).exclude(riot_id='')
+        # Solo los jugadores de la temporada actual: los de otras temporadas no salen en el ladder
+        temporada = temporada_actual()
+        if temporada:
+            players = players.filter(nombre__in=list(equipos_en_temporada(temporada)))
+        players = list(players)
         total_en_bd = LadderPlayer.objects.count()
         print(f'[Ladder] {len(players)} jugadores con riot_id (de {total_en_bd} en total).', flush=True)
 
@@ -274,9 +279,34 @@ _SORT_KEYS = {
 }
 
 
-def _build_players(equipo_filter, rol_filter, sort, sort_dir):
-    """Lógica compartida entre ladder() y ladder_partial()."""
+def temporada_actual():
+    """La temporada más reciente con partidas. El ladder es solo de sus jugadores (los de otras temporadas no cuentan)."""
+    try:
+        from KBStats.Cinturones.temporadas import temporadas_con_partidas
+        recientes = temporadas_con_partidas()
+    except Exception:
+        return None
+    return recientes[0] if recientes else None
+
+
+def equipos_en_temporada(temporada):
+    """{jugador: su equipo en la temporada (el de su última partida en ella)} de todos los que la han jugado."""
+    from KBStats.Cinturones.models import StatsJugador
+    from KBStats.Cinturones.views import orden_partida
+    stats = StatsJugador.objects.filter(partida__temporada=temporada).select_related('jugador', 'partida__temporada')
+    equipos = {}
+    for s in sorted(stats, key=lambda s: orden_partida(s.partida)):
+        equipos[s.jugador.nombre] = s.equipo_nombre or equipos.get(s.jugador.nombre, '')
+    return equipos
+
+
+def _build_players(equipo_filter, rol_filter, sort, sort_dir, temporada=None):
+    """Lógica compartida entre ladder() y ladder_partial(). Con temporada, solo los jugadores que la han jugado
+    y con el equipo que tenían en ella."""
     qs = LadderPlayer.objects.filter(riot_id__isnull=False).exclude(riot_id='')
+    equipos_temp = equipos_en_temporada(temporada) if temporada else {}
+    if temporada:
+        qs = qs.filter(nombre__in=list(equipos_temp))
     if rol_filter:
         qs = qs.filter(rol=rol_filter)
 
@@ -298,7 +328,7 @@ def _build_players(equipo_filter, rol_filter, sort, sort_dir):
 
     for p in players:
         sd = stats_data.get(p.nombre, {})
-        p.display_team = p.equipo or sd.get('last_team') or '—'
+        p.display_team = equipos_temp.get(p.nombre) or p.equipo or sd.get('last_team') or '—'
         p.display_rol  = p.rol or sd.get('most_common_role') or ''
         p.total_games  = p.wins + p.losses
         p.tiene_perfil = p.nombre in con_perfil
@@ -324,17 +354,21 @@ def ladder(request):
     sort          = request.GET.get('sort', 'rank')
     sort_dir      = request.GET.get('dir', 'desc')
 
-    players = _build_players(equipo_filter, rol_filter, sort, sort_dir)
+    temporada = temporada_actual()   # siempre la actual, aunque se esté viendo otra temporada
+    players = _build_players(equipo_filter, rol_filter, sort, sort_dir, temporada)
 
-    # Equipos únicos para el selector de filtro (calculados sobre todos los jugadores)
-    all_player_nombres = list(LadderPlayer.objects.filter(riot_id__isnull=False).exclude(riot_id='').values_list('nombre', flat=True))
-    all_stats_data = _get_stats_data(all_player_nombres)
-    equipo_set = set()
-    for ap in LadderPlayer.objects.filter(riot_id__isnull=False).exclude(riot_id=''):
-        t = ap.equipo or all_stats_data.get(ap.nombre, {}).get('last_team') or ''
-        if t:
-            equipo_set.add(t)
-    all_teams = sorted(equipo_set)
+    # Equipos para el selector de filtro: los de la temporada actual (o, sin temporadas, los de todos los jugadores)
+    if temporada:
+        all_teams = sorted({e for e in equipos_en_temporada(temporada).values() if e})
+    else:
+        all_player_nombres = list(LadderPlayer.objects.filter(riot_id__isnull=False).exclude(riot_id='').values_list('nombre', flat=True))
+        all_stats_data = _get_stats_data(all_player_nombres)
+        equipo_set = set()
+        for ap in LadderPlayer.objects.filter(riot_id__isnull=False).exclude(riot_id=''):
+            t = ap.equipo or all_stats_data.get(ap.nombre, {}).get('last_team') or ''
+            if t:
+                equipo_set.add(t)
+        all_teams = sorted(equipo_set)
 
     return render(request, 'Kblix/ladder.html', {
         'players':        players,
@@ -345,6 +379,7 @@ def ladder(request):
         'sort':           sort,
         'sort_dir':       sort_dir,
         'rol_choices':    ROL_CHOICES,
+        'temporada_ladder': temporada,
     })
 
 
@@ -364,7 +399,7 @@ def ladder_partial(request):
     rol_filter    = request.GET.get('rol', '')
     sort          = request.GET.get('sort', 'rank')
     sort_dir      = request.GET.get('dir', 'desc')
-    players       = _build_players(equipo_filter, rol_filter, sort, sort_dir)
+    players       = _build_players(equipo_filter, rol_filter, sort, sort_dir, temporada_actual())
     return render(request, 'Kblix/_ladder_rows.html', {'players': players})
 
 
@@ -510,12 +545,24 @@ def ladder_sync_riot_ids(request):
 @require_POST
 def ladder_import_from_stats(request):
     """Crea LadderPlayer para todos los Jugador de Cinturones que no estén ya en el ladder."""
+    importar_jugadores_al_ladder()
+    return redirect('ladder_config')
+
+
+def importar_jugadores_al_ladder():
+    """Crea LadderPlayer para los jugadores de la temporada actual que aún no están en el ladder (los de otras
+    temporadas no cuentan). Devuelve cuántos ha creado. Lo usan el botón de ladder_config y `seed_temporadas`
+    (así los jugadores de una temporada nueva entran solos)."""
     from KBStats.Cinturones.models import Jugador as StatJugador, StatsJugador
 
     existing = set(LadderPlayer.objects.values_list('nombre', flat=True))
     to_create = []
+    candidatos = StatJugador.objects.select_related('equipo')
+    temporada = temporada_actual()
+    if temporada:
+        candidatos = candidatos.filter(nombre__in=list(equipos_en_temporada(temporada)))
 
-    for jugador in StatJugador.objects.select_related('equipo').all():
+    for jugador in candidatos:
         if jugador.nombre in existing:
             continue
 
@@ -538,8 +585,7 @@ def ladder_import_from_stats(request):
     if to_create:
         LadderPlayer.objects.bulk_create(to_create, ignore_conflicts=True)
         print(f'[Ladder] Importados {len(to_create)} jugadores desde estadísticas.', flush=True)
-
-    return redirect('ladder_config')
+    return len(to_create)
 
 
 @_superuser_required

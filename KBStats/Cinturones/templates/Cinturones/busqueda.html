@@ -38,7 +38,7 @@
         <tbody>
           {% for e in equipos %}
           <tr data-href="{{ e.url }}">
-            <td><a class="jug" href="{{ e.url }}"><span class="equipo-ini">{{ e.ini }}</span><span class="nom">{{ e.nombre }}</span></a></td>
+            <td><a class="jug" href="{{ e.url }}">{% escudo e.nombre %}<span class="nom">{{ e.nombre }}</span></a></td>
             <td class="r muted">{{ e.sub }}</td>
           </tr>
           {% empty %}
