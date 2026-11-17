@@ -128,16 +128,33 @@ class PaginasTests(TestCase):
         self.assertEqual((r.context['ranking'], r.context['minimo']), ([], 2))
         self.assertEqual(self.client.get(url, {'min': 'x'}).context['minimo'], 1)
 
-    def test_tier_list_por_jornada_usa_la_nota_de_la_jornada(self):
+    def test_tier_list_media_de_partidas_con_penalizacion_por_jornadas(self):
+        # Dos jornadas; en la 2, un suplente juega en lugar de Juga0
+        p2 = crear_partida('EUW1_J2', jornada='2')
+        sub = Jugador.objects.create(nombre='Sub#TST')
+        p2.stats_jugadores.filter(jugador__nombre='Juga0#TST').update(jugador=sub)
+        todas = StatsJugador.objects.select_related('jugador')
+        res = scoring.puntuar_stats(list(todas))
+        nota_de = {(s.jugador.nombre, s.partida.jornada): res[s.id]['nota'] for s in todas.select_related('partida')}
+
         url = reverse('tier_list')
-        notas = {s.jugador.nombre: r['nota'] for s, r in
-                 ((s, scoring.puntuar_stats(self.p.stats_jugadores.all())[s.id]) for s in self.p.stats_jugadores.select_related('jugador'))}
-        # Toda la temporada: con 1 partida se mezcla con la media del rol, así que no es su nota tal cual
-        general = {f['jugador_nombre']: f['nota'] for f in self.client.get(url).context['ranking']}
-        self.assertNotEqual(general, notas)
-        # Una jornada: la nota de esa jornada
+        filas = {f['jugador_nombre']: f for f in self.client.get(url).context['ranking']}
+        # Quien juega las dos: su media, sin penalización
+        f = filas['Juga1#TST']
+        self.assertEqual((f['penalizacion'], f['nota']),
+                         (0, round((nota_de[('Juga1#TST', '1')] + nota_de[('Juga1#TST', '2')]) / 2, 1)))
+        # Quien juega 1 de 2: su nota menos 30 × 1/2
+        for nombre, jornada in (('Juga0#TST', '1'), ('Sub#TST', '2')):
+            f = filas[nombre]
+            self.assertEqual((f['jornadas'], f['jornadas_equipo'], f['penalizacion']), (1, 2, 15.0))
+            self.assertEqual(f['nota'], round(nota_de[(nombre, jornada)] - 15, 1))
+        # Nunca por encima de su media
+        self.assertTrue(all(f['nota'] <= f['media'] for f in filas.values()))
+
+        # Viendo una jornada, la nota es la de esa jornada
         r = self.client.get(url, {'jornada': '1'})
-        self.assertEqual({f['jugador_nombre']: f['nota'] for f in r.context['ranking']}, notas)
+        self.assertEqual({f['jugador_nombre']: f['nota'] for f in r.context['ranking']},
+                         {n: round(v, 1) for (n, j), v in nota_de.items() if j == '1'})
         self.assertContains(r, 'nota en Jornada 1')
 
     def test_tier_list_mas_mvp_y_ace(self):

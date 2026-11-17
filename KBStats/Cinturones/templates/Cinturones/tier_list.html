@@ -46,7 +46,7 @@
 <div class="page-head">
   <div>
     <h1>Tier list</h1>
-    <p>{{ total_jugadores }} jugadores · {% if jornada %}nota en {{ jornada|jornada_txt:True }}{% else %}nota media en su rol principal{% endif %}</p>
+    <p>{{ total_jugadores }} jugadores · {% if jornada %}nota en {{ jornada|jornada_txt:True }}{% else %}media de sus partidas{% endif %}</p>
   </div>
   <form class="acciones" method="get" id="filtros">
     <select class="sel" name="jornada" aria-label="Jornada" data-auto>
@@ -59,7 +59,7 @@
       {% for n in numeros_disponibles %}<option value="{{ n }}" {% if numero_partida|stringformat:"s" == n|stringformat:"s" %}selected{% endif %}>Game {{ n }}</option>{% endfor %}
     </select>
     {% endif %}
-    <select class="sel" name="min" aria-label="Mínimo de partidas en su rol" title="Partidas en su rol principal" data-auto>
+    <select class="sel" name="min" aria-label="Mínimo de partidas jugadas" title="Partidas jugadas" data-auto>
       {% for n in minimos %}<option value="{{ n }}" {% if minimo == n %}selected{% endif %}>Mín. {{ n }} partida{{ n|pluralize }}</option>{% endfor %}
     </select>
     <button type="button" class="btn-ico" id="abrir-metodo">Cómo se calcula</button>
@@ -83,7 +83,7 @@
           {% for col in t.roles %}
           <td>
             {% for j in col.jugadores %}
-            <a class="chip-j" href="{% url 'jugador' j.jugador_nombre %}" title="{{ j.jugador_nombre }} · {{ j.equipo }} · {{ j.partidas }} partida{{ j.partidas|pluralize }} · {{ j.winrate }}% WR">
+            <a class="chip-j" href="{% url 'jugador' j.jugador_nombre %}" title="{{ j.jugador_nombre }} · {{ j.equipo }} · {{ j.partidas }} partida{{ j.partidas|pluralize }} · {{ j.winrate }}% WR{% if j.penalizacion %} · media {{ j.media }}, −{{ j.penalizacion }} por jugar {{ j.jornadas }} de {{ j.jornadas_equipo }} jornadas{% endif %}">
               {% if j.perfil is not None %}<img class="camp s" src="{{ j.perfil|icono_perfil }}" alt="" loading="lazy">{% elif j.campeon_fav %}<img class="camp s" src="{{ j.campeon_fav|icono_campeon }}" alt="" loading="lazy">{% endif %}
               <span class="n">{{ j.jugador_nombre|nombre_juego }}</span>
               <span class="p">{{ j.partidas }}P</span>
@@ -161,7 +161,7 @@
           </td>
           <td class="c">{% rol f.rol %}</td>
           <td class="c"><span class="tier tier-{{ f.tier|tier_clase }}">{{ f.tier }}</span></td>
-          <td class="c"><span class="nota {{ f.nota|nota_clase }}" title="Media de sus partidas: {{ f.media }}">{{ f.nota|floatformat:1 }}</span></td>
+          <td class="c"><span class="nota {{ f.nota|nota_clase }}" title="Media de sus partidas: {{ f.media }}{% if f.penalizacion %} · −{{ f.penalizacion }} por jugar {{ f.jornadas }} de {{ f.jornadas_equipo }} jornadas de su equipo{% endif %}">{{ f.nota|floatformat:1 }}</span></td>
           <td class="c">{{ f.partidas }}</td>
           <td class="c {% if f.winrate >= 60 %}txt-bien{% elif f.winrate < 40 %}txt-mal{% endif %}">{{ f.winrate }}%</td>
           <td class="c">{{ f.kda|floatformat:2 }}</td>
@@ -190,7 +190,7 @@
       <h3>Qué es</h3>
       <p>
         Cada partida da a cada jugador una nota de 0 a 100 según sus estadísticas, repartidas en 5 bloques de puntos.
-        La nota de la tier list es la media de sus partidas en su rol principal.
+        La nota de la tier list es la media de todas sus partidas, y sale en la columna del rol que más ha jugado.
       </p>
 
       <h3>Los 5 bloques de puntos</h3>
@@ -226,9 +226,9 @@
 
       <h3>Tiers</h3>
       <p>
-        Con pocas partidas la media es poco fiable, así que se mezcla con la media del rol como si el jugador tuviera dos partidas más
-        «normales»: con 1 partida su propia nota cuenta un tercio y con 6, tres cuartos. Al elegir una jornada no se mezcla:
-        sale la nota que sacó en esa jornada (la media, si jugó más de un game). Los cortes son:
+        Si no ha jugado todas las jornadas de su equipo, se le resta una <b>penalización</b> proporcional a las que faltó, de
+        hasta 30 puntos: faltar a 1 de 6 jornadas resta 5 y jugar solo 1 de 6 resta 25. Solo resta, así que la nota nunca pasa de su
+        media. Al elegir una jornada sale la nota que sacó en ella. Los cortes son:
         {% for c in cortes %}<span class="tier tier-{{ c.tier|tier_clase }}" style="margin:0 2px;">{{ c.tier }}</span> desde {{ c.desde }}{% if not forloop.last %} · {% endif %}{% endfor %}
         · <span class="tier tier-D">D</span> por debajo.
       </p>

@@ -989,11 +989,11 @@ def tier_list(request):
 	# Cada partida se puntúa con sus 10 jugadores (hace falta el rival de cada uno)
 	todas = list(StatsJugador.objects.filter(partida_id__in={s.partida_id for s in stats}).select_related('jugador'))
 	resultados = scoring.puntuar_stats(todas)
-	# Viendo una jornada, la nota es la de esa jornada (sin mezclar con la media del rol)
-	ranking = scoring.ranking_jugadores(stats, resultados, contraer=not jornada)
+	# Media por jornadas con penalización si faltó a jornadas de su equipo. Viendo una sola jornada
+	# no hay penalización (o la jugó o no sale), así que la nota es la de esa jornada.
+	ranking = scoring.ranking_jugadores(stats, resultados)
 
-	# Mínimo de partidas en su rol principal (las de la nota). Se filtra después de puntuar
-	# para que la media del rol, que usa la contracción, no cambie al ocultar jugadores.
+	# Mínimo de partidas jugadas. Se filtra después de puntuar, para que ocultar jugadores no cambie nada.
 	try:
 		minimo = max(1, int(request.GET.get('min') or 1))
 	except ValueError:

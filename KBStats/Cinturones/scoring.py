@@ -331,7 +331,7 @@ def puntuar_partida(partida):
 
 # Cortes de cada tier por decenas de nota: S+ desde 90, S desde 80, A desde 70, B desde 60, C desde 50
 TIERS = (('S+', 90), ('S', 80), ('A', 70), ('B', 60), ('C', 50))   # por debajo: D
-PARTIDAS_PRIOR = 2.0   # peso de la media del rol para jugadores con pocas partidas
+PENALIZACION_MAX = 30.0   # lo que se resta a quien no juega ninguna jornada de su equipo (proporcional a las que falta)
 
 
 def tier_de(nota):
@@ -341,74 +341,88 @@ def tier_de(nota):
     return 'D'
 
 
-def ranking_jugadores(stats, resultados=None, contraer=True):
+def ranking_jugadores(stats, resultados=None):
     """
-    Agrega las notas por jugador en su rol principal.
-    Devuelve una lista de dicts ordenada por nota, con tier, partidas, victorias, MVP/ACE y
-    los puntos medios de cada bloque.
+    Nota de cada jugador para la tier list, ordenada de mejor a peor, con tier, partidas, victorias,
+    MVP/ACE y los puntos medios de cada bloque.
 
-    Con pocas partidas la media es poco fiable, así que se mezcla con la media del rol como si
-    el jugador tuviera PARTIDAS_PRIOR partidas más «normales». Con 1 partida su nota cuenta un
-    tercio; con 6, tres cuartos. Con contraer=False no se mezcla y la nota es la media tal cual
-    (p. ej. al ver una sola jornada, donde se quiere la nota de esa jornada).
+      · Media: la de las notas de todas sus partidas (así nunca pasa de su media de partidas, también
+        cuando una jornada tiene varios games). El rol solo dice en qué columna sale (el que más ha jugado).
+      · Penalización si ha jugado menos: se resta PENALIZACION_MAX × jornadas de su equipo que no
+        jugó / jornadas de su equipo. Faltar a 1 de 6 resta 5; jugar solo 1 de 6 resta 25.
+        Solo resta, así que la nota nunca pasa de su media.
     """
+    from .models import Partida
+    from .views import orden_jornada
+
     stats = list(stats)
     if resultados is None:
         resultados = puntuar_stats(stats)
+    stats = [s for s in stats if s.id in resultados]
 
+    jornada_de = {pid: (temporada, jornada) for pid, temporada, jornada in
+                  Partida.objects.filter(id__in={s.partida_id for s in stats}).values_list('id', 'temporada_id', 'jornada')}
+    jornadas_equipo = defaultdict(set)
     por_jugador = defaultdict(list)
     for s in stats:
-        if s.id in resultados:
-            por_jugador[s.jugador_id].append(s)
+        jornadas_equipo[s.equipo_nombre].add(jornada_de[s.partida_id])
+        por_jugador[s.jugador_id].append(s)
 
-    # Rol principal: el más jugado
+    def cronologico(s):
+        temporada, jornada = jornada_de[s.partida_id]
+        return (temporada or 0, orden_jornada(jornada), s.partida_id)
+
     filas = []
     for jid, lista in por_jugador.items():
+        lista.sort(key=cronologico)
         conteo = defaultdict(int)
         for s in lista:
             conteo[(s.rol or '').upper()] += 1
         rol = max(conteo, key=lambda r: (conteo[r], r in ROLES))
-        del_rol = [s for s in lista if (s.rol or '').upper() == rol]
-        notas = [resultados[s.id]['nota'] for s in del_rol]
+
+        notas = [resultados[s.id]['nota'] for s in lista]
+        media = sum(notas) / len(notas)
+        por_jornada = {jornada_de[s.partida_id] for s in lista}
+
+        equipo = lista[-1].equipo_nombre
+        del_equipo = jornadas_equipo.get(equipo) or set(por_jornada)
+        faltan = len(del_equipo - set(por_jornada))
+        penalizacion = PENALIZACION_MAX * faltan / len(del_equipo)
+
         bloques = defaultdict(float)
-        for s in del_rol:
+        for s in lista:
             for b in resultados[s.id]['bloques']:
-                bloques[b['clave']] += b['puntos'] / len(del_rol)
+                bloques[b['clave']] += b['puntos'] / len(lista)
+        nota = round(max(0.0, media - penalizacion), 1)
+        k = sum(s.kills or 0 for s in lista)
+        m = sum(s.muertes or 0 for s in lista)
+        a = sum(s.asistencias or 0 for s in lista)
+        victorias = sum(1 for s in lista if s.victoria)
         filas.append({
             'jugador_id': jid,
             'jugador_nombre': lista[0].jugador.nombre,
-            'equipo': lista[-1].equipo_nombre,
+            'equipo': equipo,
             'rol': rol,
-            'partidas': len(del_rol),
+            'partidas': len(lista),
             'partidas_total': len(lista),
-            'victorias': sum(1 for s in del_rol if s.victoria),
-            'mvp': sum(1 for s in del_rol if resultados[s.id].get('insignia') == 'MVP'),
-            'ace': sum(1 for s in del_rol if resultados[s.id].get('insignia') == 'ACE'),
-            'media': sum(notas) / len(notas),
+            'jornadas': len(por_jornada),
+            'jornadas_equipo': len(del_equipo),
+            'penalizacion': round(penalizacion, 1),
+            'media': round(media, 1),
+            'nota': nota,
+            'tier': tier_de(nota),
+            'victorias': victorias,
+            'winrate': round(100 * victorias / len(lista)),
+            'mvp': sum(1 for s in lista if resultados[s.id].get('insignia') == 'MVP'),
+            'ace': sum(1 for s in lista if resultados[s.id].get('insignia') == 'ACE'),
             'mejor': max(notas),
-            'bloques': {k: round(v, 1) for k, v in bloques.items()},
-            'kills': sum(s.kills or 0 for s in del_rol),
-            'muertes': sum(s.muertes or 0 for s in del_rol),
-            'asistencias': sum(s.asistencias or 0 for s in del_rol),
-            'campeones': sorted({s.campeon for s in del_rol if s.campeon}),
-            'perfil': next(((s.riot_extra or {}).get('profileIcon') for s in sorted(lista, key=lambda x: -x.partida_id)
+            'bloques': {c: round(v, 1) for c, v in bloques.items()},
+            'kills': k, 'muertes': m, 'asistencias': a,
+            'kda': round((k + a) / m, 2) if m else float(k + a),
+            'campeones': sorted({s.campeon for s in lista if s.campeon}),
+            'perfil': next(((s.riot_extra or {}).get('profileIcon') for s in reversed(lista)
                             if (s.riot_extra or {}).get('profileIcon') is not None), None),
         })
-
-    medias_rol = defaultdict(list)
-    for f in filas:
-        medias_rol[f['rol']].append(f['media'])
-    media_de_rol = {r: sum(v) / len(v) for r, v in medias_rol.items()}
-
-    for f in filas:
-        prior = media_de_rol.get(f['rol'], f['media'])
-        peso = PARTIDAS_PRIOR if contraer else 0
-        f['nota'] = round((f['media'] * f['partidas'] + prior * peso) / (f['partidas'] + peso), 1)
-        f['media'] = round(f['media'], 1)
-        f['tier'] = tier_de(f['nota'])
-        f['winrate'] = round(100 * f['victorias'] / f['partidas']) if f['partidas'] else 0
-        m = f['muertes']
-        f['kda'] = round((f['kills'] + f['asistencias']) / m, 2) if m else float(f['kills'] + f['asistencias'])
     filas.sort(key=lambda f: -f['nota'])
     return filas
 
