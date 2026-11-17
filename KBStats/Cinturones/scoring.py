@@ -341,7 +341,7 @@ def tier_de(nota):
     return 'D'
 
 
-def ranking_jugadores(stats, resultados=None):
+def ranking_jugadores(stats, resultados=None, contraer=True):
     """
     Agrega las notas por jugador en su rol principal.
     Devuelve una lista de dicts ordenada por nota, con tier, partidas, victorias, MVP/ACE y
@@ -349,7 +349,8 @@ def ranking_jugadores(stats, resultados=None):
 
     Con pocas partidas la media es poco fiable, así que se mezcla con la media del rol como si
     el jugador tuviera PARTIDAS_PRIOR partidas más «normales». Con 1 partida su nota cuenta un
-    tercio; con 6, tres cuartos.
+    tercio; con 6, tres cuartos. Con contraer=False no se mezcla y la nota es la media tal cual
+    (p. ej. al ver una sola jornada, donde se quiere la nota de esa jornada).
     """
     stats = list(stats)
     if resultados is None:
@@ -401,7 +402,8 @@ def ranking_jugadores(stats, resultados=None):
 
     for f in filas:
         prior = media_de_rol.get(f['rol'], f['media'])
-        f['nota'] = round((f['media'] * f['partidas'] + prior * PARTIDAS_PRIOR) / (f['partidas'] + PARTIDAS_PRIOR), 1)
+        peso = PARTIDAS_PRIOR if contraer else 0
+        f['nota'] = round((f['media'] * f['partidas'] + prior * peso) / (f['partidas'] + peso), 1)
         f['media'] = round(f['media'], 1)
         f['tier'] = tier_de(f['nota'])
         f['winrate'] = round(100 * f['victorias'] / f['partidas']) if f['partidas'] else 0

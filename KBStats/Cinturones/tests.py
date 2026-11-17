@@ -128,6 +128,18 @@ class PaginasTests(TestCase):
         self.assertEqual((r.context['ranking'], r.context['minimo']), ([], 2))
         self.assertEqual(self.client.get(url, {'min': 'x'}).context['minimo'], 1)
 
+    def test_tier_list_por_jornada_usa_la_nota_de_la_jornada(self):
+        url = reverse('tier_list')
+        notas = {s.jugador.nombre: r['nota'] for s, r in
+                 ((s, scoring.puntuar_stats(self.p.stats_jugadores.all())[s.id]) for s in self.p.stats_jugadores.select_related('jugador'))}
+        # Toda la temporada: con 1 partida se mezcla con la media del rol, así que no es su nota tal cual
+        general = {f['jugador_nombre']: f['nota'] for f in self.client.get(url).context['ranking']}
+        self.assertNotEqual(general, notas)
+        # Una jornada: la nota de esa jornada
+        r = self.client.get(url, {'jornada': '1'})
+        self.assertEqual({f['jugador_nombre']: f['nota'] for f in r.context['ranking']}, notas)
+        self.assertContains(r, 'nota en Jornada 1')
+
     def test_tier_list_mas_mvp_y_ace(self):
         premios = {p['clave']: p['filas'] for p in self.client.get(reverse('tier_list')).context['premios']}
         # Una partida: un MVP (equipo azul, que gana) y un ACE (equipo rojo)

@@ -46,7 +46,7 @@
 <div class="page-head">
   <div>
     <h1>Tier list</h1>
-    <p>{{ total_jugadores }} jugadores · nota media en su rol principal</p>
+    <p>{{ total_jugadores }} jugadores · {% if jornada %}nota en {{ jornada|jornada_txt:True }}{% else %}nota media en su rol principal{% endif %}</p>
   </div>
   <form class="acciones" method="get" id="filtros">
     <select class="sel" name="jornada" aria-label="Jornada" data-auto>
@@ -227,7 +227,8 @@
       <h3>Tiers</h3>
       <p>
         Con pocas partidas la media es poco fiable, así que se mezcla con la media del rol como si el jugador tuviera dos partidas más
-        «normales»: con 1 partida su propia nota cuenta un tercio y con 6, tres cuartos. Los cortes son:
+        «normales»: con 1 partida su propia nota cuenta un tercio y con 6, tres cuartos. Al elegir una jornada no se mezcla:
+        sale la nota que sacó en esa jornada (la media, si jugó más de un game). Los cortes son:
         {% for c in cortes %}<span class="tier tier-{{ c.tier|tier_clase }}" style="margin:0 2px;">{{ c.tier }}</span> desde {{ c.desde }}{% if not forloop.last %} · {% endif %}{% endfor %}
         · <span class="tier tier-D">D</span> por debajo.
       </p>
